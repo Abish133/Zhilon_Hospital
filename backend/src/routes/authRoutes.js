@@ -1,0 +1,17 @@
+const express = require('express');
+const AuthController = require('../controllers/AuthController');
+const authMiddleware = require('../middleware/auth');
+const { authorize, enforceHospitalScope } = require('../middleware/rbac');
+const { authLimiter } = require('../middleware/rateLimiter');
+const auditLogger = require('../middleware/auditLogger');
+const router = express.Router();
+
+router.post('/register', authLimiter, auditLogger('CREATE', 'User'), AuthController.register);
+router.post('/login', authLimiter, auditLogger('LOGIN', 'User'), AuthController.login);
+router.get('/profile', authMiddleware, AuthController.getProfile);
+router.get('/', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), AuthController.getAllUsers);
+router.get('/:id', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), AuthController.getUserById);
+router.put('/:id', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), auditLogger('UPDATE', 'User'), AuthController.updateUser);
+router.delete('/:id', authMiddleware, enforceHospitalScope, authorize('Admin'), auditLogger('DELETE', 'User'), AuthController.deleteUser);
+
+module.exports = router;

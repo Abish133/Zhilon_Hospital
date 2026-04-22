@@ -1,0 +1,208 @@
+.search-bar-container {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.search-bar-wrapper {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  flex-wrap: wrap;
+}
+
+.search-bar-input {
+  flex: 1;
+  min-width: 280px;
+  max-width: 100%;
+}
+
+.search-bar-input .ant-input-affix-wrapper {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border: 2px solid rgba(226, 232, 240, 0.8);
+  border-radius: 14px;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 10px 16px;
+  height: 48px;
+  outline: none !important;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08) !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper::before {
+  display: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper::after {
+  display: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.12);
+  transform: translateY(-1px);
+}
+
+.search-bar-input .ant-input-affix-wrapper-focused {
+  border-color: #8b5cf6 !important;
+  box-shadow: 0 6px 20px rgba(139, 92, 246, 0.15) !important;
+  background: rgba(255, 255, 255, 1);
+  outline: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper-focused::before {
+  display: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper-focused::after {
+  display: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper {
+  outline: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper:focus {
+  outline: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper:not(.ant-input-affix-wrapper-focused) {
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.08) !important;
+}
+
+/* Remove any inner border from Ant Design's internal structure */
+.search-bar-input .ant-input-affix-wrapper > * {
+  border: none !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+.search-bar-input .ant-input-affix-wrapper .ant-input-prefix,
+.search-bar-input .ant-input-affix-wrapper .ant-input-suffix {
+  border: none !important;
+  outline: none !important;
+}
+
+.search-bar-input .ant-input {
+  background: transparent;
+  border: none !important;
+  border-width: 0 !important;
+  font-size: 14px;
+  font-weight: 500;
+  color: #0f172a;
+  padding: 0;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.search-bar-input .ant-input::before {
+  display: none !important;
+}
+
+.search-bar-input .ant-input::after {
+  display: none !important;
+}
+
+.search-bar-input .ant-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+.search-bar-input .ant-input:focus {
+  box-shadow: none;
+  outline: none !important;
+  border: none !important;
+}
+
+.search-icon {
+  color: #8b5cf6;
+  font-size: 16px;
+  margin-right: 8px;
+}
+
+.search-bar-input .ant-input-clear-icon {
+  color: #94a3b8;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.search-bar-input .ant-input-clear-icon:hover {
+  color: #8b5cf6;
+  transform: scale(1.1);
+}
+
+.search-bar-add-button {
+  height: 48px;
+  padding: 0 24px;
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+  border: none;
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-bar-add-button:hover {
+  background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(139, 92, 246, 0.4) !important;
+}
+
+.search-bar-add-button:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.3) !important;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .search-bar-wrapper {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .search-bar-input {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .search-bar-add-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .search-bar-input .ant-input-affix-wrapper {
+    height: 44px;
+  }
+
+  .search-bar-add-button {
+    height: 44px;
+  }
+}
+
+/* Tablet Responsive */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .search-bar-input {
+    min-width: 240px;
+  }
+}
+
+/* Animation for search results */
+@keyframes searchPulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.search-bar-input.searching .ant-input-affix-wrapper {
+  animation: searchPulse 1.5s ease-in-out infinite;
+}
+
