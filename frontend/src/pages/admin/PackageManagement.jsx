@@ -114,10 +114,16 @@ const PackageManagement = () => {
  
   const handleEdit = (packageData) => {
     setSelectedPackage(packageData);
+    const servicesIncluded = Array.isArray(packageData.services_included) 
+      ? packageData.services_included 
+      : (typeof packageData.services_included === 'string' 
+        ? JSON.parse(packageData.services_included) 
+        : []);
+    
     form.setFieldsValue({
       package_name: packageData.package_name,
       package_type: packageData.package_type,
-      services_included: packageData.services_included || [],
+      services_included: servicesIncluded,
       total_charge: packageData.total_charge,
       validity_days: packageData.validity_days,
       hospital_id: packageData.hospital_id,
