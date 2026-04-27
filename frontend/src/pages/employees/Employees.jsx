@@ -69,7 +69,7 @@ const Employees = () => {
       key: 'employee',
       render: (_, record) => (
         <Space>
-          <Avatar icon={<UserOutlined />} style={{ background: '#6366f1' }} />
+          <Avatar icon={<UserOutlined />} style={{ background: '#0a0a0a' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.full_name}</div>
             <div style={{ fontSize: 12, color: '#64748b' }}>{record.emp_code}</div>

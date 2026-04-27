@@ -33,7 +33,7 @@ const AnalyticsDashboard = () => {
               value={2850000}
               prefix="₹"
               suffix={<ArrowUpOutlined style={{ color: '#10b981' }} />}
-              styles={{ value: { color: '#6366f1' } }}
+              styles={{ value: { color: '#0a0a0a' } }}
             />
             <div style={{ marginTop: 8, fontSize: 12, color: '#64748b' }}>
               +12.5% from last month

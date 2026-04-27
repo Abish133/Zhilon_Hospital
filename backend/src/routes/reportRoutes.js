@@ -4,6 +4,9 @@ const express = require('express');
 const router = express.Router();
 const ReportController = require('../controllers/ReportController');
 
+// Dashboard summary
+router.get('/dashboard-stats', ReportController.getDashboardStats);
+
 // OPD Statistics
 router.get('/opd-statistics', ReportController.getOPDStatistics);
 

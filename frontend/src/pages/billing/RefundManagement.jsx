@@ -262,7 +262,7 @@ const RefundManagement = () => {
                 {formatDate(selectedBill.bill_date)}
               </Descriptions.Item>
               <Descriptions.Item label="Net Amount">
-                <strong style={{ color: '#6366f1' }}>
+                <strong style={{ color: '#0a0a0a' }}>
                   {formatCurrency(selectedBill.net_amount)}
                 </strong>
               </Descriptions.Item>

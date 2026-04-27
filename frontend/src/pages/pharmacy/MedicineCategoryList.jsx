@@ -31,7 +31,7 @@ const CategoryList = () => {
       key: 'category_name',
       width: 150,
       fixed: 'left',
-      render: (code) => <Text strong style={{ color: '#8b5cf6' }}>{code}</Text>
+      render: (code) => <Text strong style={{ color: '#0a0a0a' }}>{code}</Text>
     },
     {
       title: 'Description',

@@ -15,10 +15,123 @@ const {
     InventoryItem,
     Hospital,
     StockIssue,
-    Department
+    Department,
+    LabOrder
 } = require('../models');
 
 class ReportController {
+    // GET /api/reports/dashboard-stats
+    getDashboardStats = async (req, res) => {
+        try {
+            const hospitalId = req.user?.hospital_id || req.query.hospital_id || 1;
+            const today = new Date();
+            const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            const endToday = new Date(startToday);
+            endToday.setDate(endToday.getDate() + 1);
+            const startYesterday = new Date(startToday);
+            startYesterday.setDate(startYesterday.getDate() - 1);
+
+            const todayDateStr = startToday.toISOString().slice(0, 10);
+            const yesterdayDateStr = startYesterday.toISOString().slice(0, 10);
+
+            const safe = async (p, fallback = 0) => {
+                try { return await p; } catch (e) { console.error('dashboard-stats sub-query failed:', e.message); return fallback; }
+            };
+
+            const [
+                totalPatients,
+                patientsYesterday,
+                opdToday,
+                opdYesterday,
+                ipdActive,
+                ipdAdmittedToday,
+                ipdAdmittedYesterday,
+                revenueTodayRow,
+                revenueYesterdayRow,
+                pendingBills,
+                pendingLabs,
+                bedTotal,
+                bedOccupied,
+                appointmentsToday
+            ] = await Promise.all([
+                safe(Patient.count({ where: { hospital_id: hospitalId } })),
+                safe(Patient.count({ where: { hospital_id: hospitalId, createdAt: { [Op.lt]: startToday } } })),
+                safe(OpdAppointment.count({ where: { hospital_id: hospitalId, appointment_date: todayDateStr } })),
+                safe(OpdAppointment.count({ where: { hospital_id: hospitalId, appointment_date: yesterdayDateStr } })),
+                safe(IpdAdmission.count({ where: { hospital_id: hospitalId, status: 'Admitted' } })),
+                safe(IpdAdmission.count({ where: { hospital_id: hospitalId, admission_date: { [Op.gte]: startToday, [Op.lt]: endToday } } })),
+                safe(IpdAdmission.count({ where: { hospital_id: hospitalId, admission_date: { [Op.gte]: startYesterday, [Op.lt]: startToday } } })),
+                safe(Bill.findOne({
+                    where: { hospital_id: hospitalId, bill_date: { [Op.gte]: startToday, [Op.lt]: endToday } },
+                    attributes: [[fn('COALESCE', fn('SUM', col('paid_amount')), 0), 'total']],
+                    raw: true
+                }), { total: 0 }),
+                safe(Bill.findOne({
+                    where: { hospital_id: hospitalId, bill_date: { [Op.gte]: startYesterday, [Op.lt]: startToday } },
+                    attributes: [[fn('COALESCE', fn('SUM', col('paid_amount')), 0), 'total']],
+                    raw: true
+                }), { total: 0 }),
+                safe(Bill.count({ where: { hospital_id: hospitalId, payment_status: { [Op.in]: ['Unpaid', 'Partial'] } } })),
+                safe(LabOrder ? LabOrder.count({ where: { hospital_id: hospitalId, status: { [Op.in]: ['Ordered', 'Sample Collected', 'In Progress'] } } }) : 0),
+                safe(Bed.count({ where: { hospital_id: hospitalId } })),
+                safe(Bed.count({ where: { hospital_id: hospitalId, status: 'Occupied' } })),
+                safe(OpdAppointment.findAll({
+                    where: { hospital_id: hospitalId, appointment_date: todayDateStr },
+                    include: [
+                        { model: Patient, as: 'patient', attributes: ['first_name', 'last_name'] },
+                        { model: Doctor, as: 'doctor', attributes: ['name'] }
+                    ],
+                    order: [['appointment_time', 'ASC']],
+                    limit: 10
+                }), [])
+            ]);
+
+            const revenueToday = Number(revenueTodayRow?.total || 0);
+            const revenueYesterday = Number(revenueYesterdayRow?.total || 0);
+
+            const trend = (today, prev) => {
+                if (!prev) return today > 0 ? 100 : 0;
+                return Math.round(((today - prev) / prev) * 100);
+            };
+
+            const bedOccupancy = bedTotal > 0 ? Math.round((bedOccupied / bedTotal) * 100) : 0;
+
+            const opdAppointments = (appointmentsToday || []).map(a => {
+                const json = a.toJSON ? a.toJSON() : a;
+                const p = json.patient || {};
+                return {
+                    appointment_id: json.appointment_id,
+                    patient_name: [p.first_name, p.last_name].filter(Boolean).join(' '),
+                    doctor_name: json.doctor?.name || null,
+                    appointment_time: json.appointment_time,
+                    status: json.status
+                };
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    userName: req.user?.name || null,
+                    totalPatients,
+                    patientsTrend: trend(totalPatients, patientsYesterday),
+                    opdToday,
+                    opdTrend: trend(opdToday, opdYesterday),
+                    ipdAdmissions: ipdActive,
+                    ipdTrend: trend(ipdAdmittedToday, ipdAdmittedYesterday),
+                    revenueToday,
+                    revenueTrend: trend(revenueToday, revenueYesterday),
+                    bedOccupancy,
+                    pendingBills,
+                    pendingLabTests: pendingLabs,
+                    opdAppointments
+                }
+            });
+        } catch (error) {
+            console.error('Error fetching dashboard stats:', error);
+            res.status(500).json({ success: false, message: error.message });
+        }
+    };
+
     // GET /api/reports/opd-statistics
     getOPDStatistics = async (req, res) => {
         try {

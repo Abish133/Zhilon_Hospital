@@ -23,6 +23,14 @@ class AuthService {
     return apiClient.post('/auth/change-password', data);
   }
 
+  getProfile() {
+    return apiClient.get('/auth/profile');
+  }
+
+  updateProfile(data) {
+    return apiClient.put('/auth/profile', data);
+  }
+
   getCurrentUser() {
     const user = localStorage.getItem('user');
     if (!user || user === 'undefined') return null;

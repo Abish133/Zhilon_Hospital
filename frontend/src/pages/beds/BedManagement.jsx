@@ -36,7 +36,7 @@
 //     Available: '#10b981',
 //     Occupied: '#3b82f6',
 //     'Under Maintenance': '#f59e0b',
-//     Reserved: '#8b5cf6'
+//     Reserved: '#0a0a0a'
 //   }[status]);
 
 //   const getStatusIcon = (status) => ({
@@ -160,7 +160,7 @@
 //                   justifyContent: 'center'
 //                 }}>
 //                   <div style={{ textAlign: 'center' }}>
-//                     <BankOutlined style={{ fontSize: 32, color: '#8b5cf6', marginBottom: 12 }} />
+//                     <BankOutlined style={{ fontSize: 32, color: '#0a0a0a', marginBottom: 12 }} />
 //                     <div style={{ fontSize: 28, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>
 //                       {beds.filter(b => b.ward?.ward_name === wardName && b.status === 'Reserved').length}
 //                     </div>

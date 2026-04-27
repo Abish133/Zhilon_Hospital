@@ -195,7 +195,7 @@ const Equipment = () => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Equipment" value={stats.total} prefix={<ToolOutlined />} valueStyle={{ color: '#6366f1' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Total Equipment" value={stats.total} prefix={<ToolOutlined />} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Active" value={stats.active} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Under Maintenance" value={stats.maintenance} prefix={<WarningOutlined />} valueStyle={{ color: '#f59e0b' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="AMC Expiring Soon" value={stats.expiringSoon} valueStyle={{ color: '#ef4444' }} /></Card></Col>

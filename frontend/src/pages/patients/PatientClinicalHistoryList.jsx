@@ -32,7 +32,7 @@ const PatientClinicalHistoryList = () => {
       key: 'patient_name',
       width: 200,
       render: (_, record) => (
-        <Text strong style={{ color: '#8b5cf6' }}>
+        <Text strong style={{ color: '#0a0a0a' }}>
           {record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : 'N/A'}
         </Text>
       )

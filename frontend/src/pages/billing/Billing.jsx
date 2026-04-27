@@ -135,7 +135,7 @@ const Billing = () => {
     { title: 'Type', dataIndex: 'bill_type', width: 70, render: (t) => <Tag color={t === 'OPD' ? 'blue' : 'green'}>{t}</Tag> },
     { title: 'Gross', dataIndex: 'gross_amount', render: (a) => formatCurrency(a) },
     { title: 'Discount', dataIndex: 'discount_amount', render: (a) => <span style={{ color: '#10b981' }}>{formatCurrency(a)}</span> },
-    { title: 'Net Amount', dataIndex: 'net_amount', render: (a) => <div style={{ fontWeight: 600, color: '#6366f1' }}>{formatCurrency(a)}</div> },
+    { title: 'Net Amount', dataIndex: 'net_amount', render: (a) => <div style={{ fontWeight: 600, color: '#0a0a0a' }}>{formatCurrency(a)}</div> },
     { title: 'Paid', dataIndex: 'paid_amount', render: (a) => <span style={{ color: '#10b981' }}>{formatCurrency(a)}</span> },
     { title: 'Balance', dataIndex: 'balance_amount', render: (a) => <span style={{ color: a > 0 ? '#ef4444' : '#10b981' }}>{formatCurrency(a)}</span> },
     { title: 'Date', dataIndex: 'bill_date', render: (d) => formatDate(d) },
@@ -159,7 +159,7 @@ const Billing = () => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Revenue" value={summary.total_revenue || 0} formatter={(v) => formatCurrency(v)} valueStyle={{ color: '#6366f1' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Total Revenue" value={summary.total_revenue || 0} formatter={(v) => formatCurrency(v)} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Collected" value={summary.total_collected || 0} formatter={(v) => formatCurrency(v)} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Pending" value={summary.total_pending || 0} formatter={(v) => formatCurrency(v)} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#ef4444' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Total Bills" value={summary.total_bills || 0} valueStyle={{ color: '#f59e0b' }} /></Card></Col>

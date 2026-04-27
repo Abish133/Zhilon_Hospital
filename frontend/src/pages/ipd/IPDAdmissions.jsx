@@ -179,7 +179,7 @@ const IPDAdmissions = () => {
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
         <Col span={6}>
           <Card>
-            <Statistic title="Total Admissions" value={admissions.length} prefix={<UserOutlined />} valueStyle={{ color: '#6366f1' }} />
+            <Statistic title="Total Admissions" value={admissions.length} prefix={<UserOutlined />} valueStyle={{ color: '#0a0a0a' }} />
           </Card>
         </Col>
         <Col span={6}>

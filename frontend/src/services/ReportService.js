@@ -6,6 +6,10 @@ class ReportService extends BaseService {
     super('/reports');
   }
 
+  getDashboardStats(params) {
+    return apiClient.get(`${this.endpoint}/dashboard-stats`, { params });
+  }
+
   getOPDFootfall(params) {
     return apiClient.get(`${this.endpoint}/opd-statistics`, { params });
   }

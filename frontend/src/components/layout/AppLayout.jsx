@@ -16,7 +16,7 @@ const { Header, Sider, Content } = Layout;
 const { Text } = Typography;
 
 const SIDEBAR_WIDTH = 244;
-const SIDEBAR_COLLAPSED = 68;
+const SIDEBAR_COLLAPSED = 72;
 
 const AppLayout = () => {
   const navigate = useNavigate();
@@ -261,20 +261,24 @@ const AppLayout = () => {
       gap: 10,
       padding: railMode ? 0 : '0 16px',
       justifyContent: railMode ? 'center' : 'flex-start',
-      borderBottom: '1px solid rgba(255,255,255,0.12)'
+      borderBottom: '1px solid rgba(255,255,255,0.08)'
     }}>
       <div style={{
-        width: 32, height: 32, borderRadius: 8,
-        background: '#ffffff',
-        boxShadow: '0 2px 8px rgba(255,255,255,0.15)',
+        width: 36, height: 36, borderRadius: 10,
+        background: railMode
+          ? 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))'
+          : '#ffffff',
+        border: railMode ? '1px solid rgba(255,255,255,0.14)' : 'none',
+        boxShadow: railMode ? 'none' : '0 2px 8px rgba(255,255,255,0.15)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 16, flexShrink: 0, color: '#0a0a0a'
+        fontSize: 18, flexShrink: 0,
+        color: railMode ? '#ffffff' : '#0a0a0a'
       }}>
         <MedicineBoxOutlined />
       </div>
       {!railMode && (
         <div style={{ lineHeight: 1.1 }}>
-          <div style={{ color: '#ffffff', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>HMS Pro</div>
+          <div style={{ color: '#ffffff', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>HMS</div>
           <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 500 }}>{user?.hospital_name || 'Healthcare workspace'}</div>
         </div>
       )}
@@ -307,35 +311,38 @@ const AppLayout = () => {
         />
       </div>
       <div style={{
-        padding: 12,
-        borderTop: '1px solid rgba(255,255,255,0.12)'
+        padding: railMode ? '12px 8px' : 12,
+        borderTop: '1px solid rgba(255,255,255,0.08)'
       }}>
         <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenu }} placement="topRight" trigger={['click']}>
+          <Tooltip title={railMode ? (user?.name || user?.username || 'User') : ''} placement="right">
           <div style={{
             display: 'flex',
             alignItems: 'center',
             gap: 10,
             cursor: 'pointer',
-            padding: railMode ? 0 : '8px 10px',
-            borderRadius: 8,
+            padding: railMode ? '6px' : '8px 10px',
+            borderRadius: 10,
             justifyContent: railMode ? 'center' : 'flex-start',
             transition: 'all 0.2s ease',
-            border: '1px solid rgba(255,255,255,0.1)'
+            border: railMode ? '1px solid transparent' : '1px solid rgba(255,255,255,0.1)'
           }}
             onMouseEnter={e => {
               e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)';
+              e.currentTarget.style.borderColor = railMode ? 'transparent' : 'rgba(255,255,255,0.1)';
             }}
           >
-            <Avatar size={32} style={{
-              background: '#ffffff',
+            <Avatar size={railMode ? 36 : 32} style={{
+              background: railMode
+                ? 'linear-gradient(135deg, #ffffff, #d4d4d4)'
+                : '#ffffff',
               color: '#0a0a0a',
-              fontWeight: 600,
-              boxShadow: '0 2px 6px rgba(255,255,255,0.15)'
+              fontWeight: 700,
+              boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.6)'
             }}>
               {(user?.name || user?.username || 'U').toString().charAt(0).toUpperCase()}
             </Avatar>
@@ -362,6 +369,7 @@ const AppLayout = () => {
               </div>
             )}
           </div>
+          </Tooltip>
         </Dropdown>
       </div>
     </div>

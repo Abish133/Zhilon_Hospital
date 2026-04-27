@@ -158,7 +158,7 @@ const EquipmentDashboard = () => {
                   title="Total Equipment" 
                   value={stats.totalEquipment} 
                   prefix={<ToolOutlined />} 
-                  valueStyle={{ color: '#6366f1' }} 
+                  valueStyle={{ color: '#0a0a0a' }} 
                 />
               </Card>
             </Col>

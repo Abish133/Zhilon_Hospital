@@ -209,6 +209,80 @@ class AuthController {
     }
   }
 
+  static async updateProfile(req, res) {
+    try {
+      const { name, email } = req.body;
+      const updateData = {};
+      if (name !== undefined) updateData.name = name;
+      if (email !== undefined) updateData.email = email;
+
+      if (email) {
+        const { Op } = require('sequelize');
+        const exists = await User.findOne({ where: { email, id: { [Op.ne]: req.user.id } } });
+        if (exists) {
+          return res.status(400).json({ success: false, message: 'Email already in use' });
+        }
+      }
+
+      await User.update(updateData, {
+        where: { id: req.user.id },
+        individualHooks: true
+      });
+
+      const user = await User.findByPk(req.user.id, { attributes: { exclude: ['password'] } });
+      const hospital = await Hospital.findByPk(user.hospital_id);
+      let employee = null;
+      if (user.employee_id) {
+        employee = await Employee.findByPk(user.employee_id);
+        if (employee && employee.department_id) {
+          const department = await Department.findByPk(employee.department_id);
+          employee = { ...employee.toJSON(), department: department || null };
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          ...user.toJSON(),
+          employee,
+          hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
+        }
+      });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  static async changePassword(req, res) {
+    try {
+      const { current_password, new_password } = req.body;
+      if (!current_password || !new_password) {
+        return res.status(400).json({ success: false, message: 'Current and new password are required' });
+      }
+      if (new_password.length < 6) {
+        return res.status(400).json({ success: false, message: 'New password must be at least 6 characters' });
+      }
+
+      const user = await User.findByPk(req.user.id);
+      if (!user) {
+        return res.status(404).json({ success: false, message: 'User not found' });
+      }
+
+      const valid = await user.validatePassword(current_password);
+      if (!valid) {
+        return res.status(401).json({ success: false, message: 'Current password is incorrect' });
+      }
+
+      user.password = new_password;
+      await user.save();
+
+      res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async getAllUsers(req, res) {
     try {
       const users = await User.findAll({

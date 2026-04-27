@@ -161,7 +161,7 @@ const OTManagement = () => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Bookings" value={stats.total} prefix={<MedicineBoxOutlined />} valueStyle={{ color: '#6366f1' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Total Bookings" value={stats.total} prefix={<MedicineBoxOutlined />} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Scheduled" value={stats.scheduled} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#f59e0b' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Completed" value={stats.completed} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Today" value={stats.today} valueStyle={{ color: '#3b82f6' }} /></Card></Col>

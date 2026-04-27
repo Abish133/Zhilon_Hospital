@@ -167,7 +167,7 @@ const BillGeneration = () => {
       await generateBillMutation.mutateAsync({
         episode_id: episodeId,
         discount_amount: 0,
-        generated_by: user.user_id,
+        generated_by: user.id,
         hospital_id: user.hospital_id
       });
       navigate('/billing');
@@ -185,7 +185,7 @@ const BillGeneration = () => {
       const billResponse = await generateBillMutation.mutateAsync({
         episode_id: episodeId,
         discount_amount: 0,
-        generated_by: user.user_id,
+        generated_by: user.id,
         hospital_id: user.hospital_id
       });
 
@@ -199,7 +199,7 @@ const BillGeneration = () => {
         payment_mode: values.payment_mode,
         transaction_ref: values.transaction_ref || null,
         bank_name: values.bank_name || null,
-        received_by: user.user_id,
+        received_by: user.id,
         hospital_id: user.hospital_id
       });
     } catch (error) {
@@ -434,7 +434,7 @@ const BillGeneration = () => {
                 </Tag>
               </Descriptions.Item>
               <Descriptions.Item label="Total Charges">
-                <strong style={{ color: '#6366f1' }}>
+                <strong style={{ color: '#0a0a0a' }}>
                   {formatCurrency(totals.net_amount || 0)}
                 </strong>
               </Descriptions.Item>
@@ -451,7 +451,7 @@ const BillGeneration = () => {
                     <Tag color="blue">{existingBill.bill_number}</Tag>
                   </Descriptions.Item>
                   <Descriptions.Item label="Net Amount">
-                    <strong style={{ color: '#6366f1' }}>{formatCurrency(existingBill.net_amount)}</strong>
+                    <strong style={{ color: '#0a0a0a' }}>{formatCurrency(existingBill.net_amount)}</strong>
                   </Descriptions.Item>
                   <Descriptions.Item label="Paid Amount">
                     <strong style={{ color: '#10b981' }}>{formatCurrency(existingBill.paid_amount)}</strong>
@@ -513,7 +513,7 @@ const BillGeneration = () => {
                   <strong style={{ fontSize: 16 }}>Net Amount:</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell>
-                  <strong style={{ fontSize: 16, color: '#6366f1' }}>
+                  <strong style={{ fontSize: 16, color: '#0a0a0a' }}>
                     {formatCurrency(totals.net_amount || 0)}
                   </strong>
                 </Table.Summary.Cell>
@@ -603,7 +603,7 @@ const BillGeneration = () => {
         <Form form={paymentForm} layout="vertical" onFinish={handlePayment}>
           <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
             <Descriptions.Item label="Total Amount">
-              <strong style={{ fontSize: 18, color: '#6366f1' }}>
+              <strong style={{ fontSize: 18, color: '#0a0a0a' }}>
                 {formatCurrency(totals.net_amount || 0)}
               </strong>
             </Descriptions.Item>

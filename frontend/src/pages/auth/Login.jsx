@@ -3,7 +3,7 @@ import { UserOutlined, LockOutlined, ArrowRightOutlined, MedicineBoxOutlined, Sa
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@store';
 import AuthService from '@services/AuthService';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const { Title, Text } = Typography;
 
@@ -11,13 +11,30 @@ const Login = () => {
   const navigate = useNavigate();
   const { login } = useAuthStore();
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    const savedUsername = localStorage.getItem('rememberedUsername');
+    if (savedUsername) {
+      form.setFieldsValue({ username: savedUsername });
+      setRememberMe(true);
+    }
+  }, [form]);
 
   const onFinish = async (values) => {
     setLoading(true);
     try {
       const response = await AuthService.login(values);
       const { data } = response;
+      
+      // Handle Remember Me
+      if (rememberMe) {
+        localStorage.setItem('rememberedUsername', values.username);
+      } else {
+        localStorage.removeItem('rememberedUsername');
+      }
+      
       login(data.token, data);
       message.success('Welcome back');
       navigate('/dashboard');
@@ -65,7 +82,7 @@ const Login = () => {
               <MedicineBoxOutlined />
             </div>
             <div style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>HMS Pro</div>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>HMS</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Hospital Management System</div>
             </div>
           </Space>
@@ -98,7 +115,7 @@ const Login = () => {
         </div>
 
         <div style={{ position: 'relative', zIndex: 1, color: 'rgba(255,255,255,0.5)', fontSize: 12 }}>
-          © {new Date().getFullYear()} HMS Pro. All rights reserved.
+          © {new Date().getFullYear()} HMS. All rights reserved.
         </div>
       </div>
 
@@ -145,7 +162,7 @@ const Login = () => {
             </Form.Item>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <Checkbox>Remember me</Checkbox>
+              <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>Remember me</Checkbox>
               <a style={{ color: '#0a0a0a', fontSize: 13, fontWeight: 500 }}>Forgot password?</a>
             </div>
 

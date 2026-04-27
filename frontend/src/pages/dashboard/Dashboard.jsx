@@ -55,10 +55,10 @@ const Dashboard = () => {
   const stats = data?.data || {};
 
   const kpis = [
-    { label: 'Total Patients', value: stats.totalPatients ?? 0, icon: <UserOutlined />, trend: stats.patientsTrend ?? 12, up: (stats.patientsTrend ?? 12) >= 0, onClick: () => navigate('/patients'), loading: isLoading },
-    { label: 'OPD Today', value: stats.opdToday ?? 0, icon: <MedicineBoxOutlined />, trend: stats.opdTrend ?? 8, up: (stats.opdTrend ?? 8) >= 0, onClick: () => navigate('/opd'), loading: isLoading },
-    { label: 'IPD Admissions', value: stats.ipdAdmissions ?? 0, icon: <BankOutlined />, trend: stats.ipdTrend ?? -3, up: (stats.ipdTrend ?? -3) >= 0, onClick: () => navigate('/ipd'), loading: isLoading },
-    { label: 'Revenue Today', value: formatCurrency(stats.revenueToday || 0), icon: <DollarOutlined />, trend: stats.revenueTrend ?? 15, up: (stats.revenueTrend ?? 15) >= 0, onClick: () => navigate('/billing'), loading: isLoading }
+    { label: 'Total Patients', value: stats.totalPatients ?? 0, icon: <UserOutlined />, trend: stats.patientsTrend, up: (stats.patientsTrend ?? 0) >= 0, onClick: () => navigate('/patients'), loading: isLoading },
+    { label: 'OPD Today', value: stats.opdToday ?? 0, icon: <MedicineBoxOutlined />, trend: stats.opdTrend, up: (stats.opdTrend ?? 0) >= 0, onClick: () => navigate('/opd'), loading: isLoading },
+    { label: 'IPD Admissions', value: stats.ipdAdmissions ?? 0, icon: <BankOutlined />, trend: stats.ipdTrend, up: (stats.ipdTrend ?? 0) >= 0, onClick: () => navigate('/ipd'), loading: isLoading },
+    { label: 'Revenue Today', value: formatCurrency(stats.revenueToday || 0), icon: <DollarOutlined />, trend: stats.revenueTrend, up: (stats.revenueTrend ?? 0) >= 0, onClick: () => navigate('/billing'), loading: isLoading }
   ];
 
   const recentAppointments = (stats.opdAppointments || []).slice(0, 6);
@@ -87,7 +87,7 @@ const Dashboard = () => {
     }
   ];
 
-  const bedOcc = Math.min(100, Math.max(0, stats.bedOccupancy ?? 65));
+  const bedOcc = Math.min(100, Math.max(0, stats.bedOccupancy ?? 0));
   const pendingBills = stats.pendingBills ?? 0;
   const pendingLabs = stats.pendingLabTests ?? 0;
 

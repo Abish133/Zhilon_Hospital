@@ -127,7 +127,7 @@ const Doctors = () => {
       key: 'doctor',
       render: (_, record) => (
         <Space>
-          <Avatar icon={<UserOutlined />} style={{ background: '#6366f1' }} />
+          <Avatar icon={<UserOutlined />} style={{ background: '#0a0a0a' }} />
           <div>
             <div style={{ fontWeight: 500 }}>{record.name}</div>
             <div style={{ fontSize: 12, color: '#64748b' }}>{record.registration_number}</div>

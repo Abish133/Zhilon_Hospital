@@ -100,7 +100,7 @@ const InitialSetup = () => {
               <MedicineBoxOutlined />
             </div>
             <div style={{ lineHeight: 1.1 }}>
-              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>HMS Pro</div>
+              <div style={{ fontSize: 18, fontWeight: 700, letterSpacing: '-0.01em' }}>HMS</div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)' }}>Workspace setup</div>
             </div>
           </Space>
@@ -133,7 +133,7 @@ const InitialSetup = () => {
                     <div style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12 }}>
                       {i === 0 && 'Hospital identity and contact'}
                       {i === 1 && 'Admin credentials for first login'}
-                      {i === 2 && 'Sign in and start using HMS Pro'}
+                      {i === 2 && 'Sign in and start using HMS'}
                     </div>
                   </div>
                 </div>

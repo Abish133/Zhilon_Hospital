@@ -33,7 +33,7 @@ const PatientMedicationHistoryList = () => {
       width: 180,
       render: (_, record) => (
         <div>
-          <Text strong style={{ color: '#8b5cf6' }}>
+          <Text strong style={{ color: '#0a0a0a' }}>
             {record.patient ? `${record.patient.first_name} ${record.patient.last_name}` : 'N/A'}
           </Text>
         </div>

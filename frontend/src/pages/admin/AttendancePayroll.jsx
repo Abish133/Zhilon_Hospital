@@ -46,8 +46,8 @@ const AttendancePayroll = () => {
           }
           return {
             id: att.attendance_id,
-            emp_code: att.Employee?.emp_code || 'N/A',
-            name: att.Employee?.full_name || 'Unknown',
+            emp_code: att.employee?.emp_code || 'N/A',
+            name: att.employee?.full_name || 'Unknown',
             date: att.attendance_date,
             check_in: checkIn || '-',
             check_out: checkOut || '-',
@@ -72,8 +72,8 @@ const AttendancePayroll = () => {
       if (response.success) {
         const formattedData = (response.data || []).map(pay => ({
           id: pay.payroll_id,
-          emp_code: pay.Employee?.emp_code || 'N/A',
-          name: pay.Employee?.full_name || 'Unknown',
+          emp_code: pay.employee?.emp_code || 'N/A',
+          name: pay.employee?.full_name || 'Unknown',
           month: `${dayjs().month(pay.month - 1).format('MMMM')} ${pay.year}`,
           basic: pay.basic_salary,
           allowances: pay.total_allowances,

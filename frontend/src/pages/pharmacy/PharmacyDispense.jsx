@@ -246,7 +246,7 @@ const PharmacyDispense = () => {
           medicine_id: item.medicine_id,
           quantity: item.quantity
         })),
-        dispensed_by: user?.user_id,
+        dispensed_by: user?.id,
         hospital_id: user.hospital_id
       };
 

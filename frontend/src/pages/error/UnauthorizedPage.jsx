@@ -38,7 +38,7 @@ const UnauthorizedPage = () => {
               size="large"
               onClick={() => navigate('/dashboard')}
               style={{
-                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                background: 'linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 100%)',
                 border: 'none'
               }}
             >

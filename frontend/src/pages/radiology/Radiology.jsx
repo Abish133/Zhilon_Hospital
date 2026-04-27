@@ -64,7 +64,7 @@ const Radiology = () => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Orders" value={25} prefix={<CameraOutlined />} styles={{ content: { color: '#6366f1' } }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Total Orders" value={25} prefix={<CameraOutlined />} styles={{ content: { color: '#0a0a0a' } }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Pending" value={8} prefix={<ClockCircleOutlined />} styles={{ content: { color: '#f59e0b' } }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Completed" value={17} prefix={<CheckCircleOutlined />} styles={{ content: { color: '#10b981' } }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Today" value={5} styles={{ content: { color: '#3b82f6' } }} /></Card></Col>

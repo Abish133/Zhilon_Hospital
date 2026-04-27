@@ -59,7 +59,7 @@
 //               {bill.patient?.first_name} {bill.patient?.last_name}
 //             </Descriptions.Item>
 //             <Descriptions.Item label="Net Amount">
-//               <strong style={{ fontSize: 18, color: '#6366f1' }}>
+//               <strong style={{ fontSize: 18, color: '#0a0a0a' }}>
 //                 {formatCurrency(bill.net_amount)}
 //               </strong>
 //             </Descriptions.Item>
@@ -203,7 +203,7 @@
 //               {formatCurrency(record.tax_amount)}
 //             </Descriptions.Item>
 //             <Descriptions.Item label="Net Amount">
-//               <strong style={{ fontSize: 16, color: '#6366f1' }}>
+//               <strong style={{ fontSize: 16, color: '#0a0a0a' }}>
 //                 {formatCurrency(record.net_amount)}
 //               </strong>
 //             </Descriptions.Item>

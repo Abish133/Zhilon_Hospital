@@ -108,7 +108,7 @@ const Inventory = () => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Items" value={items.length} prefix={<InboxOutlined />} valueStyle={{ color: '#6366f1' }} /></Card></Col>
+        <Col span={6}><Card><Statistic title="Total Items" value={items.length} prefix={<InboxOutlined />} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Low Stock" value={lowStockCount} prefix={<WarningOutlined />} valueStyle={{ color: '#ef4444' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="In Stock" value={items.filter(i => i.current_stock > 0).length} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
         <Col span={6}><Card><Statistic title="Categories" value={categories?.data?.length || 0} valueStyle={{ color: '#f59e0b' }} /></Card></Col>

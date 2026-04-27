@@ -77,7 +77,7 @@ const PackageManagement = () => {
       title: 'Total Charge',
       dataIndex: 'total_charge',
       key: 'total_charge',
-      render: (price) => <span style={{ fontWeight: 600, color: '#6366f1' }}>₹{price}</span>
+      render: (price) => <span style={{ fontWeight: 600, color: '#0a0a0a' }}>₹{price}</span>
     },
     {
       title: 'Validity',

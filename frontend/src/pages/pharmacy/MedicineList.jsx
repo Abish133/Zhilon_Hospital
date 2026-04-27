@@ -40,7 +40,7 @@ const MedicineList = () => {
       key: 'medicine_code',
       width: 150,
       fixed: 'left',
-      render: (code) => <Text strong style={{ color: '#8b5cf6' }}>{code}</Text>
+      render: (code) => <Text strong style={{ color: '#0a0a0a' }}>{code}</Text>
     },
     {
       title: 'Medicine Name',

@@ -39,7 +39,7 @@ const PatientDetail = () => {
     <div>
       <Card style={{ borderRadius: 16 }}>
         <Space size="large">
-          <Avatar size={80} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)' }} />
+          <Avatar size={80} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 100%)' }} />
           <div>
             <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>{patient.first_name} {patient.last_name}</h2>
             <Space style={{ marginTop: 8 }}>

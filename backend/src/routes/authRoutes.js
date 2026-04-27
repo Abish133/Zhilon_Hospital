@@ -9,6 +9,8 @@ const router = express.Router();
 router.post('/register', authLimiter, auditLogger('CREATE', 'User'), AuthController.register);
 router.post('/login', authLimiter, auditLogger('LOGIN', 'User'), AuthController.login);
 router.get('/profile', authMiddleware, AuthController.getProfile);
+router.put('/profile', authMiddleware, auditLogger('UPDATE', 'User'), AuthController.updateProfile);
+router.post('/change-password', authMiddleware, auditLogger('UPDATE', 'User'), AuthController.changePassword);
 router.get('/', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), AuthController.getAllUsers);
 router.get('/:id', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), AuthController.getUserById);
 router.put('/:id', authMiddleware, enforceHospitalScope, authorize('Admin', 'HR'), auditLogger('UPDATE', 'User'), AuthController.updateUser);
