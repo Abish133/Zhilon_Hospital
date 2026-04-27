@@ -26,10 +26,7 @@ const RadiologyImaging = () => {
       const response = await radiologyOrderService.getById(orderId);
       const orderData = response.data?.data || response.data;
       setOrder(orderData);
-      form.setFieldsValue({
-        imaging_date: dayjs(),
-        technologist_id: user?.employee_id || user?.id
-      });
+      form.setFieldsValue({ imaging_date: dayjs() });
     } catch (error) {
       message.error('Failed to fetch order details');
     }
@@ -40,6 +37,10 @@ const RadiologyImaging = () => {
       const response = await employeeService.getAll();
       const employees = response.data?.data || response.data || [];
       setTechnologists(employees);
+      const defaultId = user?.employee_id || user?.id;
+      if (defaultId && employees.some(e => e.employee_id === defaultId)) {
+        form.setFieldsValue({ technologist_id: defaultId });
+      }
     } catch (error) {
     }
   };
@@ -120,17 +121,12 @@ const RadiologyImaging = () => {
             placeholder="Select technologist"
             showSearch
             allowClear
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.children.toLowerCase().includes(input.toLowerCase())
-            }
-          >
-            {technologists.map(tech => (
-              <Select.Option key={tech.employee_id} value={tech.employee_id}>
-                {tech.full_name} ({tech.emp_code}) - {tech.role || 'Employee'}
-              </Select.Option>
-            ))}
-          </Select>
+            optionFilterProp="label"
+            options={technologists.map(tech => ({
+              value: tech.employee_id,
+              label: `${tech.full_name} (${tech.emp_code}) - ${tech.role || 'Employee'}`
+            }))}
+          />
         </Form.Item>
 
         <Form.Item label="Upload Images">

@@ -98,7 +98,7 @@ class RadiologyOrdersController {
 
   static async getRadiologyOrderById(req, res) {
     try {
-      const radiologyOrder = await RadiologyOrders.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const radiologyOrder = await RadiologyOrders.findOne({ where: { rad_order_id: req.params.id, hospital_id: req.hospitalId } });
       if (!radiologyOrder) {
         return res.status(404).json({ success: false, message: 'Radiology order not found' });
       }
@@ -129,7 +129,7 @@ class RadiologyOrdersController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Radiology order not found' });
       }
-      const updatedOrder = await RadiologyOrders.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedOrder = await RadiologyOrders.findOne({ where: { rad_order_id: req.params.id, hospital_id: req.hospitalId } });
       const patient = await Patient.findByPk(updatedOrder.patient_id);
       const radiologyTest = await RadiologyTests.findByPk(updatedOrder.rad_test_id);
       const orderedBy = await Doctor.findByPk(updatedOrder.ordered_by);
