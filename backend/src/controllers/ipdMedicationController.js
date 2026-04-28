@@ -137,7 +137,15 @@ const administerMedication = async (req, res) => {
         transaction: t
       });
       if (episode) {
-        const amount = rate * qty;
+        // Pull GST% from the master Medicine record so the bill reflects actual tax.
+        let gstPct = 0;
+        if (medication.medicine_id) {
+          const med = await Medicine.findByPk(medication.medicine_id, { transaction: t });
+          gstPct = parseFloat(med?.gst_percentage || 0);
+        }
+        const amount = +(rate * qty).toFixed(2);
+        const gstAmount = +(amount * gstPct / 100).toFixed(2);
+        const netAmount = +(amount + gstAmount).toFixed(2);
         await BillCharge.create({
           episode_id: episode.episode_id,
           hospital_id: admission.hospital_id,
@@ -151,9 +159,9 @@ const administerMedication = async (req, res) => {
           discount_percent: 0,
           discount_amount: 0,
           taxable_amount: amount,
-          gst_percent: 0,
-          gst_amount: 0,
-          net_amount: amount,
+          gst_percent: gstPct,
+          gst_amount: gstAmount,
+          net_amount: netAmount,
           is_active: true
         }, { transaction: t });
       }

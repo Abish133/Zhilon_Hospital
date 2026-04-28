@@ -7,5 +7,6 @@ router.get('/', PackageController.getAll);
 router.get('/:id', PackageController.getById);
 router.put('/:id', PackageController.update);
 router.delete('/:id', PackageController.delete);
+router.post('/:id/apply', PackageController.applyToEpisode);
 
 module.exports = router;

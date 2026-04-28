@@ -231,11 +231,15 @@ class PayrollController {
 
           const fullDays = attendance.filter(a => a.status === 'Present').length;
           const halfDays = attendance.filter(a => a.status === 'Half Day').length;
+          // Paid leave (Casual/Medical/Earned) is recorded as status 'Leave' and counts as a worked day for pay.
+          // Unpaid leave is recorded as 'Absent' so the absence reduces prorated salary.
+          const leaveDays = attendance.filter(a => a.status === 'Leave').length;
           const daysAbsent = attendance.filter(a => a.status === 'Absent').length;
           const overtimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtime_hours) || 0), 0);
 
-          // Half Day counts as 0.5 working day for proration (India payroll norm)
-          const effectiveDaysWorked = fullDays + halfDays * 0.5;
+          // Half Day counts as 0.5 working day for proration (India payroll norm).
+          // Paid leave counts as a full day so monthly salary is unaffected.
+          const effectiveDaysWorked = fullDays + halfDays * 0.5 + leaveDays;
 
           // Calculate salary components
           const basicSalary = parseFloat(salaryStructure.basic_salary) || 0;

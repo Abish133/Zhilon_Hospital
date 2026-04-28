@@ -1,4 +1,4 @@
-const { LabSample, LabOrder, User, Hospital, sequelize } = require('../models');
+const { LabSample, LabOrder, LabOrderDetail, User, Hospital, sequelize } = require('../models');
 const { generateSequentialNumber } = require('../utils/numberGenerator');
 
 let bwipjs;
@@ -38,6 +38,17 @@ class LabSampleController {
         condition_on_receipt,
         hospital_id
       }, { transaction: t });
+
+      // Advance order + detail status so the lab queue reflects "sample collected".
+      // PDF flow: Ordered -> Sample Collected -> In Progress -> Completed.
+      await LabOrder.update(
+        { status: 'Sample Collected' },
+        { where: { order_id, status: 'Ordered' }, transaction: t }
+      );
+      await LabOrderDetail.update(
+        { status: 'Collected' },
+        { where: { order_id, status: 'Pending' }, transaction: t }
+      );
 
       await t.commit();
 

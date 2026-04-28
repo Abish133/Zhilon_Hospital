@@ -33,6 +33,14 @@ class PackageService extends BaseService {
   async search(query) {
     return await super.search(query);
   }
+
+  // Apply this package to an open billing episode — posts a single bundled BillCharge.
+  async applyToEpisode(packageId, { episode_id, discount_percent = 0 }) {
+    return (await apiClient.post(`${this.endpoint}/${packageId}/apply`, {
+      episode_id,
+      discount_percent
+    })).data;
+  }
 }
  
 export default new PackageService();

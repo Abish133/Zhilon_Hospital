@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { Card, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, Select, message, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import PackageService from '@services/PackageService';
+import apiClient from '@services/apiClient';
 import { PACKAGE_TYPES, AVAILABLE_SERVICES } from '@utils/constants';
- 
+
 const PackageManagement = () => {
   const [packageModal, setPackageModal] = useState(false);
+  const [applyModal, setApplyModal] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
+  const [packageToApply, setPackageToApply] = useState(null);
   const [form] = Form.useForm();
+  const [applyForm] = Form.useForm();
  
   const { data, isLoading, refetch } = useApiQuery(
     ['packages'],
@@ -43,6 +47,47 @@ const PackageManagement = () => {
       }
     }
   );
+
+  // Open billing episodes (OPD visits + IPD admissions still active) — used by Apply modal.
+  const { data: episodesData } = useApiQuery(
+    ['open-billing-episodes'],
+    async () => (await apiClient.get('/billing-episodes', { params: { status: 'Open' } })).data,
+    { enabled: applyModal }
+  );
+  const openEpisodes = episodesData?.data || [];
+
+  const applyMutation = useApiMutation(
+    ({ packageId, payload }) => PackageService.applyToEpisode(packageId, payload),
+    {
+      successMessage: 'Package applied to episode successfully',
+      invalidateKeys: ['packages', 'bill-charges'],
+      onSuccess: () => {
+        setApplyModal(false);
+        applyForm.resetFields();
+        setPackageToApply(null);
+      },
+      onError: (error) => {
+        message.error(error?.response?.data?.message || error.message || 'Failed to apply package');
+      }
+    }
+  );
+
+  const handleApply = (pkg) => {
+    setPackageToApply(pkg);
+    applyForm.resetFields();
+    setApplyModal(true);
+  };
+
+  const handleApplySubmit = (values) => {
+    if (!packageToApply) return;
+    applyMutation.mutate({
+      packageId: packageToApply.package_id,
+      payload: {
+        episode_id: values.episode_id,
+        discount_percent: values.discount_percent || 0
+      }
+    });
+  };
  
   const columns = [
     {
@@ -96,6 +141,14 @@ const PackageManagement = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
+          <Button
+            size="small"
+            icon={<LinkOutlined />}
+            onClick={() => handleApply(record)}
+            disabled={!record.is_active}
+          >
+            Apply
+          </Button>
           <Button
             size="small"
             icon={<EditOutlined />}
@@ -243,6 +296,44 @@ const PackageManagement = () => {
                 { label: 'Inactive', value: false }
               ]}
             />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        open={applyModal}
+        title={`Apply Package: ${packageToApply?.package_name || ''}`}
+        onCancel={() => { setApplyModal(false); setPackageToApply(null); applyForm.resetFields(); }}
+        onOk={() => applyForm.submit()}
+        confirmLoading={applyMutation.isPending}
+        okText="Apply to Episode"
+        width={560}
+      >
+        <Form form={applyForm} layout="vertical" onFinish={handleApplySubmit}>
+          <Form.Item
+            name="episode_id"
+            label="Open Billing Episode"
+            rules={[{ required: true, message: 'Please pick an episode' }]}
+            extra={`Total charge: ₹${packageToApply?.total_charge ?? '-'}`}
+          >
+            <Select
+              showSearch
+              placeholder="Select an open episode"
+              filterOption={(input, option) =>
+                String(option?.label || '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={openEpisodes.map(ep => ({
+                value: ep.episode_id,
+                label: `#${ep.episode_id} | ${ep.episode_type} | ${ep.uhid || 'UHID-?'} | ${ep.patient?.first_name || ''} ${ep.patient?.last_name || ''}`.trim()
+              }))}
+            />
+          </Form.Item>
+          <Form.Item
+            name="discount_percent"
+            label="Discount %"
+            initialValue={0}
+          >
+            <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
       </Modal>

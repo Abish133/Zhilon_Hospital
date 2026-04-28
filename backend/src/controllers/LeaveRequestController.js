@@ -1,4 +1,4 @@
-const { LeaveRequest, Employee, User, sequelize } = require('../models');
+const { LeaveRequest, Employee, User, EmployeeAttendance, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 class LeaveRequestController {
@@ -182,12 +182,40 @@ class LeaveRequestController {
         approval_comments: approval_comments || null
       }, { transaction: t });
 
+      // Create attendance entries for every day in the leave window so payroll prorating
+      // treats the period correctly. Paid leave types -> 'Leave' (paid), 'unpaid' -> 'Absent'.
+      // Idempotent: skip dates that already have an attendance row.
+      const isUnpaid = leaveRequest.leave_type === 'unpaid';
+      const attendanceStatus = isUnpaid ? 'Absent' : 'Leave';
+      const fromDate = new Date(leaveRequest.from_date);
+      const toDate = new Date(leaveRequest.to_date);
+      const attendanceRows = [];
+      for (let d = new Date(fromDate); d <= toDate; d.setDate(d.getDate() + 1)) {
+        const dateStr = d.toISOString().slice(0, 10);
+        const existing = await EmployeeAttendance.findOne({
+          where: { employee_id: leaveRequest.employee_id, attendance_date: dateStr },
+          transaction: t
+        });
+        if (!existing) {
+          attendanceRows.push({
+            employee_id: leaveRequest.employee_id,
+            attendance_date: dateStr,
+            status: attendanceStatus,
+            remarks: `Auto: ${leaveRequest.leave_type} leave (request #${leaveRequest.id})`,
+            hospital_id: leaveRequest.hospital_id
+          });
+        }
+      }
+      if (attendanceRows.length) {
+        await EmployeeAttendance.bulkCreate(attendanceRows, { transaction: t });
+      }
+
       await t.commit();
 
       res.json({
         success: true,
         message: 'Leave request approved successfully',
-        data: leaveRequest
+        data: { leaveRequest, attendance_entries_created: attendanceRows.length }
       });
     } catch (error) {
       await t.rollback();

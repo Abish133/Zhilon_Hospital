@@ -5,6 +5,7 @@ import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import apiClient from '@services/apiClient';
 import { formatCurrency, formatDate } from '@utils/helpers';
 import DataTable from '@components/common/DataTable';
+import { useAuthStore } from '@store/index';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -17,11 +18,13 @@ const RefundManagement = () => {
   const [selectedRefund, setSelectedRefund] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch paid bills for refund
-  const { data: billsData } = useApiQuery(
-    ['paid-bills', searchQuery],
+  const user = useAuthStore(s => s.user);
+
+  // Fetch paid + partially-paid bills (refunds can apply to partial payments too)
+  const { data: billsData, refetch: refetchBills } = useApiQuery(
+    ['refundable-bills', searchQuery],
     async () => (await apiClient.get('/bills', {
-      params: { payment_status: 'Paid', ...(searchQuery ? { search: searchQuery } : {}) }
+      params: searchQuery ? { search: searchQuery } : {}
     })).data
   );
 
@@ -41,6 +44,7 @@ const RefundManagement = () => {
         refundForm.resetFields();
         setSelectedBill(null);
         refetch();
+        refetchBills(); // bill paid_amount/balance changed — refresh the list
       },
       onError: (error) => {
         message.error(error.message || 'Failed to process refund');
@@ -53,13 +57,17 @@ const RefundManagement = () => {
       message.error('Please select a bill for refund');
       return;
     }
+    if (!user?.id) {
+      message.error('Please log in again — user session expired');
+      return;
+    }
 
     processRefundMutation.mutate({
       ...values,
       bill_id: selectedBill.bill_id,
       patient_id: selectedBill.patient_id,
-      approved_by: 1, // Get from context
-      processed_by: 1, // Get from context
+      approved_by: user.id,
+      processed_by: user.id,
       hospital_id: selectedBill.hospital_id
     });
   };

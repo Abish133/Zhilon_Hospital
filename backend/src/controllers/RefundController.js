@@ -1,30 +1,76 @@
-const { Refund, Bill, Patient, Hospital, User } = require('../models');
+const { Refund, Bill, Patient, Hospital, User, sequelize } = require('../models');
 
 class RefundController {
   static async create(req, res) {
+    const t = await sequelize.transaction();
     try {
-      const { patient_id, refund_amount, refund_mode, approved_by, processed_by, hospital_id } = req.body;
-      
+      const { patient_id, bill_id, refund_amount, refund_mode, approved_by, processed_by, hospital_id } = req.body;
+
       if (!patient_id || !refund_amount || !refund_mode || !approved_by || !processed_by || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'patient_id, refund_amount, refund_mode, approved_by, processed_by, and hospital_id are required' 
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'patient_id, refund_amount, refund_mode, approved_by, processed_by, and hospital_id are required'
         });
       }
 
-      const refund = await Refund.create(req.body);
-      const bill = refund.bill_id ? await Bill.findByPk(refund.bill_id) : null;
+      const amt = parseFloat(refund_amount);
+      if (!(amt > 0)) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: 'refund_amount must be greater than 0' });
+      }
+
+      // If linked to a bill, lock it and reverse the paid_amount so finance ledger stays consistent.
+      let bill = null;
+      if (bill_id) {
+        bill = await Bill.findOne({
+          where: { bill_id, hospital_id },
+          transaction: t,
+          lock: t.LOCK.UPDATE
+        });
+        if (!bill) {
+          await t.rollback();
+          return res.status(404).json({ success: false, message: 'Linked bill not found' });
+        }
+        if (amt > parseFloat(bill.paid_amount)) {
+          await t.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `Refund ${amt} exceeds bill paid amount ${bill.paid_amount}`
+          });
+        }
+      }
+
+      const refund = await Refund.create(req.body, { transaction: t });
+
+      if (bill) {
+        const newPaidAmount = parseFloat(bill.paid_amount) - amt;
+        const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
+        let payment_status = 'Unpaid';
+        if (newBalanceAmount <= 0) payment_status = 'Paid';
+        else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+
+        await bill.update({
+          paid_amount: newPaidAmount,
+          balance_amount: newBalanceAmount,
+          payment_status
+        }, { transaction: t });
+      }
+
+      await t.commit();
+
+      const refreshedBill = bill_id ? await Bill.findByPk(bill_id) : null;
       const patient = await Patient.findByPk(patient_id);
       const hospital = await Hospital.findByPk(hospital_id);
       const approver = await User.findByPk(approved_by, { attributes: { exclude: ['password'] } });
       const processor = await User.findByPk(processed_by, { attributes: { exclude: ['password'] } });
 
-      res.status(201).json({ 
-        success: true, 
+      res.status(201).json({
+        success: true,
         message: 'Refund created successfully',
         data: {
           ...refund.toJSON(),
-          bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount } : null,
+          bill: refreshedBill ? { bill_id: refreshedBill.bill_id, bill_number: refreshedBill.bill_number, net_amount: refreshedBill.net_amount, paid_amount: refreshedBill.paid_amount, balance_amount: refreshedBill.balance_amount, payment_status: refreshedBill.payment_status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           approvedBy: approver ? { id: approver.id, username: approver.username } : null,
@@ -32,6 +78,7 @@ class RefundController {
         }
       });
     } catch (error) {
+      try { await t.rollback(); } catch (_) { /* already rolled back */ }
       res.status(500).json({ success: false, message: error.message });
     }
   }

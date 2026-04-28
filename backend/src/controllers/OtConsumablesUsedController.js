@@ -1,4 +1,4 @@
-const { OtConsumablesUsed, OtBooking, InventoryItem, User, sequelize } = require('../models');
+const { OtConsumablesUsed, OtBooking, InventoryItem, User, BillingEpisode, BillCharge, sequelize } = require('../models');
 
 class OtConsumablesUsedController {
   static async createOtConsumablesUsed(req, res) {
@@ -43,9 +43,40 @@ class OtConsumablesUsedController {
         { transaction: t }
       );
 
+      // Auto-bill the consumable to the patient's open billing episode (IPD or OPD).
+      // Resolves episode via OtBooking.admission_id (IPD) or via patient_id with no admission (rare day-care OPD).
+      const otBooking = await OtBooking.findByPk(req.body.booking_id, { transaction: t });
+      if (otBooking) {
+        const episodeWhere = otBooking.admission_id
+          ? { admission_id: otBooking.admission_id, status: 'Open' }
+          : { patient_id: otBooking.patient_id, status: 'Open', episode_type: 'OPD' };
+        const billingEpisode = await BillingEpisode.findOne({ where: episodeWhere, transaction: t });
+
+        const ratePerUnit = parseFloat(inventoryItem.rate_per_unit || 0);
+        if (billingEpisode && ratePerUnit > 0) {
+          const amount = +(ratePerUnit * quantityUsed).toFixed(2);
+          await BillCharge.create({
+            episode_id: billingEpisode.episode_id,
+            hospital_id,
+            charge_date: new Date(),
+            service_type: 'OT Consumable',
+            service_id: otConsumablesUsed.usage_id,
+            description: `OT Consumable - ${inventoryItem.item_name}`,
+            quantity: quantityUsed,
+            rate: ratePerUnit,
+            amount,
+            discount_percent: 0,
+            discount_amount: 0,
+            taxable_amount: amount,
+            gst_percent: 0,
+            gst_amount: 0,
+            net_amount: amount
+          }, { transaction: t });
+        }
+      }
+
       await t.commit();
 
-      const otBooking = await OtBooking.findByPk(req.body.booking_id);
       const recordedBy = await User.findByPk(req.body.recorded_by);
 
       res.status(201).json({

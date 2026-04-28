@@ -314,6 +314,12 @@ class InsuranceClaimController {
         });
       }
 
+      const amt = parseFloat(payment_amount);
+      if (!(amt > 0)) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: 'payment_amount must be greater than 0' });
+      }
+
       const claim = await InsuranceClaim.findOne({
         where: {
           id,
@@ -336,22 +342,53 @@ class InsuranceClaimController {
         });
       }
 
+      // Lock the linked bill so we can credit the insurer payment against the patient's balance.
+      const bill = await Bill.findOne({
+        where: { bill_id: claim.bill_id, hospital_id: req.hospitalId },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+      if (!bill) {
+        await t.rollback();
+        return res.status(404).json({ success: false, message: 'Linked bill not found for claim' });
+      }
+      if (amt > parseFloat(bill.balance_amount)) {
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Insurer payment ${amt} exceeds outstanding balance ${bill.balance_amount}`
+        });
+      }
+
       await claim.update({
         status: 'paid',
-        paid_amount: parseFloat(payment_amount),
+        paid_amount: amt,
         payment_date,
         payment_reference: reference_number
+      }, { transaction: t });
+
+      // Credit the insurer payment to the bill so the patient sees the correct outstanding balance.
+      const newPaidAmount = parseFloat(bill.paid_amount) + amt;
+      const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
+      let payment_status = 'Unpaid';
+      if (newBalanceAmount <= 0) payment_status = 'Paid';
+      else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+
+      await bill.update({
+        paid_amount: newPaidAmount,
+        balance_amount: newBalanceAmount,
+        payment_status
       }, { transaction: t });
 
       await t.commit();
 
       res.json({
         success: true,
-        message: 'Claim payment processed successfully',
-        data: claim
+        message: 'Claim payment processed successfully and credited to bill',
+        data: { claim, bill: { bill_id: bill.bill_id, paid_amount: newPaidAmount, balance_amount: newBalanceAmount, payment_status } }
       });
     } catch (error) {
-      await t.rollback();
+      try { await t.rollback(); } catch (_) { /* already rolled back */ }
       res.status(500).json({ success: false, message: error.message });
     }
   }
