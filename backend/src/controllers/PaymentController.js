@@ -1,57 +1,72 @@
-const { Payment, Bill, Hospital, User, Patient } = require('../models');
+const { Payment, Bill, Hospital, User, Patient, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { generateSequentialNumber } = require('../utils/numberGenerator');
+const logger = require('../utils/logger');
 
 class PaymentController {
-  // Process bill payment
+  // Process bill payment — atomic: lock bill row, create payment, update bill, all in one transaction.
   static async processBillPayment(req, res) {
+    const t = await sequelize.transaction();
     try {
       const { bill_id, amount_paid, payment_mode, transaction_ref, bank_name, received_by, hospital_id } = req.body;
-      
+
       if (!bill_id || !amount_paid || !payment_mode || !received_by || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'bill_id, amount_paid, payment_mode, received_by, and hospital_id are required' 
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'bill_id, amount_paid, payment_mode, received_by, and hospital_id are required'
         });
       }
 
-      // Get bill details
-      const bill = await Bill.findByPk(bill_id);
+      const amt = parseFloat(amount_paid);
+      if (!(amt > 0)) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: 'amount_paid must be greater than 0' });
+      }
+
+      // Lock the bill row so concurrent payments cannot both read the same balance.
+      const bill = await Bill.findOne({
+        where: { bill_id, hospital_id },
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
       if (!bill) {
+        await t.rollback();
         return res.status(404).json({ success: false, message: 'Bill not found' });
       }
 
-      if (parseFloat(amount_paid) > parseFloat(bill.balance_amount)) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Payment amount cannot exceed balance amount' 
+      if (amt > parseFloat(bill.balance_amount)) {
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'Payment amount cannot exceed balance amount'
         });
       }
 
-      // Generate receipt number
-      const lastPayment = await Payment.findOne({ 
-        order: [['payment_id', 'DESC']] 
+      // Per-hospital sequential receipt number, generated under transaction lock.
+      const receipt_number = await generateSequentialNumber({
+        model: Payment,
+        field: 'receipt_number',
+        prefix: 'RCPT',
+        hospitalId: hospital_id,
+        transaction: t
       });
-      const year = new Date().getFullYear();
-      const nextNumber = lastPayment ? parseInt(lastPayment.receipt_number.split('-')[2]) + 1 : 1;
-      const receipt_number = `RCPT-${year}-${String(nextNumber).padStart(5, '0')}`;
 
-      // Create payment record
       const payment = await Payment.create({
         bill_id,
         payment_type: 'Bill Payment',
         payment_mode,
-        amount_paid,
+        amount_paid: amt,
         transaction_ref,
         bank_name,
         received_by,
         hospital_id,
         receipt_number
-      });
+      }, { transaction: t });
 
-      // Update bill payment status
-      const newPaidAmount = parseFloat(bill.paid_amount) + parseFloat(amount_paid);
+      const newPaidAmount = parseFloat(bill.paid_amount) + amt;
       const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
-      
+
       let payment_status = 'Unpaid';
       if (newBalanceAmount <= 0) payment_status = 'Paid';
       else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
@@ -60,7 +75,9 @@ class PaymentController {
         paid_amount: newPaidAmount,
         balance_amount: newBalanceAmount,
         payment_status
-      });
+      }, { transaction: t });
+
+      await t.commit();
 
       const hospital = await Hospital.findByPk(hospital_id);
       const user = await User.findByPk(received_by, { attributes: { exclude: ['password'] } });
@@ -68,8 +85,8 @@ class PaymentController {
         include: [{ model: Patient, as: 'patient' }]
       });
 
-      res.status(201).json({ 
-        success: true, 
+      res.status(201).json({
+        success: true,
         message: 'Payment processed successfully',
         data: {
           payment: {
@@ -81,75 +98,103 @@ class PaymentController {
         }
       });
     } catch (error) {
+      try { await t.rollback(); } catch (_) { /* already rolled back */ }
+      logger.error('processBillPayment failed', error);
       res.status(500).json({ success: false, message: error.message });
     }
   }
 
   static async create(req, res) {
+    const t = await sequelize.transaction();
     try {
       const { payment_type, payment_mode, amount_paid, received_by, hospital_id, bill_id, ...otherData } = req.body;
-      
+
       if (!payment_type || !payment_mode || !amount_paid || !received_by || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'payment_type, payment_mode, amount_paid, received_by, and hospital_id are required' 
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'payment_type, payment_mode, amount_paid, received_by, and hospital_id are required'
         });
       }
 
-      // Generate receipt number
-      const lastPayment = await Payment.findOne({ 
-        order: [['payment_id', 'DESC']] 
+      const amt = parseFloat(amount_paid);
+      if (!(amt > 0)) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: 'amount_paid must be greater than 0' });
+      }
+
+      // Per-hospital sequential receipt number under transaction lock.
+      const receipt_number = await generateSequentialNumber({
+        model: Payment,
+        field: 'receipt_number',
+        prefix: 'RCPT',
+        hospitalId: hospital_id,
+        transaction: t
       });
-      const year = new Date().getFullYear();
-      const nextNumber = lastPayment ? parseInt(lastPayment.receipt_number.split('-')[2]) + 1 : 1;
-      const receipt_number = `RCPT-${year}-${String(nextNumber).padStart(5, '0')}`;
+
+      // Lock bill first (if any) so balance reads/writes are serialized.
+      let bill = null;
+      if (bill_id) {
+        bill = await Bill.findOne({
+          where: { bill_id, hospital_id },
+          transaction: t,
+          lock: t.LOCK.UPDATE
+        });
+        if (!bill) {
+          await t.rollback();
+          return res.status(404).json({ success: false, message: 'Bill not found' });
+        }
+        if (payment_type === 'Bill Payment' && amt > parseFloat(bill.balance_amount)) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Payment amount cannot exceed balance amount' });
+        }
+      }
 
       const payment = await Payment.create({
         payment_type,
         payment_mode,
-        amount_paid,
+        amount_paid: amt,
         received_by,
         hospital_id,
+        bill_id: bill_id || null,
         ...otherData,
         receipt_number
-      });
+      }, { transaction: t });
 
-      // Update bill if bill_id is provided
-      let bill = null;
-      if (bill_id) {
-        bill = await Bill.findByPk(bill_id);
-        if (bill) {
-          const newPaidAmount = parseFloat(bill.paid_amount) + parseFloat(amount_paid);
-          const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
-          
-          let payment_status = 'Unpaid';
-          if (newBalanceAmount <= 0) payment_status = 'Paid';
-          else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+      if (bill && payment_type === 'Bill Payment') {
+        const newPaidAmount = parseFloat(bill.paid_amount) + amt;
+        const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
 
-          await bill.update({
-            paid_amount: newPaidAmount,
-            balance_amount: newBalanceAmount,
-            payment_status
-          });
-          
-          bill = await Bill.findByPk(bill_id);
-        }
+        let payment_status = 'Unpaid';
+        if (newBalanceAmount <= 0) payment_status = 'Paid';
+        else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+
+        await bill.update({
+          paid_amount: newPaidAmount,
+          balance_amount: newBalanceAmount,
+          payment_status
+        }, { transaction: t });
       }
 
+      await t.commit();
+
+      const refreshedBill = bill_id ? await Bill.findByPk(bill_id) : null;
       const hospital = await Hospital.findByPk(hospital_id);
       const user = await User.findByPk(received_by, { attributes: { exclude: ['password'] } });
 
-      res.status(201).json({ 
-        success: true, 
+      res.status(201).json({
+        success: true,
         message: 'Payment created successfully',
         data: {
           ...payment.toJSON(),
-          bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount, balance_amount: bill.balance_amount, payment_status: bill.payment_status } : null,
+          bill: refreshedBill ? { bill_id: refreshedBill.bill_id, bill_number: refreshedBill.bill_number, net_amount: refreshedBill.net_amount, balance_amount: refreshedBill.balance_amount, payment_status: refreshedBill.payment_status } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           receivedBy: user ? { id: user.id, name: user.name } : null
         }
       });
     } catch (error) {
+      try { await t.rollback(); } catch (_) { /* already rolled back */ }
+      logger.error('Payment.create failed', error);
       res.status(500).json({ success: false, message: error.message });
     }
   }

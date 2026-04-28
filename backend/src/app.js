@@ -120,6 +120,18 @@ if (helmet) app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin'
 
 app.use(express.json({ limit: '10mb' }));
 
+// Liveness/readiness probe for load balancers and orchestrators.
+// Liveness = process is up; readiness = also DB reachable.
+app.get('/healthz', (_req, res) => res.json({ status: 'ok', uptime: process.uptime() }));
+app.get('/readyz', async (_req, res) => {
+  try {
+    await sequelize.authenticate();
+    res.json({ status: 'ready' });
+  } catch (err) {
+    res.status(503).json({ status: 'not-ready', error: err.message });
+  }
+});
+
 // Rate limit all API traffic
 app.use('/api/', apiLimiter);
 
@@ -197,8 +209,12 @@ app.use('/api/radiology-orders', guard('radiology'), radiologyOrdersRoutes);
 app.use('/api/radiology-imaging', guard('radiology'), radiologyImagingRoutes);
 app.use('/api/radiology-reports', guard('radiologyReport'), radiologyReportsRoutes);
 app.use('/api/doctor-schedules', guard('doctorSchedule'), doctorSchedulesRoutes);
-app.use('/api/employee-attendance', guard('attendance'), employeeAttendanceRoutes);
+// Attendance: route file handles per-endpoint RBAC (self-service vs HR-admin)
+app.use('/api/employee-attendance', protect, employeeAttendanceRoutes);
 app.use('/api/medicine_category', guard('medicineCategory'), medicineCategoryRoutes);
+// Dashboard stats: open to every authenticated staff member, mounted before the
+// financial-only `reports` gate so non-finance roles can still load the home page.
+app.get('/api/reports/dashboard-stats', ...protect, require('./controllers/ReportController').getDashboardStats);
 app.use('/api/reports', guard('reports'), reportRoutes);
 app.use('/api/patient-documents', guard('patientDocs'), patientDocumentRoutes);
 app.use('/api/documents', guard('patientDocs'), patientDocumentRoutes); // Alias for frontend compatibility
@@ -220,9 +236,11 @@ app.use('/api/nursing-checklists', guard('nursingChecklist'), nursingChecklistRo
 app.use('/api/reports-export', guard('reports'), reportExportRoutes);
 app.use('/api/notifications', guard('notification'), notificationRoutes);
 
+const logger = require('./utils/logger');
+
 // Global error handler
-app.use((err, req, res, next) => {
-  console.error('Unhandled error:', err);
+app.use((err, req, res, _next) => {
+  logger.error('Unhandled error', { method: req.method, url: req.originalUrl, error: err.message, stack: err.stack });
   res.status(err.status || 500).json({
     success: false,
     message: err.message || 'Internal server error'

@@ -33,12 +33,13 @@ class PharmacySaleController {
         }
       }
 
-      let totalAmount = 0;
+      let totalAmount = 0;     // gross before tax
+      let totalTax = 0;        // accumulated GST across line items
       const saleDetails = [];
 
       for (const med of medicines) {
         const { medicine_id, quantity } = med;
-        
+
         const medicine = await Medicine.findByPk(medicine_id);
         if (!medicine) {
           await transaction.rollback();
@@ -71,7 +72,10 @@ class PharmacySaleController {
           });
         }
         const amount = rate * quantity;
+        const gstPct = parseFloat(medicine.gst_percentage || 0);
+        const lineTax = +(amount * gstPct / 100).toFixed(2);
         totalAmount += amount;
+        totalTax += lineTax;
 
         saleDetails.push({
           medicine_id,
@@ -80,13 +84,16 @@ class PharmacySaleController {
           quantity,
           rate,
           amount,
-          gst_percentage: medicine.gst_percentage || 0,
+          gst_percentage: gstPct,
           hospital_id
         });
 
         batch.available_quantity -= quantity;
         await batch.save({ transaction });
       }
+
+      totalTax = +totalTax.toFixed(2);
+      const netAmount = +(totalAmount + totalTax).toFixed(2);
 
       const pharmacySale = await PharmacySale.create({
         patient_id: patient.patient_id,
@@ -97,8 +104,8 @@ class PharmacySaleController {
         sale_date: new Date(),
         total_amount: totalAmount,
         discount_amount: 0,
-        tax_amount: 0,
-        net_amount: totalAmount,
+        tax_amount: totalTax,
+        net_amount: netAmount,
         payment_mode: 'Pending',
         dispensed_by,
         hospital_id
@@ -115,9 +122,11 @@ class PharmacySaleController {
         const episodeWhere = visit_type === 'IPD'
           ? { admission_id: visit_id, status: 'Open' }
           : { opd_visit_id: visit_id, status: 'Open' };
-        const billingEpisode = await BillingEpisode.findOne({ where: episodeWhere });
+        const billingEpisode = await BillingEpisode.findOne({ where: episodeWhere, transaction });
 
         if (billingEpisode) {
+          // Effective GST % = totalTax / totalAmount * 100 (weighted average across line items)
+          const effectiveGstPct = totalAmount > 0 ? +((totalTax / totalAmount) * 100).toFixed(2) : 0;
           await BillCharge.create({
             episode_id: billingEpisode.episode_id,
             hospital_id,
@@ -131,9 +140,9 @@ class PharmacySaleController {
             discount_percent: 0,
             discount_amount: 0,
             taxable_amount: totalAmount,
-            gst_percent: 0,
-            gst_amount: 0,
-            net_amount: totalAmount
+            gst_percent: effectiveGstPct,
+            gst_amount: totalTax,
+            net_amount: netAmount
           }, { transaction });
         }
       }

@@ -3,17 +3,24 @@ import 'jspdf-autotable';
 
 export const generateBillPDF = (billData) => {
   const doc = new jsPDF();
-  
-  // Header
+  const hospital = billData.hospital || {};
+
+  // Header — pulled from the hospital record so each tenant prints its own identity.
   doc.setFontSize(20);
   doc.setTextColor(99, 102, 241);
-  doc.text('HOSPITAL MANAGEMENT SYSTEM', 105, 20, { align: 'center' });
-  
+  doc.text((hospital.hospitalName || hospital.name || 'HOSPITAL MANAGEMENT SYSTEM').toUpperCase(),
+           105, 20, { align: 'center' });
+
   doc.setFontSize(10);
   doc.setTextColor(100);
-  doc.text('123 Medical Street, City - 123456', 105, 28, { align: 'center' });
-  doc.text('Phone: +91-1234567890 | Email: info@hospital.com', 105, 33, { align: 'center' });
-  doc.text('GSTIN: 29XXXXX1234X1ZX', 105, 38, { align: 'center' });
+  const addrLine = [hospital.address, hospital.city, hospital.pincode].filter(Boolean).join(', ');
+  if (addrLine) doc.text(addrLine, 105, 28, { align: 'center' });
+  const contactLine = [
+    hospital.phone ? `Phone: ${hospital.phone}` : null,
+    hospital.email ? `Email: ${hospital.email}` : null
+  ].filter(Boolean).join(' | ');
+  if (contactLine) doc.text(contactLine, 105, 33, { align: 'center' });
+  if (hospital.gst_number) doc.text(`GSTIN: ${hospital.gst_number}`, 105, 38, { align: 'center' });
   
   // Bill Title
   doc.setFontSize(16);

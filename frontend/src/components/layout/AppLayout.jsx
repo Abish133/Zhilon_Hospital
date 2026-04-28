@@ -80,7 +80,7 @@ const AppLayout = () => {
         { key: '/pharmacy/sales', label: 'Sales' },
         { key: '/pharmacy/medicines', label: 'Medicines' },
         { key: '/pharmacy/batches', label: 'Batches' },
-        { key: '/pharmacy/medicine-categories', label: 'Categories', roles: [ROLES.ADMIN] }
+        { key: '/pharmacy/medicine-categories', label: 'Categories' }
       ]
     },
     {
@@ -110,10 +110,10 @@ const AppLayout = () => {
     },
     {
       key: 'inventory-menu', icon: <InboxOutlined />, label: 'Inventory',
-      roles: [ROLES.ADMIN],
+      roles: [ROLES.ADMIN, ROLES.HR, ROLES.PHARMACIST],
       children: [
         { key: '/inventory', label: 'Dashboard' },
-        { key: '/inventory/vendors', label: 'Vendors' },
+        { key: '/inventory/vendors', label: 'Vendors', roles: [ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT] },
         { key: '/inventory/categories', label: 'Categories' },
         { key: '/inventory/purchase-orders', label: 'Purchase Orders' },
         { key: '/inventory/goods-receipt', label: 'Goods Receipt (GRN)' },
@@ -122,14 +122,14 @@ const AppLayout = () => {
     },
     {
       key: 'equipment-menu', icon: <ToolOutlined />, label: 'Equipment',
-      roles: [ROLES.ADMIN],
+      roles: [ROLES.ADMIN, ROLES.HR],
       children: [
         { key: '/equipment', label: 'Equipment List' },
         { key: '/equipment/dashboard', label: 'Dashboard' },
         { key: '/equipment/maintenance', label: 'Maintenance' },
         { key: '/equipment/preventive-maintenance', label: 'Preventive' },
         { key: '/equipment/maintenance-history', label: 'History' },
-        { key: '/equipment/calibration', label: 'Calibration' }
+        { key: '/equipment/calibration', label: 'Calibration', roles: [ROLES.ADMIN] }
       ]
     },
     {
@@ -146,30 +146,30 @@ const AppLayout = () => {
     },
     {
       key: 'hr-menu', icon: <TeamOutlined />, label: 'HR',
-      roles: [ROLES.ADMIN],
+      roles: [ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE],
       children: [
-        { key: '/employees', label: 'Employees' },
-        { key: '/admin/attendance', label: 'Attendance' },
-        { key: '/hr/payroll', label: 'Payroll' },
-        { key: '/hr/salary-structure', label: 'Salary Structure' },
-        { key: '/hr/shifts', label: 'Shifts' },
-        { key: '/hr/roster', label: 'Roster' },
-        { key: '/hr/leave-requests', label: 'Leave Requests' }
+        { key: '/employees', label: 'Employees', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/admin/attendance', label: 'Attendance', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/hr/payroll', label: 'Payroll', roles: [ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT] },
+        { key: '/hr/salary-structure', label: 'Salary Structure', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/hr/shifts', label: 'Shifts', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/hr/roster', label: 'Roster', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/hr/leave-requests', label: 'Leave Requests', roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE] }
       ]
     },
     {
       key: 'doctors-menu', icon: <UserOutlined />, label: 'Doctors',
-      roles: [ROLES.ADMIN],
+      roles: [ROLES.ADMIN, ROLES.HR, ROLES.DOCTOR],
       children: [
-        { key: '/admin/doctors', label: 'Doctors' },
-        { key: '/admin/schedules', label: 'Schedules' },
-        { key: '/admin/doctor-qualifications', label: 'Qualifications' },
-        { key: '/admin/doctor-leaves', label: 'Leaves' }
+        { key: '/admin/doctors', label: 'Doctors', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/admin/schedules', label: 'Schedules', roles: [ROLES.ADMIN, ROLES.HR, ROLES.DOCTOR] },
+        { key: '/admin/doctor-qualifications', label: 'Qualifications', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/admin/doctor-leaves', label: 'Leaves', roles: [ROLES.ADMIN, ROLES.HR, ROLES.DOCTOR] }
       ]
     },
     {
       key: 'reports-menu', icon: <FileTextOutlined />, label: 'Reports',
-      roles: [ROLES.ADMIN, ROLES.ACCOUNTANT],
+      roles: [ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.HR],
       children: [
         { key: '/reports', label: 'Standard' },
         { key: '/reports/detailed', label: 'Detailed' },
@@ -483,8 +483,7 @@ const AppLayout = () => {
           </div>
         </Content>
       </Layout>
-    </Layout>
-  );
+
       <Modal
         title="Search Patients"
         open={searchOpen}
@@ -524,7 +523,8 @@ const AppLayout = () => {
           <div style={{ textAlign: 'center', color: '#999', padding: '16px 0' }}>No patients found</div>
         )}
       </Modal>
-
+    </Layout>
+  );
 };
 
 export default AppLayout;

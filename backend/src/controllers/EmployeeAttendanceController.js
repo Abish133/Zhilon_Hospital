@@ -1,17 +1,45 @@
-const { EmployeeAttendance, Employee } = require('../models');
+const { EmployeeAttendance, Employee, Doctor } = require('../models');
 const { Op } = require('sequelize');
 
-const today = () => new Date().toISOString().slice(0, 10);
-const nowTime = () => new Date().toTimeString().slice(0, 8);
+// IST-safe date/time helpers. Server may run in UTC; attendance must use Asia/Kolkata.
+const istParts = () => {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+  }).formatToParts(new Date()).reduce((acc, p) => { acc[p.type] = p.value; return acc; }, {});
+  return parts;
+};
+const today = () => {
+  const p = istParts();
+  return `${p.year}-${p.month}-${p.day}`;
+};
+const nowTime = () => {
+  const p = istParts();
+  // Intl gives "24" at midnight in some engines — normalise to "00".
+  const hh = p.hour === '24' ? '00' : p.hour;
+  return `${hh}:${p.minute}:${p.second}`;
+};
 
 class EmployeeAttendanceController {
-  // Resolve the Employee record for the authenticated user
+  // Resolve the Employee record for the authenticated user.
+  // Order: explicit employee_id → email match → doctor's email match (Doctor users
+  // typically have only doctor_id set, so we look up the Employee by their email).
   static async _resolveEmployee(req) {
     if (req.user?.employee_id) {
-      return await Employee.findByPk(req.user.employee_id);
+      const found = await Employee.findByPk(req.user.employee_id);
+      if (found) return found;
     }
     if (req.user?.email) {
-      return await Employee.findOne({ where: { email: req.user.email } });
+      const found = await Employee.findOne({ where: { email: req.user.email } });
+      if (found) return found;
+    }
+    if (req.user?.doctor_id) {
+      const doctor = await Doctor.findByPk(req.user.doctor_id);
+      if (doctor?.email) {
+        const found = await Employee.findOne({ where: { email: doctor.email } });
+        if (found) return found;
+      }
     }
     return null;
   }
@@ -42,7 +70,7 @@ class EmployeeAttendanceController {
   static async checkIn(req, res) {
     try {
       const employee = await EmployeeAttendanceController._resolveEmployee(req);
-      if (!employee) return res.status(400).json({ success: false, message: 'No employee profile linked to this user.' });
+      if (!employee) return res.status(400).json({ success: false, message: 'No employee profile is linked to this user. Please ask HR to create your employee record (matching your login email) so attendance can be marked.' });
 
       const date = today();
       let record = await EmployeeAttendance.findOne({
@@ -69,7 +97,7 @@ class EmployeeAttendanceController {
   static async checkOut(req, res) {
     try {
       const employee = await EmployeeAttendanceController._resolveEmployee(req);
-      if (!employee) return res.status(400).json({ success: false, message: 'No employee profile linked to this user.' });
+      if (!employee) return res.status(400).json({ success: false, message: 'No employee profile is linked to this user. Please ask HR to create your employee record (matching your login email) so attendance can be marked.' });
 
       const record = await EmployeeAttendance.findOne({
         where: { employee_id: employee.employee_id, attendance_date: today() }

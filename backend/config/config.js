@@ -7,6 +7,9 @@ const base = {
   host: process.env.DB_HOST || 'localhost',
   port: parseInt(process.env.DB_PORT, 10) || 3306,
   dialect: 'mysql',
+  // Store/read DATETIME columns in IST so reports & cron jobs match the wall-clock
+  // a hospital in India sees, regardless of the server's OS timezone.
+  timezone: '+05:30',
   logging: false,
   pool: {
     max: parseInt(process.env.DB_POOL_MAX, 10) || 20,

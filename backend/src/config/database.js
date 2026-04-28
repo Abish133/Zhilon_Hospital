@@ -6,7 +6,10 @@ const base = {
   database: process.env.DB_NAME || 'hms_db',
   username: process.env.DB_USER || 'root',
   password: process.env.DB_PASSWORD || '',
-  dialect: 'mysql'
+  dialect: 'mysql',
+  // Store/read DATETIME columns in IST so reports & cron jobs match the wall-clock
+  // a hospital in India sees, regardless of the server's OS timezone.
+  timezone: '+05:30'
 };
 
 module.exports = {

@@ -37,7 +37,15 @@ const {
 } = db;
 
 const PASSWORD = 'password123';
-const d = (n=0) => { const x=new Date(); x.setDate(x.getDate()+n); return x.toISOString().slice(0,10); };
+// IST-safe date helper: "today" must be the calendar day in Asia/Kolkata, not UTC.
+// Returns "YYYY-MM-DD" for the IST date offset by `n` days from now.
+const d = (n=0) => {
+  const x = new Date(Date.now() + n*86400000);
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(x).reduce((a,p) => { a[p.type] = p.value; return a; }, {});
+  return `${parts.year}-${parts.month}-${parts.day}`;
+};
 const dt = (n=0,h=0) => { const x=new Date(); x.setDate(x.getDate()+n); x.setHours(Math.floor(h),Math.round((h%1)*60),0,0); return x; };
 const now=new Date(), today=d(0), yesterday=d(-1), twoDaysAgo=d(-2), fiveDaysAgo=d(-5);
 const tenDaysAgo=d(-10), thirtyDaysAgo=d(-30), tomorrow=d(1), inWeek=d(7), inTen=d(10);

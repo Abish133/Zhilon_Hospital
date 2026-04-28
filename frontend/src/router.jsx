@@ -418,7 +418,7 @@ const router = createBrowserRouter([
       {
         path: '/inventory',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.PHARMACIST]}>
             <Inventory />
           </ProtectedRoute>
         )
@@ -426,7 +426,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <Equipment />
           </ProtectedRoute>
         )
@@ -460,7 +460,7 @@ const router = createBrowserRouter([
       {
         path: '/employees',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <Employees />
           </ProtectedRoute>
         )
@@ -468,7 +468,7 @@ const router = createBrowserRouter([
       {
         path: '/reports',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.HR]}>
             <Reports />
           </ProtectedRoute>
         )
@@ -484,7 +484,7 @@ const router = createBrowserRouter([
       {
         path: '/admin/charges',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT]}>
             <ChargeMaster />
           </ProtectedRoute>
         )
@@ -508,7 +508,7 @@ const router = createBrowserRouter([
       {
         path: '/admin/doctors',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <Doctors />
           </ProtectedRoute>
         )
@@ -516,7 +516,7 @@ const router = createBrowserRouter([
       {
         path: '/admin/schedules',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.DOCTOR]}>
             <DoctorSchedules />
           </ProtectedRoute>
         )
@@ -540,7 +540,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/calibration',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <CalibrationLogs />
           </ProtectedRoute>
         )
@@ -548,7 +548,7 @@ const router = createBrowserRouter([
       {
         path: '/admin/attendance',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <AttendancePayroll />
           </ProtectedRoute>
         )
@@ -564,7 +564,7 @@ const router = createBrowserRouter([
       {
         path: '/admin/packages',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT]}>
             <PackageManagement />
           </ProtectedRoute>
         )
@@ -597,7 +597,7 @@ const router = createBrowserRouter([
       {
         path: '/inventory/purchase-orders',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST, ROLES.HR, ROLES.ACCOUNTANT]}>
             <PurchaseOrders />
           </ProtectedRoute>
         )
@@ -605,7 +605,7 @@ const router = createBrowserRouter([
       {
         path: '/inventory/goods-receipt',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST, ROLES.HR]}>
             <GoodsReceipt />
           </ProtectedRoute>
         )
@@ -613,7 +613,7 @@ const router = createBrowserRouter([
       {
         path: '/inventory/vendors',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT]}>
             <VendorManagement />
           </ProtectedRoute>
         )
@@ -653,7 +653,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/maintenance',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.NURSE]}>
             <EquipmentMaintenance />
           </ProtectedRoute>
         )
@@ -661,7 +661,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/maintenance-calendar',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <EquipmentMaintenanceCalendar />
           </ProtectedRoute>
         )
@@ -669,7 +669,7 @@ const router = createBrowserRouter([
       {
         path: '/inventory/issue-return',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST, ROLES.HR, ROLES.NURSE]}>
             <InventoryIssueReturn />
           </ProtectedRoute>
         )
@@ -677,7 +677,7 @@ const router = createBrowserRouter([
       {
         path: '/reports/detailed',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.HR]}>
             <DetailedReports />
           </ProtectedRoute>
         )
@@ -685,7 +685,7 @@ const router = createBrowserRouter([
       {
         path: '/reports/advanced',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT, ROLES.HR, ROLES.DOCTOR]}>
             <AdvancedReports />
           </ProtectedRoute>
         )
@@ -725,7 +725,7 @@ const router = createBrowserRouter([
        {
         path: '/inventory/categories',
         element: (
-          <ProtectedRoute roles={[ROLES.PHARMACIST, ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.PHARMACIST, ROLES.ADMIN, ROLES.HR]}>
             <InventoryCategoryList />
           </ProtectedRoute>
         )
@@ -733,7 +733,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/dashboard',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <EquipmentDashboard />
           </ProtectedRoute>
         )
@@ -741,7 +741,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/preventive-maintenance',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <PreventiveMaintenance />
           </ProtectedRoute>
         )
@@ -749,7 +749,7 @@ const router = createBrowserRouter([
       {
         path: '/equipment/maintenance-history',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <MaintenanceHistory />
           </ProtectedRoute>
         )
@@ -773,7 +773,7 @@ const router = createBrowserRouter([
       {
         path: '/hr/shifts',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <ShiftManagement />
           </ProtectedRoute>
         )
@@ -781,7 +781,7 @@ const router = createBrowserRouter([
       {
         path: '/hr/roster',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <RosterManagement />
           </ProtectedRoute>
         )
@@ -789,7 +789,7 @@ const router = createBrowserRouter([
       {
         path: '/hr/payroll',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.ACCOUNTANT]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT]}>
             <PayrollGeneration />
           </ProtectedRoute>
         )
@@ -797,7 +797,7 @@ const router = createBrowserRouter([
       {
         path: '/hr/leave-requests',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE]}>
             <LeaveRequests />
           </ProtectedRoute>
         )
@@ -805,7 +805,7 @@ const router = createBrowserRouter([
       {
         path: '/hr/salary-structure',
         element: (
-          <ProtectedRoute roles={[ROLES.ADMIN]}>
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <SalaryStructure />
           </ProtectedRoute>
         )

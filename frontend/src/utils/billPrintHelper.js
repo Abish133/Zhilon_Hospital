@@ -211,14 +211,21 @@ export const generateBillPrintHTML = (billData, charges = []) => {
       </head>
       <body>
         <div class="container">
+          ${(() => {
+            const h = billData.hospital || {};
+            const addr = [h.address, h.city, h.pincode].filter(Boolean).join(', ');
+            const contact = [h.phone ? `Phone: ${h.phone}` : null, h.email ? `Email: ${h.email}` : null].filter(Boolean).join(' | ');
+            const idLine = [h.gst_number ? `GSTIN: ${h.gst_number}` : null, h.registration_number ? `Reg. No: ${h.registration_number}` : null].filter(Boolean).join(' | ');
+            return `
           <div class="header">
-            <div class="hospital-name">CITY HOSPITAL</div>
+            <div class="hospital-name">${(h.hospitalName || h.name || 'HOSPITAL').toUpperCase()}</div>
             <div class="hospital-details">
-              123 Medical Street, Healthcare District, City - 123456<br>
-              Phone: +91-1234567890 | Email: info@cityhospital.com<br>
-              GSTIN: 29XXXXX1234X1ZX | Reg. No: MH/12345/2020
+              ${addr ? addr + '<br>' : ''}
+              ${contact ? contact + '<br>' : ''}
+              ${idLine || ''}
             </div>
-          </div>
+          </div>`;
+          })()}
           
           <div class="bill-title">PATIENT BILL / INVOICE</div>
           
