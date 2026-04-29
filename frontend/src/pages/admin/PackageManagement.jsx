@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, Select, message, Checkbox } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, LinkOutlined } from '@ant-design/icons';
+import { Card, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, Select, message, Divider, Alert } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, LinkOutlined, ExperimentOutlined, ScanOutlined, UserOutlined } from '@ant-design/icons';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import PackageService from '@services/PackageService';
 import apiClient from '@services/apiClient';
-import { PACKAGE_TYPES, AVAILABLE_SERVICES } from '@utils/constants';
+import { PACKAGE_TYPES } from '@utils/constants';
 
 const PackageManagement = () => {
   const [packageModal, setPackageModal] = useState(false);
@@ -18,7 +18,21 @@ const PackageManagement = () => {
     ['packages'],
     () => PackageService.getAll()
   );
- 
+
+  // Lab + Radiology test catalogs for the package builder.
+  const { data: labTestsData } = useApiQuery(
+    ['lab-tests-active'],
+    async () => (await apiClient.get('/lab-tests')).data,
+    { enabled: packageModal }
+  );
+  const { data: radTestsData } = useApiQuery(
+    ['radiology-tests-active'],
+    async () => (await apiClient.get('/radiology-tests')).data,
+    { enabled: packageModal }
+  );
+  const labTests = labTestsData?.data || [];
+  const radTests = radTestsData?.data || [];
+
   const packages = data?.data || [];
  
   const createMutation = useApiMutation(
@@ -103,18 +117,22 @@ const PackageManagement = () => {
       render: (type) => <Tag color="green">{type}</Tag>
     },
     {
-      title: 'Services',
+      title: 'What\'s Included',
       dataIndex: 'services_included',
       key: 'services_included',
-      render: (services) => {
-        if (!services || !Array.isArray(services)) return '-';
+      render: (raw) => {
+        const parsed = parseServices(raw);
+        const labCount = parsed.lab_test_ids.length;
+        const radCount = parsed.rad_test_ids.length;
+        const credits = parsed.consult_credits;
+        if (!labCount && !radCount && !credits && !parsed._legacy_slugs) return '-';
         return (
-          <div>
-            {services.slice(0, 3).map(service => (
-              <Tag key={service} color="blue" style={{ marginBottom: 2 }}>{service}</Tag>
-            ))}
-            {services.length > 3 && <Tag color="default">+{services.length - 3} more</Tag>}
-          </div>
+          <Space size={4} wrap>
+            {labCount > 0 && <Tag color="blue" icon={<ExperimentOutlined />}>{labCount} Lab</Tag>}
+            {radCount > 0 && <Tag color="purple" icon={<ScanOutlined />}>{radCount} Imaging</Tag>}
+            {credits > 0 && <Tag color="cyan" icon={<UserOutlined />}>{credits} Consult{credits > 1 ? 's' : ''}</Tag>}
+            {parsed._legacy_slugs && <Tag color="orange">Legacy: {parsed._legacy_slugs}</Tag>}
+          </Space>
         );
       }
     },
@@ -165,37 +183,77 @@ const PackageManagement = () => {
     }
   ];
  
+  // Convert API services_included (legacy slug or new structured) into form-state shape.
+  const parseServices = (raw) => {
+    let v = raw;
+    if (typeof v === 'string') {
+      try { v = JSON.parse(v); } catch (_) { v = {}; }
+    }
+    if (!v || typeof v !== 'object') return { lab_test_ids: [], rad_test_ids: [], consult_credits: 0 };
+    if (Array.isArray(v)) return { lab_test_ids: [], rad_test_ids: [], consult_credits: 0 };
+    // New structured format
+    if (v.lab_tests || v.radiology_tests || v.consult_credits != null) {
+      return {
+        lab_test_ids: Array.isArray(v.lab_tests) ? v.lab_tests : [],
+        rad_test_ids: Array.isArray(v.radiology_tests) ? v.radiology_tests : [],
+        consult_credits: parseInt(v.consult_credits || 0, 10) || 0
+      };
+    }
+    // Legacy slug format — display read-only summary; user must reselect to migrate.
+    const slugs = Object.entries(v).filter(([k]) => !['consult', 'consultation'].includes(String(k).toLowerCase()));
+    const consultEntry = Object.entries(v).find(([k]) => ['consult', 'consultation'].includes(String(k).toLowerCase()));
+    return {
+      lab_test_ids: [],
+      rad_test_ids: [],
+      consult_credits: consultEntry ? (parseInt(consultEntry[1] || 0, 10) || 0) : 0,
+      _legacy_slugs: slugs.map(([k, v]) => `${k}×${v}`).join(', ')
+    };
+  };
+
   const handleEdit = (packageData) => {
     setSelectedPackage(packageData);
-    const servicesIncluded = Array.isArray(packageData.services_included) 
-      ? packageData.services_included 
-      : (typeof packageData.services_included === 'string' 
-        ? JSON.parse(packageData.services_included) 
-        : []);
-    
+    const parsed = parseServices(packageData.services_included);
+
     form.setFieldsValue({
       package_name: packageData.package_name,
       package_type: packageData.package_type,
-      services_included: servicesIncluded,
+      lab_test_ids: parsed.lab_test_ids,
+      rad_test_ids: parsed.rad_test_ids,
+      consult_credits: parsed.consult_credits,
       total_charge: packageData.total_charge,
       validity_days: packageData.validity_days,
       hospital_id: packageData.hospital_id,
-      is_active: packageData.is_active
+      is_active: packageData.is_active,
+      _legacy_slugs: parsed._legacy_slugs
     });
     setPackageModal(true);
   };
- 
+
   const handleAdd = () => {
     setSelectedPackage(null);
     form.resetFields();
     setPackageModal(true);
   };
- 
+
   const handleSubmit = async (values) => {
+    // Build the structured services_included payload from the three pickers.
+    const services_included = {
+      lab_tests: values.lab_test_ids || [],
+      radiology_tests: values.rad_test_ids || [],
+      consult_credits: parseInt(values.consult_credits || 0, 10) || 0
+    };
+    const payload = {
+      package_name: values.package_name,
+      package_type: values.package_type,
+      services_included,
+      total_charge: values.total_charge,
+      validity_days: values.validity_days,
+      is_active: values.is_active !== false
+    };
     if (selectedPackage) {
-      updateMutation.mutate({ id: selectedPackage.package_id, data: values });
+      updateMutation.mutate({ id: selectedPackage.package_id, data: payload });
     } else {
-      createMutation.mutate(values);
+      createMutation.mutate(payload);
     }
   };
  
@@ -251,17 +309,75 @@ const PackageManagement = () => {
               options={PACKAGE_TYPES}
             />
           </Form.Item>
+          <Divider style={{ margin: '4px 0 12px' }}>Bundled services</Divider>
+
+          <Form.Item shouldUpdate>
+            {() => form.getFieldValue('_legacy_slugs') ? (
+              <Alert
+                type="warning"
+                showIcon
+                style={{ marginBottom: 12 }}
+                message="Legacy package data detected"
+                description={
+                  <>
+                    This package was created in the old format ({form.getFieldValue('_legacy_slugs')}).
+                    Please re-pick the lab and radiology tests below from the master catalog so the
+                    package can auto-create real orders when applied.
+                  </>
+                }
+              />
+            ) : null}
+          </Form.Item>
+
           <Form.Item
-            name="services_included"
-            label="Services Included"
+            name="lab_test_ids"
+            label="Lab Tests Included"
+            extra="When applied, the system creates a single lab order with these tests automatically."
           >
-            <Checkbox.Group
-              options={AVAILABLE_SERVICES.map(s => ({
-                label: `${s.label} (₹${s.price})`,
-                value: s.value
+            <Select
+              mode="multiple"
+              showSearch
+              placeholder="Pick lab tests from your test master"
+              filterOption={(input, option) =>
+                String(option?.label || '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={labTests.map(t => ({
+                value: t.test_id,
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.charge ? ` — ₹${t.charge}` : ''}`
               }))}
             />
           </Form.Item>
+
+          <Form.Item
+            name="rad_test_ids"
+            label="Radiology / Imaging Included"
+            extra="When applied, the system creates radiology orders for each selected imaging study."
+          >
+            <Select
+              mode="multiple"
+              showSearch
+              placeholder="Pick imaging from your radiology master"
+              filterOption={(input, option) =>
+                String(option?.label || '').toLowerCase().includes(input.toLowerCase())
+              }
+              options={radTests.map(t => ({
+                value: t.rad_test_id,
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.modality ? ` · ${t.modality}` : ''}${t.charge ? ` — ₹${t.charge}` : ''}`
+              }))}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="consult_credits"
+            label="Consultation Credits"
+            extra="Number of doctor consultations the package covers. Each consultation during the episode automatically draws against this counter."
+            initialValue={0}
+          >
+            <InputNumber min={0} max={50} style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Divider style={{ margin: '4px 0 12px' }}>Pricing</Divider>
+
           <Form.Item
             name="total_charge"
             label="Total Charge"
@@ -307,14 +423,36 @@ const PackageManagement = () => {
         onOk={() => applyForm.submit()}
         confirmLoading={applyMutation.isPending}
         okText="Apply to Episode"
-        width={560}
+        width={600}
       >
+        {packageToApply && (() => {
+          const parsed = parseServices(packageToApply.services_included);
+          return (
+            <Alert
+              style={{ marginBottom: 16 }}
+              type="info"
+              showIcon
+              message={`Charge: ₹${packageToApply.total_charge}`}
+              description={
+                <Space direction="vertical" size={2}>
+                  <span>The system will automatically create on apply:</span>
+                  <span>• <b>{parsed.lab_test_ids.length}</b> lab test{parsed.lab_test_ids.length !== 1 ? 's' : ''} (added to a new lab order)</span>
+                  <span>• <b>{parsed.rad_test_ids.length}</b> imaging study/studies</span>
+                  <span>• <b>{parsed.consult_credits}</b> consultation credit{parsed.consult_credits !== 1 ? 's' : ''} (deducted automatically as doctors see the patient)</span>
+                  <span style={{ color: '#666', fontSize: 12 }}>Single bundled charge — these items will <i>not</i> be billed individually.</span>
+                  {parsed._legacy_slugs && (
+                    <span style={{ color: '#d48806' }}>⚠ Legacy slug data ({parsed._legacy_slugs}) — backend will resolve by test code/name automatically.</span>
+                  )}
+                </Space>
+              }
+            />
+          );
+        })()}
         <Form form={applyForm} layout="vertical" onFinish={handleApplySubmit}>
           <Form.Item
             name="episode_id"
             label="Open Billing Episode"
             rules={[{ required: true, message: 'Please pick an episode' }]}
-            extra={`Total charge: ₹${packageToApply?.total_charge ?? '-'}`}
           >
             <Select
               showSearch

@@ -141,9 +141,10 @@ const LabOrders = () => {
       },
       {
         title: 'Charge',
-        dataIndex: 'charge',
         key: 'charge',
-        render: (charge) => `₹${charge}`
+        render: (_, row) => row.covered_by_package_charge_id
+          ? <Tag color="purple">Covered by Package</Tag>
+          : `₹${row.charge}`
       },
       {
         title: 'Status',

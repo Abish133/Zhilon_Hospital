@@ -120,9 +120,13 @@ const RadiologyOrders = () => {
     },
     {
       title: 'Test Name',
-      dataIndex: 'test_name',
       key: 'test_name',
-      render: (name) => <strong>{name}</strong>
+      render: (_, record) => (
+        <Space size={4}>
+          <strong>{record.test_name}</strong>
+          {record.covered_by_package_charge_id && <Tag color="purple">Package</Tag>}
+        </Space>
+      )
     },
     {
       title: 'Modality',
