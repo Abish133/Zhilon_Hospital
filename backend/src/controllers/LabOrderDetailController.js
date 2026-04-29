@@ -3,12 +3,12 @@ const { LabOrderDetail, LabOrder, LabTest, Hospital, BillingEpisode, BillCharge 
 class LabOrderDetailController {
   static async createLabOrderDetail(req, res) {
     try {
-      const { order_id, test_id, test_code, test_name, sample_type, status, charge, hospital_id } = req.body;
-      
+      const { order_id, test_id, test_code, test_name, sample_type, status, charge, hospital_id, covered_by_package_charge_id } = req.body;
+
       if (!order_id || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'order_id and hospital_id are required' 
+        return res.status(400).json({
+          success: false,
+          message: 'order_id and hospital_id are required'
         });
       }
 
@@ -21,7 +21,7 @@ class LabOrderDetailController {
         }
       }
 
-      const labOrderDetail = await LabOrderDetail.create({ 
+      const labOrderDetail = await LabOrderDetail.create({
         order_id,
         test_id,
         test_code,
@@ -29,12 +29,14 @@ class LabOrderDetailController {
         sample_type,
         status: status || 'Pending',
         charge: finalCharge,
+        covered_by_package_charge_id: covered_by_package_charge_id || null,
         hospital_id
       });
 
       // Automatically add lab test charge to billing episode (OPD or IPD)
+      // ...UNLESS this test is covered by a package — the package's BillCharge already covers it.
       const order = await LabOrder.findByPk(order_id);
-      if (order && order.visit_id) {
+      if (order && order.visit_id && !covered_by_package_charge_id) {
         const episodeWhere = order.visit_type === 'IPD'
           ? { admission_id: order.visit_id, status: 'Open' }
           : { opd_visit_id: order.visit_id, status: 'Open' };

@@ -95,6 +95,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 'Ordered'
     },
+    covered_by_package_charge_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'bill_charges', key: 'charge_id' }
+    },
     hospital_id: {
       type: DataTypes.INTEGER,
       allowNull: false,

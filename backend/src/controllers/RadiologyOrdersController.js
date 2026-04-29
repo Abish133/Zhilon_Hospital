@@ -21,7 +21,9 @@ class RadiologyOrdersController {
       const radiologyTest = await RadiologyTests.findByPk(req.body.rad_test_id);
       const orderedBy = await Doctor.findByPk(req.body.ordered_by);
 
-      if (req.body.visit_id && radiologyTest && radiologyTest.charge) {
+      // Skip auto-billing when this radiology order is bundled inside a package — the
+      // package's single BillCharge already covers it; double-billing would inflate the bill.
+      if (req.body.visit_id && radiologyTest && radiologyTest.charge && !req.body.covered_by_package_charge_id) {
         const episodeWhere = req.body.visit_type === 'IPD'
           ? { admission_id: req.body.visit_id, status: 'Open' }
           : { opd_visit_id: req.body.visit_id, status: 'Open' };

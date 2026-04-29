@@ -1,47 +1,77 @@
-const { OpdConsultation, Hospital, Doctor, Patient, OpdVisit, OpdAppointment, BillingEpisode, BillCharge, ChargeMaster, LabOrder, LabOrderDetail, LabTest, RadiologyOrders, RadiologyTests } = require('../models');
+const { OpdConsultation, Hospital, Doctor, Patient, OpdVisit, OpdAppointment, BillingEpisode, BillCharge, ChargeMaster, LabOrder, LabOrderDetail, LabTest, RadiologyOrders, RadiologyTests, PackageApplication, sequelize } = require('../models');
 
 class OpdConsultationController {
   static async createConsultation(req, res) {
+    const t = await sequelize.transaction();
     try {
-      const { 
-        visit_id, 
-        patient_id, 
-        doctor_id, 
-        chief_complaints, 
-        clinical_notes, 
+      const {
+        visit_id,
+        patient_id,
+        doctor_id,
+        chief_complaints,
+        clinical_notes,
         examination_findings,
-        diagnosis_code, 
+        diagnosis_code,
         diagnosis_description,
-        treatment_plan, 
-        follow_up_date, 
+        treatment_plan,
+        follow_up_date,
         follow_up_instructions,
-        consultation_date, 
-        hospital_id 
+        consultation_date,
+        hospital_id
       } = req.body;
-      
+
       if (!visit_id || !patient_id || !doctor_id || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'visit_id, patient_id, doctor_id, and hospital_id are required' 
+        await t.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'visit_id, patient_id, doctor_id, and hospital_id are required'
         });
       }
 
-      const consultation = await OpdConsultation.create({ 
-        visit_id, 
+      // Look up the open billing episode for this visit. If a package was applied to
+      // this episode and still has unused consult credits, this consultation is covered:
+      // we mark it on the consultation row and SKIP auto-billing for the consult fee.
+      let coveringPackageChargeId = null;
+      const openEpisode = await BillingEpisode.findOne({
+        where: { opd_visit_id: visit_id, status: 'Open' },
+        transaction: t
+      });
+      if (openEpisode) {
+        const application = await PackageApplication.findOne({
+          where: {
+            episode_id: openEpisode.episode_id,
+            is_active: true,
+            consult_credits_used: { [require('sequelize').Op.lt]: sequelize.col('consult_credits_total') }
+          },
+          transaction: t,
+          lock: t.LOCK.UPDATE
+        });
+        if (application) {
+          coveringPackageChargeId = application.bill_charge_id;
+          await application.update(
+            { consult_credits_used: application.consult_credits_used + 1 },
+            { transaction: t }
+          );
+        }
+      }
+
+      const consultation = await OpdConsultation.create({
+        visit_id,
         patient_id,
-        doctor_id, 
-        chief_complaints, 
-        clinical_notes, 
+        doctor_id,
+        chief_complaints,
+        clinical_notes,
         examination_findings,
-        diagnosis_code, 
+        diagnosis_code,
         diagnosis_description,
-        treatment_plan, 
-        follow_up_date, 
+        treatment_plan,
+        follow_up_date,
         follow_up_instructions,
         consultation_date,
-        hospital_id 
-      });
-      
+        covered_by_package_charge_id: coveringPackageChargeId,
+        hospital_id
+      }, { transaction: t });
+
       // Auto-create follow-up appointment if date is provided
       if (follow_up_date) {
         try {
@@ -55,19 +85,22 @@ class OpdConsultationController {
             appointment_type: 'Follow-up',
             reason: `Follow-up from consultation #${consultation.consultation_id}`,
             is_active: true
-          });
+          }, { transaction: t });
         } catch (appErr) {
           console.error('Failed to create automatic follow-up appointment:', appErr);
           // We don't fail the consultation creation if appointment fails
         }
       }
-      
-      const billingEpisode = await BillingEpisode.findOne({
-        where: { opd_visit_id: visit_id, status: 'Open' }
+
+      const billingEpisode = openEpisode || await BillingEpisode.findOne({
+        where: { opd_visit_id: visit_id, status: 'Open' },
+        transaction: t
       });
 
-      if (billingEpisode) {
-        const doctor = await Doctor.findByPk(doctor_id);
+      // Skip auto-billing the consultation fee when this consultation was covered
+      // by a package credit (handled before the OpdConsultation.create above).
+      if (billingEpisode && !coveringPackageChargeId) {
+        const doctor = await Doctor.findByPk(doctor_id, { transaction: t });
 
         const whereClause = {
           service_type: 'Consultation',
@@ -80,7 +113,8 @@ class OpdConsultationController {
         }
 
         const consultationCharge = await ChargeMaster.findOne({
-          where: whereClause
+          where: whereClause,
+          transaction: t
         });
 
         if (consultationCharge) {
@@ -108,22 +142,26 @@ class OpdConsultationController {
             gst_percent: gstPercent,
             gst_amount: gstAmount,
             net_amount: netAmount
-          });
+          }, { transaction: t });
         }
 
         const labOrders = await LabOrder.findAll({
-          where: { visit_id, visit_type: 'OPD', is_active: true }
+          where: { visit_id, visit_type: 'OPD', is_active: true },
+          transaction: t
         });
 
         for (const labOrder of labOrders) {
           const labOrderDetails = await LabOrderDetail.findAll({
-            where: { order_id: labOrder.order_id, is_active: true }
+            where: { order_id: labOrder.order_id, is_active: true },
+            transaction: t
           });
 
           for (const detail of labOrderDetails) {
-            if (detail.charge) {
+            // Skip lab tests already covered by an applied package — their cost is in the package charge.
+            if (detail.charge && !detail.covered_by_package_charge_id) {
               const existing = await BillCharge.findOne({
-                where: { episode_id: billingEpisode.episode_id, service_type: 'Investigation', service_id: detail.detail_id }
+                where: { episode_id: billingEpisode.episode_id, service_type: 'Investigation', service_id: detail.detail_id },
+                transaction: t
               });
 
               if (!existing) {
@@ -143,21 +181,25 @@ class OpdConsultationController {
                   gst_percent: 0,
                   gst_amount: 0,
                   net_amount: parseFloat(detail.charge)
-                });
+                }, { transaction: t });
               }
             }
           }
         }
 
         const radiologyOrders = await RadiologyOrders.findAll({
-          where: { visit_id, visit_type: 'OPD', is_active: true }
+          where: { visit_id, visit_type: 'OPD', is_active: true },
+          transaction: t
         });
 
         for (const radOrder of radiologyOrders) {
-          const radTest = await RadiologyTests.findByPk(radOrder.rad_test_id);
+          // Skip radiology orders already covered by an applied package.
+          if (radOrder.covered_by_package_charge_id) continue;
+          const radTest = await RadiologyTests.findByPk(radOrder.rad_test_id, { transaction: t });
           if (radTest && radTest.charge) {
             const existing = await BillCharge.findOne({
-              where: { episode_id: billingEpisode.episode_id, service_type: 'Investigation', service_id: radOrder.rad_order_id }
+              where: { episode_id: billingEpisode.episode_id, service_type: 'Investigation', service_id: radOrder.rad_order_id },
+              transaction: t
             });
 
             if (!existing) {
@@ -177,12 +219,14 @@ class OpdConsultationController {
                 gst_percent: 0,
                 gst_amount: 0,
                 net_amount: parseFloat(radTest.charge)
-              });
+              }, { transaction: t });
             }
           }
         }
       }
-      
+
+      await t.commit();
+
       const hospital = await Hospital.findByPk(hospital_id);
       const doctor = await Doctor.findByPk(doctor_id);
       const patient = await Patient.findByPk(patient_id);
@@ -197,9 +241,11 @@ class OpdConsultationController {
           doctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
        visit: visit ? { visit_id: visit.visit_id, visit_date: visit.visit_date, token_number: visit.token_number } : null,
+          covered_by_package: !!coveringPackageChargeId
         }
       });
     } catch (error) {
+      try { await t.rollback(); } catch (_) { /* already rolled back */ }
       res.status(500).json({ success: false, message: error.message });
     }
   }
