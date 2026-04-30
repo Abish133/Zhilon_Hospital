@@ -121,7 +121,7 @@ const LabOrders = () => {
   };
 
   const expandedRowRender = (record) => {
-    const details = orderDetails[record.order_id] || [];
+    const details = record.details || [];
     
     const columns = [
       {
