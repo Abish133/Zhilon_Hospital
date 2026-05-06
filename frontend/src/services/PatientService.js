@@ -44,6 +44,10 @@ class PatientService extends BaseService {
   async getAdmissions() {
     return await apiClient.get('/ipd-admissions');
   }
+
+  async getTimeline(idOrUhid) {
+    return await apiClient.get(`${this.endpoint}/${idOrUhid}/timeline`);
+  }
 }
  
 export default new PatientService();

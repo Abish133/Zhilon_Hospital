@@ -58,6 +58,7 @@ import UserManagement from '@pages/admin/UserManagement';
 import AuditLogs from '@pages/admin/AuditLogs';
 import DoctorSchedules from '@pages/admin/DoctorSchedules';
 import Doctors from '@pages/admin/Doctors';
+import DoctorProfile from '@pages/admin/DoctorProfile';
 import DoctorQualifications from '@pages/admin/DoctorQualifications';
 import DoctorLeaves from '@pages/admin/DoctorLeaves';
 import CalibrationLogs from '@pages/admin/CalibrationLogs';
@@ -510,6 +511,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <Doctors />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/admin/doctors/:id',
+        element: (
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTIONIST]}>
+            <DoctorProfile />
           </ProtectedRoute>
         )
       },

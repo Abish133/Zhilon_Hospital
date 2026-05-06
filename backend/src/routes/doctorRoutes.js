@@ -7,6 +7,7 @@ router.get('/employees/dropdown', DoctorController.getDoctorEmployees);
 
 router.get('/', DoctorController.getAllDoctors);
 router.post('/', DoctorController.createDoctor);
+router.get('/:id/profile', DoctorController.getDoctorProfile);
 router.get('/:id', DoctorController.getDoctorById);
 router.put('/:id', DoctorController.updateDoctor);
 router.delete('/:id', DoctorController.deleteDoctor);

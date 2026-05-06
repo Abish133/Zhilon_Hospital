@@ -4,6 +4,7 @@ const router = express.Router();
  
 router.get('/', PatientController.getAllPatients);
 router.get('/search', PatientController.searchPatients);
+router.get('/:id/timeline', PatientController.getPatientTimeline);
 router.get('/:id', PatientController.getPatientById);
 router.post('/', PatientController.createPatient);
 router.put('/:id', PatientController.updatePatient);

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Tag, Space, Button, Avatar, message, Spin, Modal, Form, Input, InputNumber, Select } from 'antd';
-import { UserOutlined, PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { UserOutlined, PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { doctorService, employeeService } from '@/services';
 import SearchBar from '@components/common/SearchBar';
 import { useAuthStore } from '@store';
 
 const Doctors = () => {
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
@@ -129,7 +131,13 @@ const Doctors = () => {
         <Space>
           <Avatar icon={<UserOutlined />} style={{ background: '#0a0a0a' }} />
           <div>
-            <div style={{ fontWeight: 500 }}>{record.name}</div>
+            <Button
+              type="link"
+              style={{ padding: 0, fontWeight: 500, height: 'auto' }}
+              onClick={() => navigate(`/admin/doctors/${record.id}`)}
+            >
+              {record.name}
+            </Button>
             <div style={{ fontSize: 12, color: '#64748b' }}>{record.registration_number}</div>
           </div>
         </Space>
@@ -161,6 +169,12 @@ const Doctors = () => {
       key: 'actions',
       render: (_, record) => (
         <Space>
+          <Button
+            icon={<FileTextOutlined />}
+            size="small"
+            onClick={() => navigate(`/admin/doctors/${record.id}`)}
+            title="View Profile"
+          />
           <Button
             icon={<EditOutlined />}
             size="small"
