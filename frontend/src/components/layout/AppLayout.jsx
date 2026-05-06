@@ -1,4 +1,4 @@
-import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Drawer, Tooltip, Button, Modal, Input, List } from 'antd';
+import { Layout, Menu, Avatar, Dropdown, Space, Typography, Badge, Drawer, Tooltip, Button, Input, List, Empty } from 'antd';
 import {
   DashboardOutlined, UserOutlined, MedicineBoxOutlined, ExperimentOutlined,
   DollarOutlined, LogoutOutlined, MenuOutlined,
@@ -484,12 +484,17 @@ const AppLayout = () => {
         </Content>
       </Layout>
 
-      <Modal
-        title="Search Patients"
+      <Drawer
+        title={<Space><SearchOutlined />Search Patients</Space>}
+        placement="right"
         open={searchOpen}
-        onCancel={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}
-        footer={null}
-        width={500}
+        onClose={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}
+        width={isMobile ? '100%' : '50%'}
+        destroyOnClose
+        styles={{
+          header: { borderBottom: '1px solid #ededed' },
+          body: { padding: 20 }
+        }}
       >
         <Input.Search
           placeholder="Search by name, UHID or mobile..."
@@ -499,30 +504,40 @@ const AppLayout = () => {
           loading={searchLoading}
           autoFocus
           size="large"
+          allowClear
         />
-        {searchResults.length > 0 && (
+        <div style={{ marginTop: 12, color: '#737373', fontSize: 12 }}>
+          {searchQuery.length < 2
+            ? 'Type at least 2 characters to search.'
+            : searchLoading
+              ? 'Searching…'
+              : `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'}`}
+        </div>
+        {searchResults.length > 0 ? (
           <List
-            style={{ marginTop: 12 }}
+            style={{ marginTop: 8 }}
             dataSource={searchResults}
             renderItem={item => (
               <List.Item
-                style={{ cursor: 'pointer', padding: '8px 12px', borderRadius: 6 }}
+                style={{ cursor: 'pointer', padding: '10px 12px', borderRadius: 8, transition: 'background .15s' }}
                 onClick={() => handleSearchSelect(item.uhid)}
                 onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
               >
                 <List.Item.Meta
-                  title={`${item.first_name} ${item.last_name} — ${item.uhid}`}
-                  description={`${item.mobile_number || ''} | ${item.gender || ''} | ${item.age || ''} yrs`}
+                  avatar={<Avatar icon={<UserOutlined />} style={{ background: '#0a0a0a' }} />}
+                  title={<span style={{ fontWeight: 600 }}>{`${item.first_name} ${item.last_name}`} <Text type="secondary" style={{ fontSize: 12, fontWeight: 400 }}>{item.uhid}</Text></span>}
+                  description={[item.mobile_number, item.gender, item.age ? `${item.age} yrs` : null].filter(Boolean).join(' · ')}
                 />
               </List.Item>
             )}
           />
+        ) : (
+          searchQuery.length >= 2 && !searchLoading && (
+            <Empty style={{ marginTop: 24 }} description="No patients found" />
+          )
         )}
-        {searchQuery.length >= 2 && !searchLoading && searchResults.length === 0 && (
-          <div style={{ textAlign: 'center', color: '#999', padding: '16px 0' }}>No patients found</div>
-        )}
-      </Modal>
+      </Drawer>
     </Layout>
   );
 };

@@ -27,6 +27,36 @@ const DoctorProfile = () => {
   const doctor = d.doctor || {};
   const stats = d.stats || {};
 
+  // Bucket every record this doctor produced by patient_id, so each patient row
+  // can expand to show exactly what THIS doctor did for that patient.
+  const byPatient = {};
+  const ensure = (pid) => {
+    if (!pid) return null;
+    if (!byPatient[pid]) {
+      byPatient[pid] = {
+        consultations: [],
+        prescriptions: [],
+        admissions: [],
+        labOrders: [],
+        radiologyOrders: [],
+        otAsSurgeon: [],
+        otAsAssistant: [],
+        otAsAnesthetist: [],
+        appointments: []
+      };
+    }
+    return byPatient[pid];
+  };
+  for (const r of (d.appointments || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.appointments.push(r); }
+  for (const r of (d.consultations || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.consultations.push(r); }
+  for (const r of (d.prescriptions || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.prescriptions.push(r); }
+  for (const r of (d.admissions || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.admissions.push(r); }
+  for (const r of (d.labOrders || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.labOrders.push(r); }
+  for (const r of (d.radiologyOrders || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.radiologyOrders.push(r); }
+  for (const r of (d.otAsSurgeon || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.otAsSurgeon.push(r); }
+  for (const r of (d.otAsAssistant || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.otAsAssistant.push(r); }
+  for (const r of (d.otAsAnesthetist || [])) { const b = ensure(r.patient?.patient_id || r.patient_id); if (b) b.otAsAnesthetist.push(r); }
+
   const patientHandledColumns = [
     { title: 'UHID', dataIndex: 'uhid', key: 'uhid', render: (v) => <Tag color="blue">{v}</Tag> },
     {
@@ -191,7 +221,175 @@ const DoctorProfile = () => {
               label: `Patients Handled (${(d.patientsHandled || []).length})`,
               children: (d.patientsHandled || []).length === 0
                 ? <Empty />
-                : <Table columns={patientHandledColumns} dataSource={d.patientsHandled || []} rowKey={(r) => r.patient_id || r.uhid} size="small" scroll={{ x: 1100 }} />
+                : (
+                  <Table
+                    columns={patientHandledColumns}
+                    dataSource={d.patientsHandled || []}
+                    rowKey={(r) => r.patient_id || r.uhid}
+                    size="small"
+                    scroll={{ x: 1100 }}
+                    expandable={{
+                      expandedRowRender: (row) => {
+                        const b = byPatient[row.patient_id] || {};
+                        const sectionStyle = { marginBottom: 12 };
+                        const empty = !b.consultations?.length && !b.prescriptions?.length
+                          && !b.labOrders?.length && !b.radiologyOrders?.length
+                          && !b.admissions?.length && !b.otAsSurgeon?.length
+                          && !b.otAsAssistant?.length && !b.otAsAnesthetist?.length;
+                        if (empty) {
+                          return <div style={{ padding: 12 }}><Empty description="No clinical activity recorded for this patient by this doctor" /></div>;
+                        }
+                        return (
+                          <div style={{ padding: 12, background: '#fafafa' }}>
+                            {(b.consultations || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><FileTextOutlined /> Consultations & Diagnoses ({b.consultations.length})</Title>
+                                {b.consultations.map(c => (
+                                  <Card key={c.consultation_id} size="small" style={{ marginBottom: 8 }}>
+                                    <div><b>{formatDateTime(c.consultation_date)}</b></div>
+                                    {c.chief_complaints && <div><b>Chief Complaints:</b> {c.chief_complaints}</div>}
+                                    {c.examination_findings && <div><b>Examination:</b> {c.examination_findings}</div>}
+                                    {c.diagnosis_description && <div><b>Diagnosis:</b> {c.diagnosis_description} {c.diagnosis_code ? <Tag>{c.diagnosis_code}</Tag> : null}</div>}
+                                    {c.clinical_notes && <div><b>Clinical Notes:</b> {c.clinical_notes}</div>}
+                                    {c.treatment_plan && <div><b>Treatment Plan:</b> {c.treatment_plan}</div>}
+                                    {c.follow_up_date && <div><b>Follow-up:</b> {formatDate(c.follow_up_date)} — {c.follow_up_instructions || ''}</div>}
+                                  </Card>
+                                ))}
+                              </div>
+                            )}
+
+                            {(b.prescriptions || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><MedicineBoxOutlined /> Prescriptions / Medicines ({b.prescriptions.length})</Title>
+                                <Table
+                                  size="small"
+                                  pagination={false}
+                                  dataSource={b.prescriptions}
+                                  rowKey="prescription_id"
+                                  columns={[
+                                    { title: 'Date', dataIndex: 'prescribed_at', key: 'date', render: (v, r) => formatDateTime(v || r.createdAt) },
+                                    { title: 'Medicine', key: 'med', render: (_, r) => r.medicine?.medicine_name || r.medicine_name || '—' },
+                                    { title: 'Strength', key: 'str', render: (_, r) => r.medicine?.strength || '—' },
+                                    { title: 'Dosage', dataIndex: 'dosage', key: 'd' },
+                                    { title: 'Frequency', dataIndex: 'frequency', key: 'f' },
+                                    { title: 'Route', dataIndex: 'route', key: 'r' },
+                                    { title: 'Duration', dataIndex: 'duration', key: 'dur' },
+                                    { title: 'Qty', dataIndex: 'quantity', key: 'q' },
+                                    { title: 'Instructions', dataIndex: 'instructions', key: 'instr', ellipsis: true }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            {(b.labOrders || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><ExperimentOutlined /> Lab Tests Ordered ({b.labOrders.length})</Title>
+                                <Table
+                                  size="small"
+                                  pagination={false}
+                                  dataSource={b.labOrders}
+                                  rowKey="order_id"
+                                  columns={[
+                                    { title: 'Date', dataIndex: 'order_date', key: 'date', render: (v, r) => formatDateTime(v || r.createdAt) },
+                                    { title: 'Visit Type', dataIndex: 'visit_type', key: 'vt' },
+                                    { title: 'Tests', key: 'tests', render: (_, r) => (r.details || []).map(d => d.test_name).filter(Boolean).join(', ') || '—' },
+                                    { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag color="geekblue">{s}</Tag> }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            {(b.radiologyOrders || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><CameraOutlined /> Radiology / Imaging ({b.radiologyOrders.length})</Title>
+                                <Table
+                                  size="small"
+                                  pagination={false}
+                                  dataSource={b.radiologyOrders}
+                                  rowKey="rad_order_id"
+                                  columns={[
+                                    { title: 'Date', dataIndex: 'order_date', key: 'date', render: (v) => formatDateTime(v) },
+                                    { title: 'Test', dataIndex: 'test_name', key: 't' },
+                                    { title: 'Modality', dataIndex: 'modality', key: 'm' },
+                                    { title: 'Clinical Info', dataIndex: 'clinical_info', key: 'ci', ellipsis: true },
+                                    { title: 'Scheduled', dataIndex: 'scheduled_date', key: 'sd', render: (v) => v ? formatDate(v) : '—' },
+                                    { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag color="purple">{s}</Tag> }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            {(b.admissions || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><BankOutlined /> IPD Admissions ({b.admissions.length})</Title>
+                                <Table
+                                  size="small"
+                                  pagination={false}
+                                  dataSource={b.admissions}
+                                  rowKey="admission_id"
+                                  columns={[
+                                    { title: 'Date', dataIndex: 'admission_date', key: 'd', render: (v) => formatDateTime(v) },
+                                    { title: 'Type', dataIndex: 'admission_type', key: 't' },
+                                    { title: 'Reason', dataIndex: 'admission_reason', key: 'rn', ellipsis: true },
+                                    { title: 'Diagnosis', dataIndex: 'provisional_diagnosis', key: 'dx', ellipsis: true },
+                                    { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag color="orange">{s}</Tag> }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            {(b.otAsSurgeon || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}><ScissorOutlined /> Surgeries Performed ({b.otAsSurgeon.length})</Title>
+                                <Table
+                                  size="small"
+                                  pagination={false}
+                                  dataSource={b.otAsSurgeon}
+                                  rowKey="booking_id"
+                                  columns={[
+                                    { title: 'Date', dataIndex: 'surgery_date', key: 'd', render: (v) => formatDate(v) },
+                                    { title: 'Time', dataIndex: 'surgery_time', key: 't' },
+                                    { title: 'Surgery', dataIndex: 'surgery_name', key: 'n' },
+                                    { title: 'Type', dataIndex: 'surgery_type', key: 'tp' },
+                                    { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag color="red">{s}</Tag> }
+                                  ]}
+                                />
+                              </div>
+                            )}
+
+                            {(b.otAsAssistant || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}>Assisted in Surgery ({b.otAsAssistant.length})</Title>
+                                <Table size="small" pagination={false} dataSource={b.otAsAssistant} rowKey="booking_id" columns={[
+                                  { title: 'Date', dataIndex: 'surgery_date', key: 'd', render: (v) => formatDate(v) },
+                                  { title: 'Surgery', dataIndex: 'surgery_name', key: 'n' },
+                                  { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag>{s}</Tag> }
+                                ]} />
+                              </div>
+                            )}
+
+                            {(b.otAsAnesthetist || []).length > 0 && (
+                              <div style={sectionStyle}>
+                                <Title level={5} style={{ marginBottom: 8 }}>Anesthesia Given ({b.otAsAnesthetist.length})</Title>
+                                <Table size="small" pagination={false} dataSource={b.otAsAnesthetist} rowKey="booking_id" columns={[
+                                  { title: 'Date', dataIndex: 'surgery_date', key: 'd', render: (v) => formatDate(v) },
+                                  { title: 'Surgery', dataIndex: 'surgery_name', key: 'n' },
+                                  { title: 'Status', dataIndex: 'status', key: 's', render: (s) => <Tag>{s}</Tag> }
+                                ]} />
+                              </div>
+                            )}
+
+                            <div style={{ marginTop: 12 }}>
+                              <Button type="link" onClick={() => navigate(`/patients/${row.uhid}`)}>
+                                Open full patient timeline →
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      }
+                    }}
+                  />
+                )
             },
             {
               key: 'profile',

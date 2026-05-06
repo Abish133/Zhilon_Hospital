@@ -297,14 +297,16 @@ class ReportController {
             const hospitalId = hospital_id || req.user?.hospital_id || 1;
 
             // Get doctors with consultation counts
+            // Doctor primary key is `id`, not `doctor_id`; FK column on related
+            // tables is `doctor_id` and points back to doctors.id.
             const doctors = await Doctor.findAll({
                 where: { hospital_id: hospitalId, is_active: true },
-                attributes: ['doctor_id', 'name'],
+                attributes: ['id', 'name', 'specialization'],
                 raw: true
             });
 
             const performance = await Promise.all(doctors.map(async (doctor) => {
-                const visitWhere = { doctor_id: doctor.doctor_id };
+                const visitWhere = { doctor_id: doctor.id };
                 if (from && to) {
                     visitWhere.visit_date = {
                         [Op.between]: [new Date(from), new Date(to)]
@@ -314,8 +316,9 @@ class ReportController {
                 const consultations = await OpdVisit.count({ where: visitWhere });
 
                 return {
-                    doctor_id: doctor.doctor_id,
+                    doctor_id: doctor.id,
                     doctor_name: doctor.name,
+                    specialization: doctor.specialization,
                     consultations,
                     surgeries: 0, // Can be added from OT data if needed
                     revenue: 0 // Can be computed from billing
