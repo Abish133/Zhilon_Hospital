@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import {
-  Card, Table, Button, Space, Modal, Form, Input, InputNumber, message, Tag, Row, Col
+  Card, Table, Button, Space, Form, Input, InputNumber, message, Tag, Row, Col
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { MedicineBoxOutlined } from '@ant-design/icons';
 import apiClient from '@/config/api';
 import dayjs from 'dayjs';
@@ -157,7 +158,7 @@ const MedicationAdministration = ({ admissionId }) => {
         </Card>
       </Col>
 
-      <Modal
+      <SliderModal
         title={active ? `Administer: ${active.medicine_name}` : 'Administer Medication'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -185,7 +186,7 @@ const MedicationAdministration = ({ admissionId }) => {
             <Input.TextArea rows={3} placeholder="Observations, patient response, refusal etc." />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Row>
   );
 };

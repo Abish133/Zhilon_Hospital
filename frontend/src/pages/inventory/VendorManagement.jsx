@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Card, Button, Modal, Form, Input, Tag, Space, message } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -132,7 +133,7 @@ const VendorManagement = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={editingVendor ? 'Edit Vendor' : 'Add Vendor'}
         open={modalOpen}
         onCancel={() => {
@@ -207,7 +208,7 @@ const VendorManagement = () => {
             <Input placeholder="e.g., Net 30 days" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,7 +1,8 @@
 import { useAuthStore } from '@store';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Space, Button, Tag, Card, Row, Col, Statistic, message, Modal, Form, Input, Select, DatePicker, TimePicker } from 'antd';
+import { Space, Button, Tag, Card, Row, Col, Statistic, message, Form, Input, Select, DatePicker, TimePicker } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, MedicineBoxOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -172,7 +173,7 @@ const OTManagement = () => {
         <DataTable columns={columns} dataSource={filteredBookings} loading={loading} rowKey="booking_id" />
       </Card>
 
-      <Modal open={bookingModalOpen} onCancel={() => setBookingModalOpen(false)} onOk={() => form.submit()} title="Book Operation Theatre" width={700}>
+      <SliderModal open={bookingModalOpen} onCancel={() => setBookingModalOpen(false)} onOk={() => form.submit()} title="Book Operation Theatre" width={700}>
         <Form form={form} layout="vertical" onFinish={handleBookOT}>
           <Row gutter={16}>
             <Col span={12}>
@@ -291,7 +292,7 @@ const OTManagement = () => {
             </Col>
           </Row>
         </Form>
-      </Modal>
+      </SliderModal>
 
       <ViewDetailsModal
         open={viewModalOpen}

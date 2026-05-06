@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Switch, Spin } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { userService, employeeService, doctorService } from '@/services';
 import AuthService from '@/services/AuthService';
@@ -181,7 +182,7 @@ const UserManagement = () => {
         <Table columns={columns} dataSource={users} rowKey="id" />
       </Spin>
 
-      <Modal
+      <SliderModal
         title={editingUser ? 'Edit User' : 'Create User'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -243,7 +244,7 @@ const UserManagement = () => {
             box-shadow: none !important;
           }
         `}</style>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

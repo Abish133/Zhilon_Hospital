@@ -1,4 +1,5 @@
-import { Card, Tabs, Form, Input, Button, Space, message, Table, Select, Modal, Descriptions, Spin, Row, Col, Tag } from 'antd';
+import { Card, Tabs, Form, Input, Button, Space, message, Table, Select, Descriptions, Spin, Row, Col, Tag } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, PrinterOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -217,7 +218,7 @@ const IPDDailyCare = () => {
                       <Row gutter={16}>
                         <Col span={12}>
                           <Form.Item name="vitals" label="Vitals">
-                            <Input.TextArea rows={2} placeholder="BP: 120/80, Pulse: 72, Temp: 98.6°F, RR: 18" />
+                            <Input.TextArea rows={2} placeholder="BP: 120/80, Pulse: 72, Temp: 98.6Â°F, RR: 18" />
                           </Form.Item>
                         </Col>
                         <Col span={12}>
@@ -292,7 +293,7 @@ const IPDDailyCare = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Place Order"
         open={orderModal}
         onCancel={() => { setOrderModal(false); orderForm.resetFields(); }}
@@ -319,7 +320,7 @@ const IPDDailyCare = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

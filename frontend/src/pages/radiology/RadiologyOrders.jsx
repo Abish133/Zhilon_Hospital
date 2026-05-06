@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, message, Modal, Form, Input, Select, DatePicker, Space } from 'antd';
+import { Card, Table, Tag, Button, message, Form, Input, Select, DatePicker, Space } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, CheckOutlined, FileImageOutlined, FileTextOutlined } from '@ant-design/icons';
 import { radiologyOrderService, radiologyImagingService, radiologyReportService } from '@services';
 import { useNavigate } from 'react-router-dom';
@@ -200,7 +201,7 @@ const RadiologyOrders = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Schedule Radiology Test"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -214,9 +215,9 @@ const RadiologyOrders = () => {
             <Input type="time" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         title="Order Details"
         open={viewModalOpen}
         onCancel={() => { setViewModalOpen(false); setViewImages([]); }}
@@ -274,9 +275,9 @@ const RadiologyOrders = () => {
             )}
           </div>
         )}
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         title="Image Viewer"
         open={imageModalOpen}
         onCancel={() => setImageModalOpen(false)}
@@ -287,7 +288,7 @@ const RadiologyOrders = () => {
         {selectedImage && (
           <img src={selectedImage} alt="Full size" style={{ width: '100%', height: 'auto' }} />
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

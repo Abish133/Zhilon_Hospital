@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Input, TimePicker, message, Tag, InputNumber } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { shiftService } from '@/services';
 import dayjs from 'dayjs';
@@ -164,7 +165,7 @@ const ShiftManagement = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={editingShift ? 'Edit Shift' : 'Add Shift'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -200,7 +201,7 @@ const ShiftManagement = () => {
             <TimePicker format="HH:mm" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

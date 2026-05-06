@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Table, Modal, Form, Select, InputNumber, DatePicker, message, Space, Input } from 'antd';
+import { Card, Button, Table, Form, Select, InputNumber, DatePicker, message, Space, Input } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
@@ -150,7 +151,7 @@ const GoodsReceipt = () => {
         <Table columns={columns} dataSource={grns?.data || []} rowKey="grn_id" />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Record Goods Receipt"
         open={modalOpen}
         onCancel={() => {
@@ -231,21 +232,21 @@ const GoodsReceipt = () => {
                   <Space style={{ marginTop: 8, width: '100%' }} wrap>
                     <InputNumber
                       addonBefore="Purchase Rate"
-                      prefix="₹"
+                      prefix="â‚¹"
                       value={item.purchase_rate}
                       onChange={(val) => handleItemChange(index, 'purchase_rate', val)}
                       style={{ width: 180 }}
                     />
                     <InputNumber
                       addonBefore="Selling Rate"
-                      prefix="₹"
+                      prefix="â‚¹"
                       value={item.selling_rate}
                       onChange={(val) => handleItemChange(index, 'selling_rate', val)}
                       style={{ width: 180 }}
                     />
                     <InputNumber
                       addonBefore="MRP"
-                      prefix="₹"
+                      prefix="â‚¹"
                       value={item.mrp}
                       onChange={(val) => handleItemChange(index, 'mrp', val)}
                       style={{ width: 150 }}
@@ -256,7 +257,7 @@ const GoodsReceipt = () => {
             </div>
           )}
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

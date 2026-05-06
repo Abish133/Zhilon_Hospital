@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, DatePicker, Select, Space, Input, Button, message, Modal, Descriptions } from 'antd';
+import { Card, Table, Tag, DatePicker, Select, Space, Input, Button, message, Descriptions } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { SearchOutlined, UserOutlined, ClockCircleOutlined, DownloadOutlined, EyeOutlined } from '@ant-design/icons';
 import { auditLogService } from '@/services';
 import dayjs from 'dayjs';
@@ -206,7 +207,7 @@ const AuditLogs = () => {
       </Card>
 
       {/* Detail Modal */}
-      <Modal
+      <SliderModal
         title="Audit Log Details"
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
@@ -245,7 +246,7 @@ const AuditLogs = () => {
             )}
           </Descriptions>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

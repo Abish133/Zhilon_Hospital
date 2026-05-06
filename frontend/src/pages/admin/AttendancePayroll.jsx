@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Tabs, Table, Button, DatePicker, Select, Space, Tag, Modal, Form, InputNumber, message, Spin } from 'antd';
+import { Card, Tabs, Table, Button, DatePicker, Select, Space, Tag, Form, InputNumber, message, Spin } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { CheckCircleOutlined, CloseCircleOutlined, DollarOutlined } from '@ant-design/icons';
 import { employeeAttendanceService, payrollService, employeeService } from '@/services';
 import dayjs from 'dayjs';
@@ -130,10 +131,10 @@ const AttendancePayroll = () => {
     { title: 'Emp Code', dataIndex: 'emp_code', key: 'code', width: 120 },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Month', dataIndex: 'month', key: 'month', width: 150 },
-    { title: 'Basic', dataIndex: 'basic', key: 'basic', width: 100, render: (val) => `₹${val}` },
-    { title: 'Allowances', dataIndex: 'allowances', key: 'allow', width: 120, render: (val) => `₹${val}` },
-    { title: 'Deductions', dataIndex: 'deductions', key: 'deduct', width: 120, render: (val) => `₹${val}` },
-    { title: 'Net Salary', dataIndex: 'net', key: 'net', width: 120, render: (val) => <strong>₹{val}</strong> },
+    { title: 'Basic', dataIndex: 'basic', key: 'basic', width: 100, render: (val) => `â‚¹${val}` },
+    { title: 'Allowances', dataIndex: 'allowances', key: 'allow', width: 120, render: (val) => `â‚¹${val}` },
+    { title: 'Deductions', dataIndex: 'deductions', key: 'deduct', width: 120, render: (val) => `â‚¹${val}` },
+    { title: 'Net Salary', dataIndex: 'net', key: 'net', width: 120, render: (val) => <strong>â‚¹{val}</strong> },
     { 
       title: 'Status', 
       dataIndex: 'status', 
@@ -212,7 +213,7 @@ const AttendancePayroll = () => {
         ]}
       />
 
-      <Modal
+      <SliderModal
         title="Process Payroll"
         open={payrollModal}
         onCancel={() => setPayrollModal(false)}
@@ -223,16 +224,16 @@ const AttendancePayroll = () => {
             <strong>{selectedEmployee?.name}</strong>
           </Form.Item>
           <Form.Item name="basic" label="Basic Salary" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="₹" />
+            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
           </Form.Item>
           <Form.Item name="allowances" label="Allowances" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="₹" />
+            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
           </Form.Item>
           <Form.Item name="deductions" label="Deductions" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="₹" />
+            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

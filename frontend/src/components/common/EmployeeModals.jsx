@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, DatePicker, Row, Col, message } from 'antd';
+import { Form, Input, Select, DatePicker, Row, Col, message } from 'antd';
+import SliderModal from './SliderModal';
 import { employeeService, departmentService, userService } from '@/services';
 import AuthService from '@/services/AuthService';
 import dayjs from 'dayjs';
@@ -121,7 +122,7 @@ export const EmployeeFormModal = ({ open, onCancel, onSuccess, initialData }) =>
   };
 
   return (
-    <Modal
+    <SliderModal
       open={open}
       onCancel={handleCancel}
       onOk={handleSubmit}
@@ -244,7 +245,7 @@ export const EmployeeFormModal = ({ open, onCancel, onSuccess, initialData }) =>
           </Col>
         </Row>
       </Form>
-    </Modal>
+    </SliderModal>
   );
 };
 
@@ -308,7 +309,7 @@ export const DepartmentFormModal = ({ open, onCancel, onSuccess, initialData }) 
   };
 
   return (
-    <Modal
+    <SliderModal
       open={open}
       onCancel={handleCancel}
       onOk={handleSubmit}
@@ -323,6 +324,7 @@ export const DepartmentFormModal = ({ open, onCancel, onSuccess, initialData }) 
           <Input.TextArea rows={3} />
         </Form.Item>
       </Form>
-    </Modal>
+    </SliderModal>
   );
 };
+

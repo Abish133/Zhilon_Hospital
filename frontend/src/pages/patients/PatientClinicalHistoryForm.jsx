@@ -1,4 +1,5 @@
-import { Form, Input, Modal, Select, DatePicker } from 'antd';
+import { Form, Input, Select, DatePicker } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import PatientClinicalHistoryService from '@services/PatientClinicalHistoryService';
 import PatientService from '@services/PatientService';
 import DoctorService from '@services/DoctorService';
@@ -41,7 +42,7 @@ const PatientClinicalHistoryForm = ({ open, onCancel, onSuccess, initialData }) 
   };
 
   return (
-    <Modal
+    <SliderModal
       open={open}
       onCancel={handleCancel}
       onOk={handleSubmit}
@@ -116,7 +117,7 @@ const PatientClinicalHistoryForm = ({ open, onCancel, onSuccess, initialData }) 
           <Input.TextArea rows={4} placeholder="Additional clinical observations and notes..." />
         </Form.Item>
       </Form>
-    </Modal>
+    </SliderModal>
   );
 };
 

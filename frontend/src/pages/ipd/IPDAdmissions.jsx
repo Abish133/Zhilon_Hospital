@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Space, Button, Tag, Card, Row, Col, Statistic, Modal, Form, Select, Input, message } from 'antd';
+import { Space, Button, Tag, Card, Row, Col, Statistic, Form, Select, Input, message } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, BankOutlined, UserOutlined, FileTextOutlined, SwapOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '@components/common/DataTable';
@@ -220,7 +221,7 @@ const IPDAdmissions = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={transferAdmission ? `Transfer: ${transferAdmission.patient?.first_name || ''} ${transferAdmission.patient?.last_name || ''}` : 'Transfer Patient'}
         open={transferOpen}
         onCancel={() => setTransferOpen(false)}
@@ -276,7 +277,7 @@ const IPDAdmissions = () => {
             <Input placeholder="e.g. 201" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

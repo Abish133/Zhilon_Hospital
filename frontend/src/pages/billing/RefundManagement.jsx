@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, Form, Input, InputNumber, Select, Button, Table, Space, message, Row, Col, Tag, Modal, Descriptions } from 'antd';
+import { Card, Form, Input, InputNumber, Select, Button, Table, Space, message, Row, Col, Tag, Descriptions } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { UndoOutlined, SearchOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import apiClient from '@services/apiClient';
@@ -44,7 +45,7 @@ const RefundManagement = () => {
         refundForm.resetFields();
         setSelectedBill(null);
         refetch();
-        refetchBills(); // bill paid_amount/balance changed — refresh the list
+        refetchBills(); // bill paid_amount/balance changed â€” refresh the list
       },
       onError: (error) => {
         message.error(error.message || 'Failed to process refund');
@@ -58,7 +59,7 @@ const RefundManagement = () => {
       return;
     }
     if (!user?.id) {
-      message.error('Please log in again — user session expired');
+      message.error('Please log in again â€” user session expired');
       return;
     }
 
@@ -243,7 +244,7 @@ const RefundManagement = () => {
       </Card>
 
       {/* Refund Processing Modal */}
-      <Modal
+      <SliderModal
         title="Process Refund"
         open={refundModalOpen}
         onCancel={() => {
@@ -303,8 +304,8 @@ const RefundManagement = () => {
                       style={{ width: '100%' }}
                       min={1}
                       max={selectedBill.paid_amount}
-                      formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={value => value.replace(/₹\s?|(,*)/g, '')}
+                      formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
                     />
                   </Form.Item>
                 </Col>
@@ -361,10 +362,10 @@ const RefundManagement = () => {
             </Form>
           </>
         )}
-      </Modal>
+      </SliderModal>
 
       {/* View Refund Details Modal */}
-      <Modal
+      <SliderModal
         title="Refund Details"
         open={viewModalOpen}
         onCancel={() => {
@@ -416,7 +417,7 @@ const RefundManagement = () => {
             )}
           </Descriptions>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

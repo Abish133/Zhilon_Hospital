@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, Table, Button, Modal, Form, Input, DatePicker, Select, Tag, Space, Popconfirm, InputNumber, Descriptions } from 'antd';
+import { Card, Table, Button, Form, Input, DatePicker, Select, Tag, Space, Popconfirm, InputNumber, Descriptions } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { HistoryOutlined, PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import EquipmentService from '@services/EquipmentService';
@@ -79,7 +80,7 @@ const MaintenanceHistory = () => {
       title: 'Cost', 
       dataIndex: 'cost', 
       key: 'cost', 
-      render: (cost) => cost ? `₹${cost}` : 'N/A'
+      render: (cost) => cost ? `â‚¹${cost}` : 'N/A'
     },
     { 
       title: 'Serviced By', 
@@ -182,7 +183,7 @@ const MaintenanceHistory = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={selectedHistory ? 'Edit Maintenance History' : 'Add Maintenance History'}
         open={modalOpen}
         onCancel={() => {
@@ -248,8 +249,8 @@ const MaintenanceHistory = () => {
           <Form.Item name="cost" label="Cost">
             <InputNumber
               style={{ width: '100%' }}
-              formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value.replace(/₹\s?|(,*)/g, '')}
+              formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
               placeholder="Enter maintenance cost"
             />
           </Form.Item>
@@ -262,9 +263,9 @@ const MaintenanceHistory = () => {
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         title="Maintenance History Details"
         open={viewModalOpen}
         onCancel={() => setViewModalOpen(false)}
@@ -286,14 +287,14 @@ const MaintenanceHistory = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Work Done">{selectedHistory.work_done || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Parts Replaced">{selectedHistory.parts_replaced || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Cost">{selectedHistory.cost ? `₹${selectedHistory.cost}` : 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Cost">{selectedHistory.cost ? `â‚¹${selectedHistory.cost}` : 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Serviced By">{selectedHistory.serviced_by || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Next Service Date">
               {selectedHistory.next_service_date ? dayjs(selectedHistory.next_service_date).format('DD MMM YYYY') : 'N/A'}
             </Descriptions.Item>
           </Descriptions>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Space, Button, Tag, Card, Row, Col, Statistic, message, Modal, Form, Input, Select, Spin } from 'antd';
+import { Space, Button, Tag, Card, Row, Col, Statistic, message, Form, Input, Select, Spin } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, CameraOutlined, CheckCircleOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -75,21 +76,21 @@ const Radiology = () => {
         <DataTable columns={columns} dataSource={data?.data || []} loading={isLoading} rowKey="order_id" />
       </Card>
 
-      <Modal open={orderModalOpen} onCancel={() => setOrderModalOpen(false)} onOk={handleCreateOrder} title="Create Radiology Order">
+      <SliderModal open={orderModalOpen} onCancel={() => setOrderModalOpen(false)} onOk={handleCreateOrder} title="Create Radiology Order">
         <Form form={orderForm} layout="vertical">
           <Form.Item name="patient_uhid" label="Patient" rules={[{ required: true }]}>
             <Select showSearch options={(patientsData?.data || []).map(p => ({ label: `${p.uhid} - ${p.first_name} ${p.last_name}`, value: p.uhid }))} />
           </Form.Item>
           <Form.Item name="test_name" label="Test" rules={[{ required: true }]}>
-            <Select options={(testsData?.data || []).map(t => ({ label: `${t.test_name} - ₹${t.charge}`, value: t.test_name }))} />
+            <Select options={(testsData?.data || []).map(t => ({ label: `${t.test_name} - â‚¹${t.charge}`, value: t.test_name }))} />
           </Form.Item>
           <Form.Item name="clinical_info" label="Clinical Information">
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal open={reportModalOpen} onCancel={() => setReportModalOpen(false)} onOk={handleSubmitReport} title="Submit Report">
+      <SliderModal open={reportModalOpen} onCancel={() => setReportModalOpen(false)} onOk={handleSubmitReport} title="Submit Report">
         <Form form={reportForm} layout="vertical">
           <Form.Item label="Patient"><Input value={selectedOrder?.patient_name} disabled /></Form.Item>
           <Form.Item label="Test"><Input value={selectedOrder?.test_name} disabled /></Form.Item>
@@ -100,7 +101,7 @@ const Radiology = () => {
             <Input.TextArea rows={2} placeholder="Enter impression..." />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       <ViewDetailsModal
         open={viewModalOpen}

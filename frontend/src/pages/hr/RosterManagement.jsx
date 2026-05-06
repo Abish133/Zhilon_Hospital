@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, Select, DatePicker, message, Tag, Input, Row, Col } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SwapOutlined, CalendarOutlined } from '@ant-design/icons';
 import { rosterService, shiftService, employeeService } from '@/services';
 import dayjs from 'dayjs';
@@ -350,7 +351,7 @@ const RosterManagement = () => {
       </Card>
 
       {/* Add/Edit Modal */}
-      <Modal
+      <SliderModal
         title={selectedRoster ? 'Edit Roster Entry' : 'Add Roster Entry'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -398,10 +399,10 @@ const RosterManagement = () => {
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Bulk Assign Modal */}
-      <Modal
+      <SliderModal
         title="Bulk Assign Shifts"
         open={bulkModalOpen}
         onCancel={() => setBulkModalOpen(false)}
@@ -445,10 +446,10 @@ const RosterManagement = () => {
             <RangePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Generate Monthly Modal */}
-      <Modal
+      <SliderModal
         title="Generate Monthly Roster"
         open={generateModalOpen}
         onCancel={() => setGenerateModalOpen(false)}
@@ -463,10 +464,10 @@ const RosterManagement = () => {
             <DatePicker picker="month" style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Swap Modal */}
-      <Modal
+      <SliderModal
         title="Request Shift Swap"
         open={swapModalOpen}
         onCancel={() => setSwapModalOpen(false)}
@@ -497,10 +498,10 @@ const RosterManagement = () => {
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Leave Modal */}
-      <Modal
+      <SliderModal
         title="Mark as Leave"
         open={leaveModalOpen}
         onCancel={() => setLeaveModalOpen(false)}
@@ -523,7 +524,7 @@ const RosterManagement = () => {
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Button, Form, Input, Select, DatePicker, InputNumber, message, Space, Modal, Tag, Row, Col } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, StopOutlined, CheckOutlined, MinusCircleOutlined } from '@ant-design/icons';
 import { medicineService } from '@/services';
 import apiClient from '@services/apiClient';
@@ -173,7 +174,7 @@ const IpdMedications = ({ admissionId }) => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Order Medications"
         open={modalVisible}
         onCancel={() => {
@@ -321,7 +322,7 @@ const IpdMedications = ({ admissionId }) => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </>
   );
 };

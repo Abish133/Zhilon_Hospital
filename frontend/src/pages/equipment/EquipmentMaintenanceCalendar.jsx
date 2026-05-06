@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Card, Calendar, Badge, Modal, Form, Input, Select, DatePicker, Button, message, List, Tag, Alert, Space } from 'antd';
+import { Card, Calendar, Badge, Form, Input, Select, DatePicker, Button, message, List, Tag, Alert, Space } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { ToolOutlined, WarningOutlined, CheckCircleOutlined, PlusOutlined } from '@ant-design/icons';
 import EquipmentService from '@services/EquipmentService';
 import MaintenanceRequestService from '@services/MaintenanceRequestService';
@@ -202,7 +203,7 @@ const EquipmentMaintenanceCalendar = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Schedule Maintenance"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -244,7 +245,7 @@ const EquipmentMaintenanceCalendar = () => {
             <Input.TextArea rows={3} placeholder="Additional notes..." />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -8,7 +8,7 @@ const FormModal = ({
   title,
   children,
   initialValues,
-  width = '100vw',
+  width = '50%',
   loading = false,
   okText = 'Submit',
   cancelText = 'Cancel',
@@ -44,8 +44,8 @@ const FormModal = ({
       open={open}
       title={title}
       onClose={onCancel}
-      size={width === '100vw' ? 'large' : undefined}
-      width={width !== '100vw' ? width : undefined}
+      placement="right"
+      width={width}
       destroyOnHidden={false}
       forceRender
       footer={

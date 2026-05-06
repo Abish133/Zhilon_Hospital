@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Space, Button, Avatar, message, Spin, Modal, Form, Input, InputNumber, Select } from 'antd';
+import { Card, Table, Tag, Space, Button, Avatar, message, Spin, Form, Input, InputNumber, Select } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { UserOutlined, PlusOutlined, EditOutlined, EyeOutlined, DeleteOutlined, FileTextOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { doctorService, employeeService } from '@/services';
@@ -210,7 +211,7 @@ const Doctors = () => {
         </Spin>
       </Card>
 
-      <Modal
+      <SliderModal
         title={selectedDoctor ? 'Edit Doctor' : 'Add Doctor'}
         open={modalOpen || editModalOpen}
         onCancel={() => {
@@ -250,7 +251,7 @@ const Doctors = () => {
             <InputNumber min={0} style={{ width: '100%' }} placeholder="10" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

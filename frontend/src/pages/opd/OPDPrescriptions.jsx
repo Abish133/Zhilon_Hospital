@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Input, Button, Space, Modal, Descriptions } from 'antd';
+import { Card, Table, Tag, Input, Button, Space, Descriptions } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { MedicineBoxOutlined, EyeOutlined, SearchOutlined, PrinterOutlined } from '@ant-design/icons';
 import { opdPrescriptionService } from '@/services';
 import dayjs from 'dayjs';
@@ -128,7 +129,7 @@ const OPDPrescriptions = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Prescription Details"
         open={viewModalVisible}
         onCancel={() => setViewModalVisible(false)}
@@ -182,7 +183,7 @@ const OPDPrescriptions = () => {
             </Descriptions.Item>
           </Descriptions>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

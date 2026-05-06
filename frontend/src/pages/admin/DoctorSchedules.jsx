@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Select, TimePicker, InputNumber, message, Tag, Spin } from 'antd';
+import { Card, Table, Button, Space, Form, Select, TimePicker, InputNumber, message, Tag, Spin } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, CalendarOutlined, DeleteOutlined } from '@ant-design/icons';
 import { doctorScheduleService, doctorService } from '@/services';
 import dayjs from 'dayjs';
@@ -168,7 +169,7 @@ const DoctorSchedules = () => {
         <Table columns={columns} dataSource={schedules} rowKey="schedule_id" />
       </Spin>
 
-      <Modal
+      <SliderModal
         title={editingSchedule ? 'Edit Schedule' : 'Add Schedule'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -218,7 +219,7 @@ const DoctorSchedules = () => {
             <InputNumber min={1} style={{ width: '100%' }} placeholder="Enter max appointments" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

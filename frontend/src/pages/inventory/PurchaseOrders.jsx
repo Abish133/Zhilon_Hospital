@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Button, Table, Tag, Modal, Form, Select, InputNumber, DatePicker, message, Space, Input } from 'antd';
+import { Card, Button, Table, Tag, Form, Select, InputNumber, DatePicker, message, Space, Input } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
@@ -114,7 +115,7 @@ const PurchaseOrders = () => {
       key: 'expected_delivery_date', 
       render: (date) => date ? dayjs(date).format('DD MMM YYYY') : '-'
     },
-    { title: 'Total', dataIndex: 'net_amount', key: 'net_amount', render: (amt) => amt ? `₹${parseFloat(amt).toFixed(2)}` : '₹0.00' },
+    { title: 'Total', dataIndex: 'net_amount', key: 'net_amount', render: (amt) => amt ? `â‚¹${parseFloat(amt).toFixed(2)}` : 'â‚¹0.00' },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -155,7 +156,7 @@ const PurchaseOrders = () => {
         <Table columns={columns} dataSource={pos?.data || []} rowKey="po_id" />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Create Purchase Order"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -202,7 +203,7 @@ const PurchaseOrders = () => {
                 />
                 <InputNumber
                   placeholder="Rate"
-                  prefix="₹"
+                  prefix="â‚¹"
                   min={0}
                   value={item.rate}
                   onChange={(val) => handleItemChange(index, 'rate', val)}
@@ -225,7 +226,7 @@ const PurchaseOrders = () => {
             </Button>
           </div>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

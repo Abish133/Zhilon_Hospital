@@ -1,6 +1,7 @@
 import { useAuthStore } from '@store';
 import { useState, useEffect } from 'react';
-import { Card, Form, Button, Space, message, Modal, Input, Select, Tag } from 'antd';
+import { Card, Form, Button, Space, message, Input, Select, Tag } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -109,7 +110,7 @@ const OTRooms = () => {
         rowKey="room_id" 
       />
 
-      <Modal
+      <SliderModal
         title={editingRoom ? "Edit OT Room" : "Add OT Room"}
         open={modalOpen}
         onCancel={() => {
@@ -139,7 +140,7 @@ const OTRooms = () => {
             </Select>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

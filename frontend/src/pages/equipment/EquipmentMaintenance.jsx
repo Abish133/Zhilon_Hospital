@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Card, Table, Button, Modal, Form, Input, DatePicker, Select, Tag, Alert, Calendar, Badge, Space, Popconfirm, message } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { ToolOutlined, CalendarOutlined, EditOutlined, DeleteOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import EquipmentService from '@services/EquipmentService';
@@ -236,7 +237,7 @@ const EquipmentMaintenance = () => {
         </Card>
       )}
 
-      <Modal
+      <SliderModal
         title="Maintenance Request"
         open={requestModal}
         onCancel={() => setRequestModal(false)}
@@ -266,7 +267,7 @@ const EquipmentMaintenance = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

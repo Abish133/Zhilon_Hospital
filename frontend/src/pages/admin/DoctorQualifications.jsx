@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  Card, Table, Button, Space, Modal, Form, Input, Select, DatePicker, InputNumber,
+  Card, Table, Button, Space, Form, Input, Select, DatePicker, InputNumber,
   message, Tag, Spin, Popconfirm
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { doctorQualificationService, doctorService } from '@/services';
 import { useAuthStore } from '@/store';
@@ -182,7 +183,7 @@ const DoctorQualifications = () => {
         </Spin>
       </Card>
 
-      <Modal
+      <SliderModal
         title={editing ? 'Edit Qualification' : 'Add Qualification'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -232,7 +233,7 @@ const DoctorQualifications = () => {
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  Card, Table, Button, Space, Modal, Form, Input, Select, DatePicker,
+  Card, Table, Button, Space, Form, Input, Select, DatePicker,
   message, Tag, Spin, Popconfirm
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from '@ant-design/icons';
 import { doctorLeaveService, doctorService } from '@/services';
 import { useAuthStore } from '@/store';
@@ -250,7 +251,7 @@ const DoctorLeaves = () => {
         </Spin>
       </Card>
 
-      <Modal
+      <SliderModal
         title="Apply for Leave"
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -292,7 +293,7 @@ const DoctorLeaves = () => {
             <Input.TextArea rows={3} placeholder="Reason for leave" maxLength={500} showCount />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

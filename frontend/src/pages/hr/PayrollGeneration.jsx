@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Button, Space, Modal, Form, DatePicker, Select, message, Tag, Input, InputNumber, Descriptions, Statistic, Row, Col } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { DollarOutlined, CheckOutlined, CloseOutlined, FileTextOutlined, EditOutlined } from '@ant-design/icons';
 import { payrollService, employeeService, salaryStructureService, departmentService } from '@/services';
 import dayjs from 'dayjs';
@@ -235,19 +236,19 @@ const PayrollGeneration = () => {
       title: 'Gross Salary',
       dataIndex: 'gross_salary',
       key: 'gross_salary',
-      render: (val) => `₹${parseFloat(val || 0).toLocaleString('en-IN')}`
+      render: (val) => `â‚¹${parseFloat(val || 0).toLocaleString('en-IN')}`
     },
     {
       title: 'Deductions',
       dataIndex: 'total_deductions',
       key: 'total_deductions',
-      render: (val) => `₹${parseFloat(val || 0).toLocaleString('en-IN')}`
+      render: (val) => `â‚¹${parseFloat(val || 0).toLocaleString('en-IN')}`
     },
     {
       title: 'Net Salary',
       dataIndex: 'net_salary',
       key: 'net_salary',
-      render: (val) => <strong>₹{parseFloat(val || 0).toLocaleString('en-IN')}</strong>
+      render: (val) => <strong>â‚¹{parseFloat(val || 0).toLocaleString('en-IN')}</strong>
     },
     {
       title: 'Status',
@@ -348,17 +349,17 @@ const PayrollGeneration = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Gross" value={totalGross} prefix="₹" precision={2} />
+              <Statistic title="Total Gross" value={totalGross} prefix="â‚¹" precision={2} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Deductions" value={totalDeductions} prefix="₹" precision={2} />
+              <Statistic title="Total Deductions" value={totalDeductions} prefix="â‚¹" precision={2} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Net" value={totalNet} prefix="₹" precision={2} valueStyle={{ color: '#3f8600' }} />
+              <Statistic title="Total Net" value={totalNet} prefix="â‚¹" precision={2} valueStyle={{ color: '#3f8600' }} />
             </Card>
           </Col>
           <Col span={6}>
@@ -378,7 +379,7 @@ const PayrollGeneration = () => {
       </Card>
 
       {/* Generate Modal */}
-      <Modal
+      <SliderModal
         title="Generate Payroll"
         open={generateModalOpen}
         onCancel={() => setGenerateModalOpen(false)}
@@ -402,10 +403,10 @@ const PayrollGeneration = () => {
             </Select>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Detail Modal */}
-      <Modal
+      <SliderModal
         title="Payroll Details"
         open={detailModalOpen}
         onCancel={() => setDetailModalOpen(false)}
@@ -427,19 +428,19 @@ const PayrollGeneration = () => {
             <Descriptions.Item label="Days Absent">{selectedPayroll.days_absent}</Descriptions.Item>
             <Descriptions.Item label="Overtime Hours">{selectedPayroll.overtime_hours || 0}</Descriptions.Item>
             <Descriptions.Item label="Basic Salary">
-              ₹{parseFloat(selectedPayroll.basic_salary || 0).toLocaleString('en-IN')}
+              â‚¹{parseFloat(selectedPayroll.basic_salary || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Total Allowances">
-              ₹{parseFloat(selectedPayroll.total_allowances || 0).toLocaleString('en-IN')}
+              â‚¹{parseFloat(selectedPayroll.total_allowances || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Total Deductions">
-              ₹{parseFloat(selectedPayroll.total_deductions || 0).toLocaleString('en-IN')}
+              â‚¹{parseFloat(selectedPayroll.total_deductions || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Gross Salary">
-              ₹{parseFloat(selectedPayroll.gross_salary || 0).toLocaleString('en-IN')}
+              â‚¹{parseFloat(selectedPayroll.gross_salary || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Net Salary" span={2}>
-              <strong>₹{parseFloat(selectedPayroll.net_salary || 0).toLocaleString('en-IN')}</strong>
+              <strong>â‚¹{parseFloat(selectedPayroll.net_salary || 0).toLocaleString('en-IN')}</strong>
             </Descriptions.Item>
             {selectedPayroll.payment_date && (
               <>
@@ -452,10 +453,10 @@ const PayrollGeneration = () => {
             )}
           </Descriptions>
         )}
-      </Modal>
+      </SliderModal>
 
       {/* Approve Modal */}
-      <Modal
+      <SliderModal
         title="Approve Payroll"
         open={approveModalOpen}
         onCancel={() => setApproveModalOpen(false)}
@@ -466,10 +467,10 @@ const PayrollGeneration = () => {
             <Input.TextArea rows={3} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Process Modal */}
-      <Modal
+      <SliderModal
         title="Process Payment"
         open={processModalOpen}
         onCancel={() => setProcessModalOpen(false)}
@@ -499,10 +500,10 @@ const PayrollGeneration = () => {
             <Input placeholder="Optional" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Adjust Modal */}
-      <Modal
+      <SliderModal
         title="Adjust Payroll"
         open={adjustModalOpen}
         onCancel={() => setAdjustModalOpen(false)}
@@ -531,7 +532,7 @@ const PayrollGeneration = () => {
             label="Amount"
             rules={[{ required: true, message: 'Please enter amount' }]}
           >
-            <InputNumber style={{ width: '100%' }} prefix="₹" min={0} />
+            <InputNumber style={{ width: '100%' }} prefix="â‚¹" min={0} />
           </Form.Item>
           <Form.Item
             name="reason"
@@ -541,7 +542,7 @@ const PayrollGeneration = () => {
             <Input.TextArea rows={3} placeholder="Reason for adjustment" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

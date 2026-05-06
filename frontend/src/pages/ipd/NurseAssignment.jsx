@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Button, Space, message, Select, Modal, DatePicker, Tag } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { ipdNurseAssignmentService, ipdAdmissionService, employeeService, wardService } from '@services';
 import DataTable from '@components/common/DataTable';
@@ -195,7 +196,7 @@ const NurseAssignment = () => {
         loading={isLoading} 
       />
 
-      <Modal
+      <SliderModal
         title={editingAssignment ? 'Edit Assignment' : 'Assign Nurse'}
         open={modalOpen}
         onCancel={() => { 
@@ -321,7 +322,7 @@ const NurseAssignment = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

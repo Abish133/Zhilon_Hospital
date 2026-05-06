@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, Table, Button, Modal, Form, DatePicker, TimePicker, Select, Input, Tag } from 'antd';
+import { Card, Table, Button, Form, DatePicker, TimePicker, Select, Input, Tag } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { CalendarOutlined, CheckOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
@@ -130,7 +131,7 @@ const RadiologyScheduling = () => {
         <Table columns={columns} dataSource={orders?.data || []} rowKey="rad_order_id" />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Schedule Imaging"
         open={scheduleModal}
         onCancel={() => setScheduleModal(false)}
@@ -168,9 +169,9 @@ const RadiologyScheduling = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         title="Approve Report"
         open={approveModal}
         onCancel={() => setApproveModal(false)}
@@ -198,7 +199,7 @@ const RadiologyScheduling = () => {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

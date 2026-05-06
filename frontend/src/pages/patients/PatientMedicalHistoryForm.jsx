@@ -1,4 +1,5 @@
-import { Form, Input, Modal, Select } from 'antd';
+import { Form, Input, Select } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import FormModal from '@components/common/FormModal';
 import PatientMedicalHistoryService from '@services/PatientMedicalHistoryService';
 import PatientService from '@services/PatientService';
@@ -44,7 +45,7 @@ const PatientMedicalHistoryForm = ({ open, onCancel, onSuccess, initialData }) =
 
 
   return (
-    <Modal
+    <SliderModal
       open={open}
       onCancel={handleCancel}
       onOk={handleSubmit}
@@ -86,7 +87,7 @@ const PatientMedicalHistoryForm = ({ open, onCancel, onSuccess, initialData }) =
           <Input.TextArea rows={2} placeholder="Smoking, alcohol, lifestyle" />
         </Form.Item>
       </Form>
-    </Modal>
+    </SliderModal>
   );
 };
 

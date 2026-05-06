@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, Table, Button, Modal, Form, Input, DatePicker, Select, Tag, Space, Popconfirm, message } from 'antd';
+import { Card, Table, Button, Form, Input, DatePicker, Select, Tag, Space, Popconfirm, message } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { ScheduleOutlined, PlusOutlined, EditOutlined, DeleteOutlined, CalendarOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import EquipmentService from '@services/EquipmentService';
@@ -163,7 +164,7 @@ const PreventiveMaintenance = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={selectedPM ? 'Edit PM Schedule' : 'Schedule Preventive Maintenance'}
         open={modalOpen}
         onCancel={() => {
@@ -214,7 +215,7 @@ const PreventiveMaintenance = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

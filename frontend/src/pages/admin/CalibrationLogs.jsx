@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import {
-  Card, Table, Button, Space, Modal, Form, Input, Select, DatePicker,
+  Card, Table, Button, Space, Form, Input, Select, DatePicker,
   message, Tag, Spin, Popconfirm, Segmented
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { calibrationLogService } from '@/services';
 import EquipmentService from '@services/EquipmentService';
@@ -241,7 +242,7 @@ const CalibrationLogs = () => {
         </Spin>
       </Card>
 
-      <Modal
+      <SliderModal
         title={editing ? 'Edit Calibration Log' : 'Add Calibration Log'}
         open={modalOpen}
         onCancel={() => setModalOpen(false)}
@@ -299,7 +300,7 @@ const CalibrationLogs = () => {
             <Input.TextArea rows={3} placeholder="Observations, deviations, corrective actions" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Space, message, Select, Modal, DatePicker, InputNumber } from 'antd';
+import { Card, Form, Input, Button, Space, message, Select, DatePicker, InputNumber } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { medicineService, vendorService } from '@services';
 import medicineBatchService from '@services/MedicineBatchService';
@@ -117,9 +118,9 @@ const MedicineBatch = () => {
     { title: 'Expiry Date', dataIndex: 'expiry_date', render: (date) => dayjs(date).format('DD-MM-YYYY') },
     { title: 'Received Qty', dataIndex: 'received_quantity' },
     { title: 'Available Qty', dataIndex: 'available_quantity' },
-    { title: 'Purchase Rate', dataIndex: 'purchase_rate', render: (val) => `₹${val || 0}` },
-    { title: 'Selling Rate', dataIndex: 'selling_rate', render: (val) => `₹${val || 0}` },
-    { title: 'MRP', dataIndex: 'mrp', render: (val) => `₹${val || 0}` },
+    { title: 'Purchase Rate', dataIndex: 'purchase_rate', render: (val) => `â‚¹${val || 0}` },
+    { title: 'Selling Rate', dataIndex: 'selling_rate', render: (val) => `â‚¹${val || 0}` },
+    { title: 'MRP', dataIndex: 'mrp', render: (val) => `â‚¹${val || 0}` },
     { title: 'Vendor', dataIndex: 'vendor_id', render: (id) => vendors.find(v => v.vendor_id === id)?.vendor_name || '-' },
     {
       title: 'Actions',
@@ -140,7 +141,7 @@ const MedicineBatch = () => {
     }>
       <DataTable columns={columns} dataSource={batches} rowKey="batch_id" loading={loading} />
 
-      <Modal
+      <SliderModal
         title={editingBatch ? 'Edit Batch' : 'Add Batch'}
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditingBatch(null); form.resetFields(); }}
@@ -207,7 +208,7 @@ const MedicineBatch = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

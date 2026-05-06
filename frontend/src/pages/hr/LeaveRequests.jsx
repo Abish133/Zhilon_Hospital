@@ -3,6 +3,7 @@ import {
   Table, Button, Modal, Form, Input, Select, Tag, message, Card, Statistic, Row, Col,
   DatePicker, Drawer, Space, Tabs, Descriptions, InputNumber
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import {
   PlusOutlined, CheckOutlined, CloseOutlined, CalendarOutlined, EyeOutlined
 } from '@ant-design/icons';
@@ -366,7 +367,7 @@ const LeaveRequests = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Request Leave"
         open={isModalVisible}
         onOk={() => form.submit()}
@@ -409,7 +410,7 @@ const LeaveRequests = () => {
             <Input.TextArea rows={4} placeholder="Please specify the reason for leave" />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {selectedRequest && (
         <Drawer

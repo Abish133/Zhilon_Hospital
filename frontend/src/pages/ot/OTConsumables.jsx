@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, Table, Button, Select, InputNumber, message, Space, Card, Input } from 'antd';
+import { Form, Table, Button, Select, InputNumber, message, Space, Card, Input } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, DeleteOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import { useLocation, useNavigate } from 'react-router-dom';
 import OTService from '../../services/OTService';
@@ -93,7 +94,7 @@ const OTConsumables = ({ open, onCancel, bookingId, onSuccess }) => {
   ];
 
   return (
-    <Modal
+    <SliderModal
       title="Record OT Consumables"
       open={open}
       onCancel={onCancel}
@@ -127,7 +128,7 @@ const OTConsumables = ({ open, onCancel, bookingId, onSuccess }) => {
         <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddItem}>Add</Button>
       </Form>
       <Table columns={columns} dataSource={consumables} pagination={false} size="small" />
-    </Modal>
+    </SliderModal>
   );
 };
 

@@ -3,6 +3,7 @@ import {
   Card, Table, Button, Space, Modal, Form, DatePicker, Select, Input,
   InputNumber, Tag, Tooltip, App, Row, Col, Divider, Typography
 } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import {
   PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, CalculatorOutlined
 } from '@ant-design/icons';
@@ -138,7 +139,7 @@ const SalaryStructure = () => {
     });
   };
 
-  // Live preview computation — mirrors backend PayrollController logic for a
+  // Live preview computation â€” mirrors backend PayrollController logic for a
   // full attendance month (no proration).
   const previewGross = (Number(watchedBasic) || 0)
     + (Number(watchedHra) || 0)
@@ -152,7 +153,7 @@ const SalaryStructure = () => {
   const previewTotalDed = previewPf + previewPt + previewTds + previewOther;
   const previewNet = previewGross - previewTotalDed;
 
-  const fmt = (v) => `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (v) => `â‚¹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const columns = [
     {
@@ -245,7 +246,7 @@ const SalaryStructure = () => {
       key: 'effective',
       render: (_, r) => (
         <div style={{ fontSize: 12 }}>
-          <div>From: {r.effective_from ? dayjs(r.effective_from).format('DD-MMM-YYYY') : '—'}</div>
+          <div>From: {r.effective_from ? dayjs(r.effective_from).format('DD-MMM-YYYY') : 'â€”'}</div>
           <div>
             To: {r.effective_to
               ? dayjs(r.effective_to).format('DD-MMM-YYYY')
@@ -300,7 +301,7 @@ const SalaryStructure = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={editing ? 'Edit Salary Structure' : 'New Salary Structure'}
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
@@ -353,27 +354,27 @@ const SalaryStructure = () => {
                 name="basic_salary"
                 rules={[{ required: true, message: 'Required' }]}
               >
-                <InputNumber min={0} step={1000} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={1000} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="HRA" name="hra">
-                <InputNumber min={0} step={500} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={500} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Medical Allowance" name="medical_allowance">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Transport Allowance" name="transport_allowance">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Other Allowances" name="other_allowances">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
           </Row>
@@ -381,23 +382,23 @@ const SalaryStructure = () => {
           <Divider orientation="left" plain>Deductions</Divider>
           <Row gutter={16}>
             <Col span={6}>
-              <Form.Item label="PF %" name="pf_percentage" tooltip="Provident Fund — typically 12% of basic">
+              <Form.Item label="PF %" name="pf_percentage" tooltip="Provident Fund â€” typically 12% of basic">
                 <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
               </Form.Item>
             </Col>
             <Col span={6}>
               <Form.Item label="Professional Tax" name="pt_amount" tooltip="Flat monthly amount as per state">
-                <InputNumber min={0} step={50} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={50} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
             <Col span={6}>
-              <Form.Item label="TDS %" name="tds_percentage" tooltip="Tax Deducted at Source — applied on (gross − PF − PT)">
+              <Form.Item label="TDS %" name="tds_percentage" tooltip="Tax Deducted at Source â€” applied on (gross âˆ’ PF âˆ’ PT)">
                 <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
               </Form.Item>
             </Col>
             <Col span={6}>
               <Form.Item label="Other Deductions" name="other_deductions">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
               </Form.Item>
             </Col>
           </Row>
@@ -417,11 +418,11 @@ const SalaryStructure = () => {
               </Col>
             </Row>
             <Text type="secondary" style={{ fontSize: 11 }}>
-              Actual payroll prorates basic + allowances by attendance days and adds overtime at 2× hourly rate (Factories Act).
+              Actual payroll prorates basic + allowances by attendance days and adds overtime at 2Ã— hourly rate (Factories Act).
             </Text>
           </Card>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Button, Space, Select, Modal, DatePicker, Checkbox, Input, Tag, App, Row, Col } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { ipdAdmissionService } from '@services';
 import nursingChecklistService from '@services/NursingChecklistService';
@@ -148,7 +149,7 @@ const NursingChecklist = () => {
         return <Tag color={pct >= 80 ? 'green' : pct >= 50 ? 'orange' : 'red'}>{c}/{t} ({pct}%)</Tag>;
       }
     },
-    { title: 'Notes', dataIndex: 'notes', render: (n) => n ? n.slice(0, 40) + (n.length > 40 ? '…' : '') : '-' },
+    { title: 'Notes', dataIndex: 'notes', render: (n) => n ? n.slice(0, 40) + (n.length > 40 ? 'â€¦' : '') : '-' },
     {
       title: 'Actions',
       render: (_, record) => (
@@ -176,7 +177,7 @@ const NursingChecklist = () => {
     >
       <DataTable columns={columns} dataSource={list} rowKey="checklist_id" loading={isLoading} />
 
-      <Modal
+      <SliderModal
         title={editing ? 'Edit Nursing Checklist' : 'New Nursing Checklist'}
         open={modalOpen}
         onCancel={() => { setModalOpen(false); setEditing(null); form.resetFields(); }}
@@ -226,7 +227,7 @@ const NursingChecklist = () => {
           </Card>
 
           <Form.Item name="notes" label="Notes">
-            <Input.TextArea rows={3} placeholder="Shift handover notes, observations…" />
+            <Input.TextArea rows={3} placeholder="Shift handover notes, observationsâ€¦" />
           </Form.Item>
 
           <Form.Item>
@@ -240,7 +241,7 @@ const NursingChecklist = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

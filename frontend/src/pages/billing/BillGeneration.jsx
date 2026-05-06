@@ -1,4 +1,5 @@
-import { Card, Table, Button, Space, message, Descriptions, Divider, Modal, Form, Select, InputNumber, Input, Row, Col, Tag, Spin, Popconfirm } from 'antd';
+import { Card, Table, Button, Space, message, Descriptions, Divider, Form, Select, InputNumber, Input, Row, Col, Tag, Spin, Popconfirm } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PrinterOutlined, DollarOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { generateBillPDF } from '@utils/pdfGenerator';
 import { printBill } from '@utils/billPrintHelper';
@@ -525,7 +526,7 @@ const BillGeneration = () => {
       </Card>
 
       {/* Add Charge Modal */}
-      <Modal
+      <SliderModal
         title="Add Charge"
         open={addChargeModal}
         onCancel={() => setAddChargeModal(false)}
@@ -590,10 +591,10 @@ const BillGeneration = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
       {/* Payment Modal */}
-      <Modal
+      <SliderModal
         title="Generate Bill & Collect Payment"
         open={paymentModal}
         onCancel={() => setPaymentModal(false)}
@@ -633,8 +634,8 @@ const BillGeneration = () => {
               style={{ width: '100%' }} 
               min={0}
               max={totals.net_amount}
-              formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value.replace(/₹\s?|(,*)/g, '')}
+              formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
             />
           </Form.Item>
 
@@ -665,7 +666,7 @@ const BillGeneration = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

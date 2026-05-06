@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, Space, Modal, Form, Input, Select, message, Row, Col, Statistic, Tabs } from 'antd';
+import { Card, Table, Tag, Button, Space, Form, Input, Select, message, Row, Col, Statistic, Tabs } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { ExperimentOutlined, CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined } from '@ant-design/icons';
 import { labOrderService, labOrderDetailService, labSampleService } from '@/services';
 import { useNavigate } from 'react-router-dom';
@@ -144,7 +145,7 @@ const LabOrders = () => {
         key: 'charge',
         render: (_, row) => row.covered_by_package_charge_id
           ? <Tag color="purple">Covered by Package</Tag>
-          : `₹${row.charge}`
+          : `â‚¹${row.charge}`
       },
       {
         title: 'Status',
@@ -367,7 +368,7 @@ const LabOrders = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Collect Sample"
         open={sampleModalVisible}
         onCancel={() => {
@@ -418,7 +419,7 @@ const LabOrders = () => {
             <Input disabled />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

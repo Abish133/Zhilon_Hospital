@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Card, Table, Button, Space, Tag, Modal, Form, Input, InputNumber, Select, message, Divider, Alert } from 'antd';
+import { Card, Table, Button, Space, Tag, Form, Input, InputNumber, Select, message, Divider, Alert } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined, LinkOutlined, ExperimentOutlined, ScanOutlined, UserOutlined } from '@ant-design/icons';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import PackageService from '@services/PackageService';
@@ -62,7 +63,7 @@ const PackageManagement = () => {
     }
   );
 
-  // Open billing episodes (OPD visits + IPD admissions still active) — used by Apply modal.
+  // Open billing episodes (OPD visits + IPD admissions still active) â€” used by Apply modal.
   const { data: episodesData } = useApiQuery(
     ['open-billing-episodes'],
     async () => (await apiClient.get('/billing-episodes', { params: { status: 'Open' } })).data,
@@ -140,7 +141,7 @@ const PackageManagement = () => {
       title: 'Total Charge',
       dataIndex: 'total_charge',
       key: 'total_charge',
-      render: (price) => <span style={{ fontWeight: 600, color: '#0a0a0a' }}>₹{price}</span>
+      render: (price) => <span style={{ fontWeight: 600, color: '#0a0a0a' }}>â‚¹{price}</span>
     },
     {
       title: 'Validity',
@@ -199,14 +200,14 @@ const PackageManagement = () => {
         consult_credits: parseInt(v.consult_credits || 0, 10) || 0
       };
     }
-    // Legacy slug format — display read-only summary; user must reselect to migrate.
+    // Legacy slug format â€” display read-only summary; user must reselect to migrate.
     const slugs = Object.entries(v).filter(([k]) => !['consult', 'consultation'].includes(String(k).toLowerCase()));
     const consultEntry = Object.entries(v).find(([k]) => ['consult', 'consultation'].includes(String(k).toLowerCase()));
     return {
       lab_test_ids: [],
       rad_test_ids: [],
       consult_credits: consultEntry ? (parseInt(consultEntry[1] || 0, 10) || 0) : 0,
-      _legacy_slugs: slugs.map(([k, v]) => `${k}×${v}`).join(', ')
+      _legacy_slugs: slugs.map(([k, v]) => `${k}Ã—${v}`).join(', ')
     };
   };
 
@@ -279,7 +280,7 @@ const PackageManagement = () => {
         />
       </Card>
  
-      <Modal
+      <SliderModal
         open={packageModal}
         onCancel={() => {
           setPackageModal(false);
@@ -343,7 +344,7 @@ const PackageManagement = () => {
               }
               options={labTests.map(t => ({
                 value: t.test_id,
-                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.charge ? ` — ₹${t.charge}` : ''}`
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.charge ? ` â€” â‚¹${t.charge}` : ''}`
               }))}
             />
           </Form.Item>
@@ -362,7 +363,7 @@ const PackageManagement = () => {
               }
               options={radTests.map(t => ({
                 value: t.rad_test_id,
-                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.modality ? ` · ${t.modality}` : ''}${t.charge ? ` — ₹${t.charge}` : ''}`
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.modality ? ` Â· ${t.modality}` : ''}${t.charge ? ` â€” â‚¹${t.charge}` : ''}`
               }))}
             />
           </Form.Item>
@@ -385,7 +386,7 @@ const PackageManagement = () => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              prefix="₹"
+              prefix="â‚¹"
               placeholder="Total package charge"
               min={0}
               step={0.01}
@@ -414,9 +415,9 @@ const PackageManagement = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         open={applyModal}
         title={`Apply Package: ${packageToApply?.package_name || ''}`}
         onCancel={() => { setApplyModal(false); setPackageToApply(null); applyForm.resetFields(); }}
@@ -432,16 +433,16 @@ const PackageManagement = () => {
               style={{ marginBottom: 16 }}
               type="info"
               showIcon
-              message={`Charge: ₹${packageToApply.total_charge}`}
+              message={`Charge: â‚¹${packageToApply.total_charge}`}
               description={
                 <Space direction="vertical" size={2}>
                   <span>The system will automatically create on apply:</span>
-                  <span>• <b>{parsed.lab_test_ids.length}</b> lab test{parsed.lab_test_ids.length !== 1 ? 's' : ''} (added to a new lab order)</span>
-                  <span>• <b>{parsed.rad_test_ids.length}</b> imaging study/studies</span>
-                  <span>• <b>{parsed.consult_credits}</b> consultation credit{parsed.consult_credits !== 1 ? 's' : ''} (deducted automatically as doctors see the patient)</span>
-                  <span style={{ color: '#666', fontSize: 12 }}>Single bundled charge — these items will <i>not</i> be billed individually.</span>
+                  <span>â€¢ <b>{parsed.lab_test_ids.length}</b> lab test{parsed.lab_test_ids.length !== 1 ? 's' : ''} (added to a new lab order)</span>
+                  <span>â€¢ <b>{parsed.rad_test_ids.length}</b> imaging study/studies</span>
+                  <span>â€¢ <b>{parsed.consult_credits}</b> consultation credit{parsed.consult_credits !== 1 ? 's' : ''} (deducted automatically as doctors see the patient)</span>
+                  <span style={{ color: '#666', fontSize: 12 }}>Single bundled charge â€” these items will <i>not</i> be billed individually.</span>
                   {parsed._legacy_slugs && (
-                    <span style={{ color: '#d48806' }}>⚠ Legacy slug data ({parsed._legacy_slugs}) — backend will resolve by test code/name automatically.</span>
+                    <span style={{ color: '#d48806' }}>âš  Legacy slug data ({parsed._legacy_slugs}) â€” backend will resolve by test code/name automatically.</span>
                   )}
                 </Space>
               }
@@ -474,7 +475,7 @@ const PackageManagement = () => {
             <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

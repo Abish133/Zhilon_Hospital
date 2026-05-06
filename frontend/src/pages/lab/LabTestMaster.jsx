@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Space, Button, Tag, Card, message, Modal, Form, Input, Select, InputNumber, Popconfirm } from 'antd';
+import { Space, Button, Tag, Card, message, Form, Input, Select, InputNumber, Popconfirm } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -49,7 +50,7 @@ const LabTestMaster = () => {
     { title: 'Sample Type', dataIndex: 'sample_type', key: 'sample_type', render: (type) => <Tag>{type}</Tag> },
     { title: 'Department', dataIndex: 'department', key: 'department' },
     { title: 'TAT (hrs)', dataIndex: 'turn_around_time_hours', key: 'turn_around_time_hours' },
-    { title: 'Charge (₹)', dataIndex: 'charge', key: 'charge', render: (charge) => `₹${charge}` },
+    { title: 'Charge (â‚¹)', dataIndex: 'charge', key: 'charge', render: (charge) => `â‚¹${charge}` },
     { title: 'Status', dataIndex: 'is_active', key: 'is_active', render: (active) => <Tag color={active ? 'green' : 'red'}>{active ? 'Active' : 'Inactive'}</Tag> },
     {
       title: 'Actions',
@@ -100,7 +101,7 @@ const LabTestMaster = () => {
         <DataTable columns={columns} dataSource={data} loading={isLoading} rowKey="test_id" />
       </Card>
 
-      <Modal open={modalOpen} onCancel={() => { setModalOpen(false); setEditingTest(null); }} onOk={handleSubmit} title={editingTest ? 'Edit Test' : 'Add Test'} width={600}>
+      <SliderModal open={modalOpen} onCancel={() => { setModalOpen(false); setEditingTest(null); }} onOk={handleSubmit} title={editingTest ? 'Edit Test' : 'Add Test'} width={600}>
         <Form form={form} layout="vertical">
           <Form.Item name="test_code" label="Test Code">
             <Input placeholder="e.g., CBC" />
@@ -129,14 +130,14 @@ const LabTestMaster = () => {
           <Form.Item name="turn_around_time_hours" label="Turn Around Time (hours)">
             <InputNumber style={{ width: '100%' }} min={1} />
           </Form.Item>
-          <Form.Item name="charge" label="Charge (₹)" rules={[{ required: true }]}>
+          <Form.Item name="charge" label="Charge (â‚¹)" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
           <Form.Item name="is_active" label="Status" initialValue={true}>
             <Select options={[{ label: 'Active', value: true }, { label: 'Inactive', value: false }]} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

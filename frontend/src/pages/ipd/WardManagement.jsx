@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Form, Input, Button, Space, message, Select, Modal, InputNumber } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { wardService, departmentService } from '@services';
 import DataTable from '@components/common/DataTable';
@@ -137,7 +138,7 @@ const WardManagement = () => {
         loading={isLoading} 
       />
 
-      <Modal
+      <SliderModal
         title={editingWard ? 'Edit Ward' : 'Add Ward'}
         open={modalOpen}
         onCancel={() => { 
@@ -225,7 +226,7 @@ const WardManagement = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

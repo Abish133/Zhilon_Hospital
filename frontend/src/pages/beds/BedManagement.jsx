@@ -192,7 +192,7 @@
 //                       Room {bed.room_number || '-'} - Bed {bed.bed_number}
 //                     </div>
 //                     <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
-//                       {bed.bed_type} - ₹{bed.charge_per_day}/day
+//                       {bed.bed_type} - â‚¹{bed.charge_per_day}/day
 //                     </div>
 //                     <Space size="small" style={{ marginTop: 'auto' }}>
 //                       {bed.status === 'Occupied' && (
@@ -212,7 +212,7 @@
 //         )
 //       }))} />
 
-//       <Modal open={transferModal} onCancel={() => setTransferModal(false)} onOk={() => form.submit()} title="Transfer Patient">
+//       <SliderModal open={transferModal} onCancel={() => setTransferModal(false)} onOk={() => form.submit()} title="Transfer Patient">
 //         <Form form={form} layout="vertical" onFinish={handleTransfer}>
 //           <Form.Item label="From"><Input value={`${selectedBed?.room_number} - ${selectedBed?.bed_number}`} disabled /></Form.Item>
 //           <Form.Item name="to_bed" label="To Bed" rules={[{ required: true }]}>
@@ -223,9 +223,9 @@
 //           </Form.Item>
 //           <Form.Item name="reason" label="Reason"><Input.TextArea rows={2} /></Form.Item>
 //         </Form>
-//       </Modal>
+//       </SliderModal>
 
-//       <Modal open={maintenanceModal} onCancel={() => setMaintenanceModal(false)} onOk={() => form.submit()} title="Update Bed Status">
+//       <SliderModal open={maintenanceModal} onCancel={() => setMaintenanceModal(false)} onOk={() => form.submit()} title="Update Bed Status">
 //         <Form form={form} layout="vertical" onFinish={handleMaintenance}>
 //           <Form.Item label="Bed"><Input value={`${selectedBed?.room_number} - ${selectedBed?.bed_number}`} disabled /></Form.Item>
 //           <Form.Item name="status" label="Status" rules={[{ required: true }]}>
@@ -237,7 +237,7 @@
 //           </Form.Item>
 //           <Form.Item name="notes" label="Notes"><Input.TextArea rows={2} /></Form.Item>
 //         </Form>
-//       </Modal>
+//       </SliderModal>
 //     </div>
 //   );
 // };
@@ -247,6 +247,7 @@
 
 import { useState } from 'react';
 import { Card, Button, Modal, Form, Input, Select, message, Tag, Space, InputNumber } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { bedService, wardService } from '@services';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
@@ -361,7 +362,7 @@ const BedManagement = () => {
       title: 'Charge/Day',
       dataIndex: 'charge_per_day',
       key: 'charge_per_day',
-      render: (charge) => `₹${charge}`
+      render: (charge) => `â‚¹${charge}`
     },
     {
       title: 'Actions',
@@ -399,7 +400,7 @@ const BedManagement = () => {
         loading={isLoading}
       />
  
-      <Modal
+      <SliderModal
         title={editingBed ? 'Edit Bed' : 'Add Bed'}
         open={modalOpen}
         onCancel={() => {
@@ -476,7 +477,7 @@ const BedManagement = () => {
               min={0}
               style={{ width: '100%' }}
               placeholder="Enter charge per day"
-              prefix="₹"
+              prefix="â‚¹"
             />
           </Form.Item>
  
@@ -499,7 +500,7 @@ const BedManagement = () => {
             </Space>
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </Card>
   );
 };

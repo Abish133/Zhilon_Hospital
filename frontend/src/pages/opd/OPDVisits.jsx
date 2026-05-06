@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Modal, Form, Input, DatePicker, Select, message, Space, Tag, Row, Col, Statistic } from 'antd';
+import { Card, Table, Button, Form, Input, DatePicker, Select, message, Space, Tag, Row, Col, Statistic } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, UserAddOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import { opdVisitService, patientService, opdAppointmentService, doctorService, departmentService } from '@/services';
 import { useNavigate } from 'react-router-dom';
@@ -268,7 +269,7 @@ const OPDVisits = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Register OPD Visit"
         open={modalVisible}
         onCancel={() => {
@@ -356,7 +357,7 @@ const OPDVisits = () => {
             <DatePicker style={{ width: '100%' }} />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

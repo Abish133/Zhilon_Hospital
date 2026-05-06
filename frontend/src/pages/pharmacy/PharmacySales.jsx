@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, message, Modal, Descriptions } from 'antd';
+import { Card, Table, Tag, Button, message, Descriptions } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined } from '@ant-design/icons';
 import { pharmacySaleService, pharmacySaleDetailService } from '@services';
 import { formatCurrency } from '@utils/helpers';
@@ -7,9 +8,9 @@ import { formatCurrency } from '@utils/helpers';
 // Fallback currency formatter if the import fails
 const safeCurrency = (amount) => {
   try {
-    return formatCurrency ? formatCurrency(amount) : `₹${amount || 0}`;
+    return formatCurrency ? formatCurrency(amount) : `â‚¹${amount || 0}`;
   } catch {
-    return `₹${amount || 0}`;
+    return `â‚¹${amount || 0}`;
   }
 };
 
@@ -168,7 +169,7 @@ const PharmacySales = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title="Sale Details"
         open={detailsModal}
         onCancel={() => setDetailsModal(false)}
@@ -222,7 +223,7 @@ const PharmacySales = () => {
             />
           </>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

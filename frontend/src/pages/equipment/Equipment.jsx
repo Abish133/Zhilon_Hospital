@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Space, Button, Tag, Card, Row, Col, Statistic, message, Modal, Form, Input, Select, DatePicker, Table, Timeline } from 'antd';
+import { Space, Button, Tag, Card, Row, Col, Statistic, message, Form, Input, Select, DatePicker, Table, Timeline } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, EditOutlined, ToolOutlined, WarningOutlined, CheckCircleOutlined, ToolFilled, HistoryOutlined, PlusOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
@@ -213,7 +214,7 @@ const Equipment = () => {
         initialData={selectedEquipment}
       />
 
-      <Modal
+      <SliderModal
         title="Request Maintenance"
         open={maintenanceModalOpen}
         onCancel={() => {
@@ -258,9 +259,9 @@ const Equipment = () => {
             />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
 
-      <Modal
+      <SliderModal
         title={`Maintenance History - ${selectedEquipment?.equipment_name}`}
         open={historyModalOpen}
         onCancel={() => setHistoryModalOpen(false)}
@@ -274,7 +275,7 @@ const Equipment = () => {
             No maintenance history found
           </div>
         )}
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

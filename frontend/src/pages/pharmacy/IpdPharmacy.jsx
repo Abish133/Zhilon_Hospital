@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Table, Input, Button, Tag, Space, message, Modal, Form, Select, InputNumber } from 'antd';
+import { Card, Table, Input, Button, Tag, Space, message, Form, Select, InputNumber } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { SearchOutlined, MedicineBoxOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@/services/apiClient';
@@ -148,7 +149,7 @@ const IpdPharmacy = () => {
         />
       </Card>
 
-      <Modal
+      <SliderModal
         title={`Issue Medicines to ${selectedAdmission?.patient?.first_name || ''} (UHID: ${selectedAdmission?.uhid || ''})`}
         open={dispenseModalOpen}
         onCancel={() => setDispenseModalOpen(false)}
@@ -195,7 +196,7 @@ const IpdPharmacy = () => {
             )}
           </Form.List>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };

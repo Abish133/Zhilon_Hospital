@@ -1,4 +1,5 @@
-import { Card, Descriptions, Button, Space, Spin, message, Form, Input, Modal, Select } from 'antd';
+import { Card, Descriptions, Button, Space, Spin, message, Form, Input, Select } from 'antd';
+import SliderModal from '@components/common/SliderModal';
 import { useParams, useNavigate } from 'react-router-dom';
 import { PrinterOutlined, DownloadOutlined, EditOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
@@ -120,7 +121,7 @@ const RadiologyReport = () => {
       </Card>
       <Button onClick={() => navigate('/radiology')} style={{ marginTop: 16 }}>Back to Orders</Button>
 
-      <Modal
+      <SliderModal
         title="Create Radiology Report"
         open={modalOpen}
         onCancel={() => { setModalOpen(false); form.resetFields(); }}
@@ -145,7 +146,7 @@ const RadiologyReport = () => {
             <Input.TextArea rows={4} placeholder="Enter clinical impression..." />
           </Form.Item>
         </Form>
-      </Modal>
+      </SliderModal>
     </div>
   );
 };
