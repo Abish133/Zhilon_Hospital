@@ -123,7 +123,7 @@ const AuditLogs = () => {
       key: 'user',
       width: 150,
       render: (_, record) => (
-        <><UserOutlined /> {record.user?.username || 'System'}</>
+        <><UserOutlined /> {record.user?.name || 'System'}</>
       )
     },
     { 
@@ -223,7 +223,7 @@ const AuditLogs = () => {
               {dayjs(selectedLog.createdAt).format('YYYY-MM-DD HH:mm:ss')}
             </Descriptions.Item>
             <Descriptions.Item label="User">
-              {selectedLog.user?.username || 'System'} ({selectedLog.user?.email || 'N/A'})
+              {selectedLog.user?.name || 'System'} ({selectedLog.user?.email || 'N/A'})
             </Descriptions.Item>
             <Descriptions.Item label="Action">
               <Tag color={getActionColor(selectedLog.action_type)}>{selectedLog.action_type}</Tag>

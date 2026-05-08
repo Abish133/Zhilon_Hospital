@@ -187,7 +187,7 @@ const RefundManagement = () => {
     {
       title: 'Approved By',
       key: 'approved_by',
-      render: (_, record) => record.approvedBy?.username
+      render: (_, record) => record.approvedBy?.name
     },
     {
       title: 'Actions',
@@ -405,10 +405,10 @@ const RefundManagement = () => {
               {selectedRefund.refund_reason}
             </Descriptions.Item>
             <Descriptions.Item label="Approved By">
-              {selectedRefund.approvedBy?.username}
+              {selectedRefund.approvedBy?.name}
             </Descriptions.Item>
             <Descriptions.Item label="Processed By">
-              {selectedRefund.processedBy?.username}
+              {selectedRefund.processedBy?.name}
             </Descriptions.Item>
             {selectedRefund.bank_details && (
               <Descriptions.Item label="Bank Details" span={2}>

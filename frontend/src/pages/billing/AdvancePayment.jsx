@@ -145,7 +145,7 @@ const AdvancePayment = () => {
     {
       title: 'Received By',
       key: 'received_by',
-      render: (_, record) => record.receivedBy?.username
+      render: (_, record) => record.receivedBy?.name
     }
   ];
 

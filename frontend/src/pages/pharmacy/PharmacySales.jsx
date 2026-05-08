@@ -190,7 +190,7 @@ const PharmacySales = () => {
               <Descriptions.Item label="Prescription ID">{selectedSale.prescription_id ? `#${selectedSale.prescription_id}` : '-'}</Descriptions.Item>
               <Descriptions.Item label="Payment Mode">{selectedSale.payment_mode}</Descriptions.Item>
               <Descriptions.Item label="Dispensed By">
-                {selectedSale.dispensedBy?.username || '-'}
+                {selectedSale.dispensedBy?.name || '-'}
               </Descriptions.Item>
             </Descriptions>
 
