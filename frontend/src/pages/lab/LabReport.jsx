@@ -42,8 +42,36 @@ const LabReport = () => {
     window.print();
   };
 
+  // No backend PDF generator yet — fall back to the browser's print dialog,
+  // which lets the user "Save as PDF" with the existing print styles applied.
   const handleDownload = () => {
-    message.info('PDF download functionality will be implemented');
+    window.print();
+  };
+
+  // result_data is a JSONB column — primitive, array, OR an object whose keys
+  // are individual analytes (e.g. {WBC: 7.2, Platelets: 250, Haemoglobin: 13.4}).
+  // Rendering that object directly into JSX is what blew up the page.
+  const renderResultData = (data) => {
+    if (data == null) return <span style={{ color: '#999' }}>—</span>;
+    if (typeof data !== 'object') return <strong>{String(data)}</strong>;
+    if (Array.isArray(data)) {
+      return (
+        <div>
+          {data.map((v, i) => (
+            <div key={i}>{typeof v === 'object' ? JSON.stringify(v) : String(v)}</div>
+          ))}
+        </div>
+      );
+    }
+    return (
+      <div>
+        {Object.entries(data).map(([k, v]) => (
+          <div key={k}>
+            <strong>{k}:</strong> {v != null && typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const columns = [
@@ -60,7 +88,7 @@ const LabReport = () => {
       title: 'Result',
       dataIndex: 'result_data',
       key: 'result_data',
-      render: (result) => <strong>{result}</strong>
+      render: (result) => renderResultData(result)
     },
     {
       title: 'Interpretation',
@@ -207,7 +235,7 @@ const LabReport = () => {
                 Lab Technician
               </div>
               <div style={{ fontSize: 12, color: '#666' }}>
-                {results[0]?.enteredBy?.username || 'Lab Staff'}
+                {results[0]?.enteredBy?.name || 'Lab Staff'}
               </div>
             </div>
             <div>
@@ -215,7 +243,7 @@ const LabReport = () => {
                 Verified By
               </div>
               <div style={{ fontSize: 12, color: '#666' }}>
-                {results[0]?.verifiedBy?.username || 'Pathologist'}
+                {results[0]?.verifiedBy?.name || 'Pathologist'}
               </div>
             </div>
           </div>

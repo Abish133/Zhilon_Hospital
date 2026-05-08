@@ -38,7 +38,9 @@ class PatientDocumentController {
         document_type,
         filename: req.file.filename,
         original_filename: req.file.originalname,
-        file_path: req.file.path,
+        // Store path relative to backend root so it survives moves between machines
+        // and joins safely with __dirname in download/delete handlers.
+        file_path: path.relative(path.join(__dirname, '../../'), req.file.path),
         file_size: req.file.size,
         mime_type: req.file.mimetype,
         uploaded_by: req.user.id,
@@ -51,7 +53,7 @@ class PatientDocumentController {
           {
             model: User,
             as: 'uploader',
-            attributes: ['id', 'username', 'email']
+            attributes: ['id', 'name', 'email']
           }
         ]
       });
@@ -158,7 +160,10 @@ class PatientDocumentController {
         });
       }
 
-      const filePath = path.join(__dirname, '../../', document.file_path);
+      // Stored path may be absolute (legacy rows) or relative to backend root (new rows).
+      const filePath = path.isAbsolute(document.file_path)
+        ? document.file_path
+        : path.join(__dirname, '../../', document.file_path);
 
       if (!fs.existsSync(filePath)) {
         return res.status(404).json({
@@ -209,8 +214,10 @@ class PatientDocumentController {
         });
       }
 
-      // Delete file from disk
-      const filePath = path.join(__dirname, '../../', document.file_path);
+      // Delete file from disk (handle both legacy-absolute and new-relative paths)
+      const filePath = path.isAbsolute(document.file_path)
+        ? document.file_path
+        : path.join(__dirname, '../../', document.file_path);
       if (fs.existsSync(filePath)) {
         try {
           fs.unlinkSync(filePath);

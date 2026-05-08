@@ -61,14 +61,17 @@ const AuditLogs = () => {
         params.from_date = filters.from_date;
         params.to_date = filters.to_date;
       }
-      const response = await auditLogService.export(params);
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      // apiClient interceptor unwraps response.data — for responseType:'blob'
+      // that means `blob` IS the Blob, NOT an axios response wrapper.
+      const blob = await auditLogService.export(params);
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', `audit-logs-${Date.now()}.csv`);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
       message.success('Audit logs exported successfully');
     } catch (error) {
       message.error('Failed to export audit logs');

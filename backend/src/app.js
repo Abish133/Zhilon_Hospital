@@ -217,7 +217,6 @@ app.use('/api/medicine_category', guard('medicineCategory'), medicineCategoryRou
 app.get('/api/reports/dashboard-stats', ...protect, require('./controllers/ReportController').getDashboardStats);
 app.use('/api/reports', guard('reports'), reportRoutes);
 app.use('/api/patient-documents', guard('patientDocs'), patientDocumentRoutes);
-app.use('/api/documents', guard('patientDocs'), patientDocumentRoutes); // Alias for frontend compatibility
 app.use('/api/shifts', guard('shift'), shiftRoutes);
 app.use('/api/roster', guard('roster'), rosterRoutes);
 app.use('/api/salary-structures', guard('salaryStructure'), salaryStructureRoutes);

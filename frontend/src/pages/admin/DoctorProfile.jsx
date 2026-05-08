@@ -1,15 +1,161 @@
-import { Card, Tabs, Table, Tag, Space, Avatar, Spin, Row, Col, Statistic, Descriptions, Empty, Typography, Button } from 'antd';
+import { Card, Tabs, Table, Tag, Space, Avatar, Spin, Row, Col, Statistic, Descriptions, Empty, Typography, Button, DatePicker, Alert } from 'antd';
 import {
   UserOutlined, MedicineBoxOutlined, ExperimentOutlined, CameraOutlined,
   ScissorOutlined, CalendarOutlined, FileTextOutlined, BankOutlined,
-  ArrowLeftOutlined, IdcardOutlined, MailOutlined, PhoneOutlined, ClockCircleOutlined
+  ArrowLeftOutlined, IdcardOutlined, MailOutlined, PhoneOutlined, ClockCircleOutlined,
+  EyeOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import { useApiQuery } from '@hooks/useApi';
 import { formatDate, formatDateTime, calculateAge } from '@utils/helpers';
 import doctorService from '@services/DoctorService';
+import DayDrillDownDrawer from '@components/common/DayDrillDownDrawer';
 
 const { Title, Text } = Typography;
+
+// Reduce a doctor row to a date key (YYYY-MM-DD). Some sources carry the date
+// on dedicated fields (`surgery_date`), others only on createdAt — check both.
+const dateKeyOf = (...candidates) => {
+  for (const c of candidates) {
+    if (!c) continue;
+    const s = typeof c === 'string' ? c : (c?.toISOString?.() || '');
+    if (s) return s.slice(0, 10);
+  }
+  return null;
+};
+
+const navigateForDoctorEvent = (type, ev) => {
+  switch (type) {
+    case 'consultation':
+      return ev.visit_id ? { path: `/opd/consultation/${ev.visit_id}`, label: 'Open Consultation' } : { path: '/opd', label: 'OPD' };
+    case 'visit':
+      return ev.visit_id ? { path: `/opd/vitals/${ev.visit_id}`, label: 'Open Visit' } : { path: '/opd/visits', label: 'OPD Visits' };
+    case 'appointment':
+      return { path: '/opd/appointments', label: 'Appointments' };
+    case 'prescription':
+      return { path: '/opd/prescriptions', label: 'Prescriptions' };
+    case 'admission':
+      return ev.admission_id ? { path: `/ipd/patient/${ev.admission_id}`, label: 'Open Admission' } : { path: '/ipd', label: 'IPD' };
+    case 'lab_order':
+      return ev.order_id ? { path: `/lab/report/${ev.order_id}`, label: 'Open Lab Report' } : { path: '/lab', label: 'Lab' };
+    case 'radiology_order':
+      return ev.rad_order_id ? { path: `/radiology/report/${ev.rad_order_id}`, label: 'Open Radiology Report' } : { path: '/radiology', label: 'Radiology' };
+    case 'ot_booking':
+      return ev.booking_id ? { path: `/ot/anesthesia/${ev.booking_id}`, label: 'Open OT Case' } : { path: '/ot', label: 'OT' };
+    case 'doctor_schedule':
+      return { path: '/admin/schedules', label: 'Schedules' };
+    case 'doctor_leave':
+      return { path: '/admin/doctor-leaves', label: 'Leaves' };
+    default:
+      return null;
+  }
+};
+
+const patientLabel = (p) => p ? `${p.first_name || ''} ${p.last_name || ''} (${p.uhid || '—'})`.trim() : '';
+
+// Convert flat doctor profile data into events keyed by date. Each event mirrors
+// the shape DayDrillDownDrawer expects: { type, summary, timestamp, data, navigate }.
+const buildDoctorDayEvents = (d, targetDateKey) => {
+  if (!targetDateKey) return [];
+  const evs = [];
+  const push = (type, dateField, summary, ev, timestamp) => {
+    if (!dateField) return;
+    if (String(dateField).slice(0, 10) !== targetDateKey) return;
+    evs.push({ type, summary, timestamp: timestamp || dateField, data: ev, navigate: navigateForDoctorEvent(type, ev) });
+  };
+
+  for (const a of (d.appointments || [])) {
+    push('appointment', a.appointment_date, `Appointment with ${patientLabel(a.patient)}${a.appointment_time ? ' at ' + a.appointment_time : ''}`, a, a.appointment_date);
+  }
+  for (const v of (d.visits || [])) {
+    push('visit', v.visit_date, `OPD Visit — ${patientLabel(v.patient)}${v.token_number ? ' • Token ' + v.token_number : ''}`, v, v.visit_date);
+  }
+  for (const c of (d.consultations || [])) {
+    push('consultation', c.consultation_date || c.createdAt,
+      `Consulted ${patientLabel(c.patient)}${c.diagnosis_description ? ' — ' + c.diagnosis_description : ''}`,
+      c, c.consultation_date || c.createdAt);
+  }
+  for (const p of (d.prescriptions || [])) {
+    const med = p.medicine?.medicine_name || p.medicine_name || 'Medicine';
+    push('prescription', p.prescribed_at || p.createdAt,
+      `Prescribed ${med} to ${patientLabel(p.patient)}`,
+      p, p.prescribed_at || p.createdAt);
+  }
+  for (const a of (d.admissions || [])) {
+    push('admission', a.admission_date,
+      `Admitted ${patientLabel(a.patient)} (${a.admission_type || ''})`,
+      a, a.admission_date);
+  }
+  for (const o of (d.labOrders || [])) {
+    push('lab_order', o.order_date || o.createdAt,
+      `Lab order for ${patientLabel(o.patient)}: ${(o.details || []).map(x => x.test_name).filter(Boolean).join(', ') || 'Tests'}`,
+      o, o.order_date || o.createdAt);
+  }
+  for (const o of (d.radiologyOrders || [])) {
+    push('radiology_order', o.order_date,
+      `${o.modality || 'Imaging'} order for ${patientLabel(o.patient)}: ${o.test_name || ''}`,
+      o, o.order_date);
+  }
+  for (const b of (d.otAsSurgeon || [])) {
+    push('ot_booking', b.surgery_date,
+      `Surgery: ${b.surgery_name || 'Procedure'} for ${patientLabel(b.patient)} (Surgeon)`,
+      b, b.surgery_date);
+  }
+  for (const b of (d.otAsAssistant || [])) {
+    push('ot_booking', b.surgery_date,
+      `Surgery: ${b.surgery_name || 'Procedure'} for ${patientLabel(b.patient)} (Assistant)`,
+      b, b.surgery_date);
+  }
+  for (const b of (d.otAsAnesthetist || [])) {
+    push('ot_booking', b.surgery_date,
+      `Anesthesia: ${b.surgery_name || 'Procedure'} for ${patientLabel(b.patient)}`,
+      b, b.surgery_date);
+  }
+  // Doctor leaves span a date range — surface on every day in the range.
+  for (const lv of (d.leaves || [])) {
+    if (!lv.from_date) continue;
+    const from = String(lv.from_date).slice(0, 10);
+    const to = String(lv.to_date || lv.from_date).slice(0, 10);
+    if (targetDateKey >= from && targetDateKey <= to) {
+      evs.push({
+        type: 'doctor_leave',
+        summary: `On leave (${lv.leave_type || 'Leave'}) — ${lv.status || 'Pending'}`,
+        timestamp: targetDateKey,
+        data: lv,
+        navigate: navigateForDoctorEvent('doctor_leave', lv)
+      });
+    }
+  }
+  return evs;
+};
+
+// Distinct YYYY-MM-DD set across every dated record on the doctor profile.
+// Drives the date-picker's disabledDate so empty days can't be selected.
+const collectDoctorDates = (d) => {
+  const set = new Set();
+  const add = (...vs) => { const k = dateKeyOf(...vs); if (k) set.add(k); };
+  for (const a of (d.appointments || [])) add(a.appointment_date);
+  for (const v of (d.visits || [])) add(v.visit_date);
+  for (const c of (d.consultations || [])) add(c.consultation_date, c.createdAt);
+  for (const p of (d.prescriptions || [])) add(p.prescribed_at, p.createdAt);
+  for (const a of (d.admissions || [])) add(a.admission_date);
+  for (const o of (d.labOrders || [])) add(o.order_date, o.createdAt);
+  for (const o of (d.radiologyOrders || [])) add(o.order_date);
+  for (const b of (d.otAsSurgeon || [])) add(b.surgery_date);
+  for (const b of (d.otAsAssistant || [])) add(b.surgery_date);
+  for (const b of (d.otAsAnesthetist || [])) add(b.surgery_date);
+  // Expand each leave window day-by-day so the picker enables every day on leave.
+  for (const lv of (d.leaves || [])) {
+    if (!lv.from_date) continue;
+    const start = new Date(String(lv.from_date).slice(0, 10));
+    const end = new Date(String(lv.to_date || lv.from_date).slice(0, 10));
+    for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate() + 1)) {
+      set.add(dt.toISOString().slice(0, 10));
+    }
+  }
+  return set;
+};
 
 const DoctorProfile = () => {
   const { id } = useParams();
@@ -19,6 +165,10 @@ const DoctorProfile = () => {
     () => doctorService.getProfile(id)
   );
 
+  // State must be declared before any early return to satisfy Rules of Hooks.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drillDate, setDrillDate] = useState(null);
+
   if (isLoading) {
     return <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>;
   }
@@ -26,6 +176,13 @@ const DoctorProfile = () => {
   const d = data?.data || {};
   const doctor = d.doctor || {};
   const stats = d.stats || {};
+
+  const availableDates = collectDoctorDates(d);
+  const dayEvents = buildDoctorDayEvents(d, drillDate);
+  const openDrillDown = (key) => {
+    setDrillDate(key);
+    setDrawerOpen(true);
+  };
 
   // Bucket every record this doctor produced by patient_id, so each patient row
   // can expand to show exactly what THIS doctor did for that patient.
@@ -210,6 +367,40 @@ const DoctorProfile = () => {
           <Col xs={12} sm={8} md={6} lg={4}><Statistic title="Upcoming" value={stats.upcoming_appointments || 0} prefix={<ClockCircleOutlined />} /></Col>
           <Col xs={12} sm={8} md={6} lg={4}><Statistic title="Completed" value={stats.completed_appointments || 0} /></Col>
         </Row>
+      </Card>
+
+      <Card style={{ marginTop: 16, borderRadius: 16 }} bodyStyle={{ padding: 16 }}>
+        <Alert
+          type="info"
+          showIcon
+          message="Day Drill-Down"
+          description={
+            <Space wrap>
+              <span>Pick a date to see everything Dr. {doctor.name} did that day — consultations, prescriptions, surgeries, lab orders, leaves — with links to each record.</span>
+              <DatePicker
+                allowClear
+                placeholder="Select a date"
+                onChange={(d) => {
+                  if (!d) return;
+                  openDrillDown(d.format('YYYY-MM-DD'));
+                }}
+                disabledDate={(current) => {
+                  if (!current) return false;
+                  return !availableDates.has(current.format('YYYY-MM-DD'));
+                }}
+              />
+              <Button
+                icon={<EyeOutlined />}
+                onClick={() => {
+                  const today = new Date().toISOString().slice(0, 10);
+                  openDrillDown(today);
+                }}
+              >
+                Today
+              </Button>
+            </Space>
+          }
+        />
       </Card>
 
       <Card style={{ marginTop: 16, borderRadius: 16 }}>
@@ -486,6 +677,15 @@ const DoctorProfile = () => {
           ]}
         />
       </Card>
+
+      <DayDrillDownDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        date={drillDate}
+        title="Doctor Day Drill-Down"
+        subtitle={`Dr. ${doctor.name || ''}${doctor.specialization ? ' • ' + doctor.specialization : ''}`}
+        events={dayEvents}
+      />
     </div>
   );
 };

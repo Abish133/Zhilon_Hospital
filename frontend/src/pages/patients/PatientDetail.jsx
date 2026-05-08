@@ -1,9 +1,10 @@
-import { Card, Descriptions, Tabs, Table, Tag, Space, Avatar, Spin, Row, Col, Statistic, Timeline, Empty, Collapse, Typography, Tooltip } from 'antd';
+import { Card, Descriptions, Tabs, Table, Tag, Space, Avatar, Spin, Row, Col, Statistic, Timeline, Empty, Collapse, Typography, Tooltip, Button, DatePicker, Alert } from 'antd';
 import {
   UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined, CalendarOutlined,
   MedicineBoxOutlined, ExperimentOutlined, CameraOutlined, ScissorOutlined,
-  DollarOutlined, FileTextOutlined, HeartOutlined, BankOutlined
+  DollarOutlined, FileTextOutlined, HeartOutlined, BankOutlined, EyeOutlined
 } from '@ant-design/icons';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApiQuery } from '@hooks/useApi';
 import { calculateAge, formatDate, formatDateTime, formatCurrency } from '@utils/helpers';
@@ -12,6 +13,7 @@ import MedicalHistory from '@components/common/MedicalHistory';
 import ClinicalHistory from '@components/common/ClinicalHistory';
 import MedicationHistory from '@components/common/MedicationHistory';
 import DocumentUpload from '@components/common/DocumentUpload';
+import DayDrillDownDrawer from '@components/common/DayDrillDownDrawer';
 
 const { Text, Title } = Typography;
 const { Panel } = Collapse;
@@ -48,6 +50,55 @@ const eventIcon = {
   bill: <DollarOutlined />
 };
 
+// Map a backend timeline event to a navigation target — best-effort, falls back
+// to the relevant section page when a record-id isn't present on the row.
+const navigateForEvent = (e) => {
+  const ev = e.data || {};
+  switch (e.type) {
+    case 'consultation':
+      return ev.visit_id ? { path: `/opd/consultation/${ev.visit_id}`, label: 'Open Consultation' } : { path: '/opd', label: 'OPD' };
+    case 'visit':
+      return ev.visit_id ? { path: `/opd/vitals/${ev.visit_id}`, label: 'Open Visit' } : { path: '/opd/visits', label: 'OPD Visits' };
+    case 'appointment':
+      return { path: '/opd/appointments', label: 'Appointments' };
+    case 'prescription':
+      return { path: '/opd/prescriptions', label: 'Prescriptions' };
+    case 'admission':
+      return ev.admission_id ? { path: `/ipd/patient/${ev.admission_id}`, label: 'Open Admission' } : { path: '/ipd', label: 'IPD' };
+    case 'ipd_progress':
+      return ev.admission_id ? { path: `/ipd/care/${ev.admission_id}`, label: 'Open Daily Care' } : null;
+    case 'ipd_vital':
+      return ev.admission_id ? { path: `/ipd/vitals/${ev.admission_id}`, label: 'Open Vitals' } : { path: '/ipd/vitals', label: 'IPD Vitals' };
+    case 'ipd_medication':
+      return { path: '/ipd/medications', label: 'IPD Medications' };
+    case 'lab_order':
+      return ev.order_id ? { path: `/lab/report/${ev.order_id}`, label: 'Open Lab Report' } : { path: '/lab', label: 'Lab' };
+    case 'radiology_order':
+      return ev.rad_order_id ? { path: `/radiology/report/${ev.rad_order_id}`, label: 'Open Radiology Report' } : { path: '/radiology', label: 'Radiology' };
+    case 'ot_booking':
+      return ev.booking_id ? { path: `/ot/anesthesia/${ev.booking_id}`, label: 'Open OT Case' } : { path: '/ot', label: 'OT' };
+    case 'pharmacy_sale':
+      return { path: '/pharmacy/sales', label: 'Pharmacy Sales' };
+    case 'bill':
+      return ev.episode_id ? { path: `/billing/generate/${ev.episode_id}`, label: 'Open Bill' } : { path: '/billing', label: 'Billing' };
+    default:
+      return null;
+  }
+};
+
+const eventsForDate = (timeline, dateKey) => {
+  if (!dateKey) return [];
+  const day = (timeline || []).find(t => String(t.date).slice(0, 10) === dateKey);
+  if (!day) return [];
+  return (day.events || []).map(e => ({
+    type: e.type,
+    summary: e.summary,
+    timestamp: e.date,
+    data: e.data,
+    navigate: navigateForEvent(e)
+  }));
+};
+
 const PatientDetail = () => {
   const { uhid } = useParams();
   const { data, isLoading } = useApiQuery(
@@ -55,14 +106,26 @@ const PatientDetail = () => {
     () => PatientService.getTimeline(uhid)
   );
 
+  // Hooks must run on every render, so declare drawer state before the
+  // early-return for the loading state.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drillDate, setDrillDate] = useState(null);
+
   if (isLoading) {
     return <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>;
   }
+
+  const openDrillDown = (dateKey) => {
+    setDrillDate(dateKey);
+    setDrawerOpen(true);
+  };
 
   const d = data?.data || {};
   const patient = d.patient || {};
   const stats = d.stats || {};
   const timeline = d.timeline || [];
+  const availableDates = new Set((timeline || []).map(t => String(t.date).slice(0, 10)));
+  const dayEvents = eventsForDate(timeline, drillDate);
 
   const appointmentColumns = [
     { title: 'Date', dataIndex: 'appointment_date', key: 'date', render: (v) => formatDate(v) },
@@ -328,36 +391,85 @@ const PatientDetail = () => {
             {
               key: 'timeline',
               label: 'Timeline (All History)',
-              children: timeline.length === 0 ? (
-                <Empty description="No history records yet" />
-              ) : (
-                <Collapse defaultActiveKey={timeline.slice(0, 3).map(t => t.date)} ghost>
-                  {timeline.map(day => (
-                    <Panel
-                      header={<Space><CalendarOutlined /><b>{formatDate(day.date)}</b><Tag>{day.events.length} events</Tag></Space>}
-                      key={day.date}
-                    >
-                      <Timeline
-                        items={day.events.map((e, idx) => ({
-                          key: `${day.date}-${idx}`,
-                          color: eventColor[e.type] || 'gray',
-                          dot: eventIcon[e.type],
-                          children: (
-                            <div>
-                              <div style={{ fontWeight: 600 }}>
-                                <Tag color={eventColor[e.type]}>{e.type.replace('_', ' ').toUpperCase()}</Tag>
-                                {e.summary}
-                              </div>
-                              <div style={{ marginTop: 4, color: '#475569', fontSize: 13 }}>
-                                {renderEventDetail(e)}
-                              </div>
-                            </div>
-                          )
-                        }))}
-                      />
-                    </Panel>
-                  ))}
-                </Collapse>
+              children: (
+                <>
+                  <Alert
+                    type="info"
+                    showIcon
+                    style={{ marginBottom: 12 }}
+                    message="Day Drill-Down"
+                    description={
+                      <Space wrap>
+                        <span>Pick a date to see everything that happened that day, with deep-links to each record.</span>
+                        <DatePicker
+                          allowClear
+                          placeholder="Select a date"
+                          onChange={(d) => {
+                            if (!d) return;
+                            openDrillDown(d.format('YYYY-MM-DD'));
+                          }}
+                          // Disable dates that have no activity, so the picker
+                          // doubles as an at-a-glance "active days" indicator.
+                          disabledDate={(current) => {
+                            if (!current) return false;
+                            return !availableDates.has(current.format('YYYY-MM-DD'));
+                          }}
+                        />
+                      </Space>
+                    }
+                  />
+                  {timeline.length === 0 ? (
+                    <Empty description="No history records yet" />
+                  ) : (
+                    <Collapse defaultActiveKey={timeline.slice(0, 3).map(t => t.date)} ghost>
+                      {timeline.map(day => {
+                        const dateKey = String(day.date).slice(0, 10);
+                        return (
+                          <Panel
+                            header={
+                              <Space>
+                                <CalendarOutlined />
+                                <b>{formatDate(day.date)}</b>
+                                <Tag>{day.events.length} events</Tag>
+                                <Button
+                                  size="small"
+                                  type="link"
+                                  icon={<EyeOutlined />}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openDrillDown(dateKey);
+                                  }}
+                                >
+                                  Drill-down
+                                </Button>
+                              </Space>
+                            }
+                            key={day.date}
+                          >
+                            <Timeline
+                              items={day.events.map((e, idx) => ({
+                                key: `${day.date}-${idx}`,
+                                color: eventColor[e.type] || 'gray',
+                                dot: eventIcon[e.type],
+                                children: (
+                                  <div>
+                                    <div style={{ fontWeight: 600 }}>
+                                      <Tag color={eventColor[e.type]}>{e.type.replace('_', ' ').toUpperCase()}</Tag>
+                                      {e.summary}
+                                    </div>
+                                    <div style={{ marginTop: 4, color: '#475569', fontSize: 13 }}>
+                                      {renderEventDetail(e)}
+                                    </div>
+                                  </div>
+                                )
+                              }))}
+                            />
+                          </Panel>
+                        );
+                      })}
+                    </Collapse>
+                  )}
+                </>
               )
             },
             {
@@ -527,11 +639,20 @@ const PatientDetail = () => {
             {
               key: 'documents',
               label: 'Documents',
-              children: <DocumentUpload entityType="patient" entityId={uhid} />
+              children: <DocumentUpload patientId={uhid} />
             }
           ]}
         />
       </Card>
+
+      <DayDrillDownDrawer
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        date={drillDate}
+        title="Patient Day Drill-Down"
+        subtitle={`${patient.first_name || ''} ${patient.last_name || ''} (${patient.uhid || uhid})`.trim()}
+        events={dayEvents}
+      />
     </div>
   );
 };

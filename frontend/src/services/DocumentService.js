@@ -3,16 +3,20 @@ import apiClient from '@config/api';
 
 class DocumentService extends BaseService {
   constructor() {
-    super('/documents');
+    super('/patient-documents');
   }
 
-  upload(file, metadata) {
+  // Upload a patient document. `meta` must include patient_id and document_type;
+  // description is optional. Backend reads these as flat fields, not a JSON blob.
+  upload(file, meta = {}) {
+    const { patient_id, document_type, description } = meta;
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('metadata', JSON.stringify(metadata));
-    return apiClient.post(`${this.endpoint}/upload`, formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    });
+    if (patient_id != null) formData.append('patient_id', patient_id);
+    if (document_type) formData.append('document_type', document_type);
+    if (description) formData.append('description', description);
+    // Let the browser set the multipart boundary — don't hardcode Content-Type.
+    return apiClient.post(`${this.endpoint}/upload`, formData);
   }
 
   download(documentId) {
@@ -21,8 +25,8 @@ class DocumentService extends BaseService {
     });
   }
 
-  getByEntity(entityType, entityId) {
-    return apiClient.get(`${this.endpoint}/${entityType}/${entityId}`);
+  getByPatient(patientId, params = {}) {
+    return apiClient.get(`${this.endpoint}/patient/${patientId}`, { params });
   }
 
   deleteDocument(documentId) {

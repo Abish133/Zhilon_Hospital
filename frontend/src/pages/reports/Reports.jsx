@@ -86,14 +86,17 @@ const Reports = () => {
       }
 
       if (type === 'PDF') {
-        const exportResponse = await ReportService.exportReport(`${reportType}_pdf`, params);
-        const url = window.URL.createObjectURL(new Blob([exportResponse.data]));
+        // apiClient interceptor returns response.data — with responseType:'blob'
+        // that's already the Blob; don't access .data on it again.
+        const blob = await ReportService.exportReport(`${reportType}_pdf`, params);
+        const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
         const link = document.createElement('a');
         link.href = url;
         link.setAttribute('download', `${reportType}-report.pdf`);
         document.body.appendChild(link);
         link.click();
-        link.parentElement.removeChild(link);
+        link.remove();
+        window.URL.revokeObjectURL(url);
       }
       message.success(`Exporting to ${type}...`);
     } catch (error) {
