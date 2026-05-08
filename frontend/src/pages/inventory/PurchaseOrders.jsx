@@ -115,7 +115,7 @@ const PurchaseOrders = () => {
       key: 'expected_delivery_date', 
       render: (date) => date ? dayjs(date).format('DD MMM YYYY') : '-'
     },
-    { title: 'Total', dataIndex: 'net_amount', key: 'net_amount', render: (amt) => amt ? `â‚¹${parseFloat(amt).toFixed(2)}` : 'â‚¹0.00' },
+    { title: 'Total', dataIndex: 'net_amount', key: 'net_amount', render: (amt) => amt ? `₹${parseFloat(amt).toFixed(2)}` : '₹0.00' },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -203,7 +203,7 @@ const PurchaseOrders = () => {
                 />
                 <InputNumber
                   placeholder="Rate"
-                  prefix="â‚¹"
+                  prefix="₹"
                   min={0}
                   value={item.rate}
                   onChange={(val) => handleItemChange(index, 'rate', val)}

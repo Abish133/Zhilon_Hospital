@@ -1,5 +1,5 @@
 'use strict';
-const { Payroll, Employee, SalaryStructure, EmployeeAttendance, Hospital, User } = require('../models');
+const { Payroll, Employee, SalaryStructure, EmployeeAttendance, Hospital, User, Department } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
 
 class PayrollController {
@@ -87,19 +87,19 @@ class PayrollController {
           {
             model: User,
             as: 'generator',
-            attributes: ['id', 'username', 'email'],
+            attributes: ['id', 'name', 'email'],
             required: false
           },
           {
             model: User,
             as: 'approver',
-            attributes: ['id', 'username', 'email'],
+            attributes: ['id', 'name', 'email'],
             required: false
           },
           {
             model: User,
             as: 'processor',
-            attributes: ['id', 'username', 'email'],
+            attributes: ['id', 'name', 'email'],
             required: false
           }
         ]
@@ -147,41 +147,75 @@ class PayrollController {
         });
       }
 
-      // Check if payroll already exists
-      const existingPayroll = await Payroll.findAll({
-        where: {
-          month: parseInt(month),
-          year: parseInt(year),
-          hospital_id: hospitalId
+      // Check if payroll already exists. Scope this by department too so the
+      // user can generate per-department incrementally (department A in pass 1,
+      // department B in pass 2) without the second pass being blocked.
+      const existingWhere = {
+        month: parseInt(month),
+        year: parseInt(year),
+        hospital_id: hospitalId
+      };
+      if (department_id) {
+        // Limit "exists" check to employees in the chosen department.
+        const deptEmps = await Employee.findAll({
+          where: { hospital_id: hospitalId, department_id },
+          attributes: ['employee_id']
+        });
+        const deptEmpIds = deptEmps.map(e => e.employee_id);
+        if (deptEmpIds.length === 0) {
+          return res.status(400).json({
+            success: false,
+            message: 'No employees exist in the selected department.'
+          });
         }
-      });
+        existingWhere.employee_id = deptEmpIds;
+      }
+      const existingPayroll = await Payroll.findAll({ where: existingWhere });
 
       if (existingPayroll.length > 0) {
+        const scope = department_id ? `the selected department for ${month}/${year}` : `${month}/${year}`;
         return res.status(400).json({
           success: false,
-          message: `Payroll for ${month}/${year} already exists. Delete existing payrolls first.`,
+          message: `Payroll for ${scope} already exists. Delete the existing payrolls first or pick a different period.`,
           data: existingPayroll
         });
       }
 
-      // Get employees
+      // Get target employees, with diagnostic counts so the error tells the
+      // user exactly what's missing instead of a generic "not found".
+      const totalInHospital = await Employee.count({ where: { hospital_id: hospitalId } });
+      const activeInHospital = await Employee.count({ where: { hospital_id: hospitalId, is_active: true } });
+
       const employeeWhere = {
         hospital_id: hospitalId,
         is_active: true
       };
-
       if (department_id) {
         employeeWhere.department_id = department_id;
       }
 
-      const employees = await Employee.findAll({
-        where: employeeWhere
-      });
+      const employees = await Employee.findAll({ where: employeeWhere });
 
       if (employees.length === 0) {
+        // Compose an actionable message explaining which filter eliminated everyone.
+        let detail;
+        if (totalInHospital === 0) {
+          detail = 'There are no employees registered for this hospital. Add employees under HR → Employees first.';
+        } else if (activeInHospital === 0) {
+          detail = `${totalInHospital} employee(s) exist for this hospital but none are marked active. Activate them under HR → Employees.`;
+        } else if (department_id) {
+          detail = `No active employees in the selected department. The hospital has ${activeInHospital} active employee(s) overall — try removing the department filter or pick a different department.`;
+        } else {
+          detail = `Unexpected: ${activeInHospital} active employee(s) exist but none matched. Please report this.`;
+        }
         return res.status(400).json({
           success: false,
-          message: 'No active employees found'
+          message: detail,
+          stats: {
+            employees_in_hospital: totalInHospital,
+            active_employees_in_hospital: activeInHospital,
+            department_filter_applied: !!department_id
+          }
         });
       }
 
@@ -499,12 +533,20 @@ class PayrollController {
           {
             model: Employee,
             as: 'employee',
-            attributes: ['employee_id', 'emp_code', 'full_name', 'mobile', 'email']
+            // Pull bank/PAN/UAN/designation so the payslip can show full identity.
+            attributes: [
+              'employee_id', 'emp_code', 'full_name', 'mobile', 'email',
+              'designation', 'role', 'joining_date',
+              'bank_account_number', 'ifsc_code', 'pan_number', 'uan_number',
+              'department_id'
+            ],
+            include: [
+              { model: Department, as: 'department', attributes: ['id', 'department_name'] }
+            ]
           },
           {
             model: Hospital,
-            as: 'hospital',
-            attributes: ['id', 'hospitalName', 'address']
+            as: 'hospital'
           }
         ]
       });
@@ -536,11 +578,28 @@ class PayrollController {
         });
       }
 
+      // Active salary structure for this employee during the payroll period.
+      // Used to itemize the lump-sum allowances/deductions stored on Payroll.
+      const periodEnd = new Date(payroll.year, payroll.month, 0); // last day of the month
+      const structure = await SalaryStructure.findOne({
+        where: {
+          employee_id: payroll.employee_id,
+          hospital_id: payroll.hospital_id,
+          effective_from: { [Op.lte]: periodEnd },
+          [Op.or]: [
+            { effective_to: null },
+            { effective_to: { [Op.gte]: periodEnd } }
+          ]
+        },
+        order: [['effective_from', 'DESC']]
+      });
+
       const { generatePayslipPDF } = require('../utils/pdfGenerator');
       generatePayslipPDF(res, {
         payroll: payroll.toJSON ? payroll.toJSON() : payroll,
         employee: payroll.employee,
-        hospital: payroll.hospital
+        hospital: payroll.hospital,
+        structure: structure ? (structure.toJSON ? structure.toJSON() : structure) : null
       });
     } catch (error) {
       console.error('Error generating payslip:', error);

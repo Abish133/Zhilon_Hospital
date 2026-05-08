@@ -220,7 +220,7 @@ const InsuranceClaims = () => {
       title: 'Claim Amount',
       dataIndex: 'claim_amount',
       key: 'claim_amount',
-      render: (amount) => `â‚¹${parseFloat(amount).toFixed(2)}`,
+      render: (amount) => `₹${parseFloat(amount).toFixed(2)}`,
       align: 'right'
     },
     {
@@ -435,13 +435,13 @@ const InsuranceClaims = () => {
               {selectedClaim.member_id || 'N/A'}
             </Descriptions.Item>
             <Descriptions.Item label="Claim Amount">
-              â‚¹{parseFloat(selectedClaim.claim_amount).toFixed(2)}
+              ₹{parseFloat(selectedClaim.claim_amount).toFixed(2)}
             </Descriptions.Item>
             <Descriptions.Item label="Approved Amount">
-              {selectedClaim.approved_amount ? `â‚¹${parseFloat(selectedClaim.approved_amount).toFixed(2)}` : 'Pending'}
+              {selectedClaim.approved_amount ? `₹${parseFloat(selectedClaim.approved_amount).toFixed(2)}` : 'Pending'}
             </Descriptions.Item>
             <Descriptions.Item label="Paid Amount">
-              {selectedClaim.paid_amount ? `â‚¹${parseFloat(selectedClaim.paid_amount).toFixed(2)}` : 'Not paid'}
+              {selectedClaim.paid_amount ? `₹${parseFloat(selectedClaim.paid_amount).toFixed(2)}` : 'Not paid'}
             </Descriptions.Item>
             <Descriptions.Item label="Claim Date">
               {dayjs(selectedClaim.claim_date).format('DD-MM-YYYY')}

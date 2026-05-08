@@ -141,7 +141,7 @@ const PackageManagement = () => {
       title: 'Total Charge',
       dataIndex: 'total_charge',
       key: 'total_charge',
-      render: (price) => <span style={{ fontWeight: 600, color: '#0a0a0a' }}>â‚¹{price}</span>
+      render: (price) => <span style={{ fontWeight: 600, color: '#0a0a0a' }}>₹{price}</span>
     },
     {
       title: 'Validity',
@@ -344,7 +344,7 @@ const PackageManagement = () => {
               }
               options={labTests.map(t => ({
                 value: t.test_id,
-                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.charge ? ` â€” â‚¹${t.charge}` : ''}`
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.charge ? ` â€” ₹${t.charge}` : ''}`
               }))}
             />
           </Form.Item>
@@ -363,7 +363,7 @@ const PackageManagement = () => {
               }
               options={radTests.map(t => ({
                 value: t.rad_test_id,
-                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.modality ? ` Â· ${t.modality}` : ''}${t.charge ? ` â€” â‚¹${t.charge}` : ''}`
+                label: `${t.test_name}${t.test_code ? ` (${t.test_code})` : ''}${t.modality ? ` Â· ${t.modality}` : ''}${t.charge ? ` â€” ₹${t.charge}` : ''}`
               }))}
             />
           </Form.Item>
@@ -386,7 +386,7 @@ const PackageManagement = () => {
           >
             <InputNumber
               style={{ width: '100%' }}
-              prefix="â‚¹"
+              prefix="₹"
               placeholder="Total package charge"
               min={0}
               step={0.01}
@@ -433,7 +433,7 @@ const PackageManagement = () => {
               style={{ marginBottom: 16 }}
               type="info"
               showIcon
-              message={`Charge: â‚¹${packageToApply.total_charge}`}
+              message={`Charge: ₹${packageToApply.total_charge}`}
               description={
                 <Space direction="vertical" size={2}>
                   <span>The system will automatically create on apply:</span>

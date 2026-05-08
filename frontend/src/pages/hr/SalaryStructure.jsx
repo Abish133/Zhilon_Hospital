@@ -153,7 +153,7 @@ const SalaryStructure = () => {
   const previewTotalDed = previewPf + previewPt + previewTds + previewOther;
   const previewNet = previewGross - previewTotalDed;
 
-  const fmt = (v) => `â‚¹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmt = (v) => `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const columns = [
     {
@@ -354,27 +354,27 @@ const SalaryStructure = () => {
                 name="basic_salary"
                 rules={[{ required: true, message: 'Required' }]}
               >
-                <InputNumber min={0} step={1000} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={1000} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
             <Col span={12}>
               <Form.Item label="HRA" name="hra">
-                <InputNumber min={0} step={500} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={500} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Medical Allowance" name="medical_allowance">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Transport Allowance" name="transport_allowance">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
             <Col span={8}>
               <Form.Item label="Other Allowances" name="other_allowances">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
           </Row>
@@ -388,7 +388,7 @@ const SalaryStructure = () => {
             </Col>
             <Col span={6}>
               <Form.Item label="Professional Tax" name="pt_amount" tooltip="Flat monthly amount as per state">
-                <InputNumber min={0} step={50} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={50} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -398,7 +398,7 @@ const SalaryStructure = () => {
             </Col>
             <Col span={6}>
               <Form.Item label="Other Deductions" name="other_deductions">
-                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="â‚¹" />
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
           </Row>

@@ -48,7 +48,7 @@ class StockReturnController {
         data: {
           ...stockReturn.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          returnedBy: user ? { id: user.id, username: user.username } : null,
+          returnedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: updatedItem ? { item_id: updatedItem.item_id, item_name: updatedItem.item_name, current_stock: updatedItem.current_stock } : null
         }
@@ -73,7 +73,7 @@ class StockReturnController {
           return {
             ...returnItem.toJSON(),
             department: department ? { id: department.id, department_name: department.department_name } : null,
-            returnedBy: user ? { id: user.id, username: user.username } : null,
+            returnedBy: user ? { id: user.id, username: user.name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
             item: item ? { item_id: item.item_id, item_name: item.item_name } : null
           };
@@ -103,7 +103,7 @@ class StockReturnController {
         data: {
           ...stockReturn.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          returnedBy: user ? { id: user.id, username: user.username } : null,
+          returnedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: item ? { item_id: item.item_id, item_name: item.item_name } : null
         }
@@ -151,7 +151,7 @@ class StockReturnController {
         data: {
           ...updatedReturn.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          returnedBy: user ? { id: user.id, username: user.username } : null,
+          returnedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: item ? { item_id: item.item_id, item_name: item.item_name } : null
         }

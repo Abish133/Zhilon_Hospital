@@ -92,7 +92,7 @@ class PaymentController {
           payment: {
             ...payment.toJSON(),
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            receivedBy: user ? { id: user.id, username: user.username } : null
+            receivedBy: user ? { id: user.id, username: user.name } : null
           },
           bill: updatedBill
         }
@@ -223,7 +223,7 @@ class PaymentController {
             ...payment.toJSON(),
             bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount, balance_amount: bill.balance_amount } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            receivedBy: user ? { id: user.id, username: user.username } : null
+            receivedBy: user ? { id: user.id, username: user.name } : null
           };
         })
       );
@@ -252,7 +252,7 @@ class PaymentController {
           ...payment.toJSON(),
           bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount, balance_amount: bill.balance_amount } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          receivedBy: user ? { id: user.id, username: user.username } : null
+          receivedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -296,7 +296,7 @@ class PaymentController {
           ...updatedPayment.toJSON(),
           bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount, balance_amount: bill.balance_amount } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          receivedBy: user ? { id: user.id, username: user.username } : null
+          receivedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {

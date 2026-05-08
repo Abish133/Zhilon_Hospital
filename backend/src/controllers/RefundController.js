@@ -73,8 +73,8 @@ class RefundController {
           bill: refreshedBill ? { bill_id: refreshedBill.bill_id, bill_number: refreshedBill.bill_number, net_amount: refreshedBill.net_amount, paid_amount: refreshedBill.paid_amount, balance_amount: refreshedBill.balance_amount, payment_status: refreshedBill.payment_status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          approvedBy: approver ? { id: approver.id, username: approver.username } : null,
-          processedBy: processor ? { id: processor.id, username: processor.username } : null
+          approvedBy: approver ? { id: approver.id, username: approver.name } : null,
+          processedBy: processor ? { id: processor.id, username: processor.name } : null
         }
       });
     } catch (error) {
@@ -109,8 +109,8 @@ class RefundController {
             bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount } : null,
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            approvedBy: approver ? { id: approver.id, username: approver.username } : null,
-            processedBy: processor ? { id: processor.id, username: processor.username } : null
+            approvedBy: approver ? { id: approver.id, username: approver.name } : null,
+            processedBy: processor ? { id: processor.id, username: processor.name } : null
           };
         })
       );
@@ -142,8 +142,8 @@ class RefundController {
           bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          approvedBy: approver ? { id: approver.id, username: approver.username } : null,
-          processedBy: processor ? { id: processor.id, username: processor.username } : null
+          approvedBy: approver ? { id: approver.id, username: approver.name } : null,
+          processedBy: processor ? { id: processor.id, username: processor.name } : null
         }
       });
     } catch (error) {
@@ -190,8 +190,8 @@ class RefundController {
           bill: bill ? { bill_id: bill.bill_id, bill_number: bill.bill_number, net_amount: bill.net_amount } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          approvedBy: approver ? { id: approver.id, username: approver.username } : null,
-          processedBy: processor ? { id: processor.id, username: processor.username } : null
+          approvedBy: approver ? { id: approver.id, username: approver.name } : null,
+          processedBy: processor ? { id: processor.id, username: processor.name } : null
         }
       });
     } catch (error) {

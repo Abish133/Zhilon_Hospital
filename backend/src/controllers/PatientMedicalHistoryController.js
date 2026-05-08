@@ -24,7 +24,7 @@ class PatientMedicalHistoryController {
           ...medicalHistory.toJSON(),
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.username } : null
+          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.name } : null
         }
       });
     } catch (error) {
@@ -55,7 +55,7 @@ class PatientMedicalHistoryController {
             ...history.toJSON(),
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.username } : null
+            updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.name } : null
           };
         })
       );
@@ -83,7 +83,7 @@ class PatientMedicalHistoryController {
           ...medicalHistory.toJSON(),
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.username } : null
+          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.name } : null
         }
       });
     } catch (error) {
@@ -113,7 +113,7 @@ class PatientMedicalHistoryController {
           ...updatedHistory.toJSON(),
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.username } : null
+          updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.name } : null
         }
       });
     } catch (error) {
@@ -152,7 +152,7 @@ class PatientMedicalHistoryController {
             ...history.toJSON(),
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.username } : null
+            updatedByUser: updatedBy ? { id: updatedBy.id, username: updatedBy.name } : null
           };
         })
       );

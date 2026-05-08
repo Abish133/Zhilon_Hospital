@@ -82,7 +82,7 @@ const Radiology = () => {
             <Select showSearch options={(patientsData?.data || []).map(p => ({ label: `${p.uhid} - ${p.first_name} ${p.last_name}`, value: p.uhid }))} />
           </Form.Item>
           <Form.Item name="test_name" label="Test" rules={[{ required: true }]}>
-            <Select options={(testsData?.data || []).map(t => ({ label: `${t.test_name} - â‚¹${t.charge}`, value: t.test_name }))} />
+            <Select options={(testsData?.data || []).map(t => ({ label: `${t.test_name} - ₹${t.charge}`, value: t.test_name }))} />
           </Form.Item>
           <Form.Item name="clinical_info" label="Clinical Information">
             <Input.TextArea rows={3} />

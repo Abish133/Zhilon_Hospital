@@ -304,8 +304,8 @@ const RefundManagement = () => {
                       style={{ width: '100%' }}
                       min={1}
                       max={selectedBill.paid_amount}
-                      formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                      parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
+                      formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                      parser={value => value.replace(/₹\s?|(,*)/g, '')}
                     />
                   </Form.Item>
                 </Col>

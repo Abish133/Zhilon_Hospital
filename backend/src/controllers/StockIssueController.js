@@ -62,7 +62,7 @@ class StockIssueController {
         data: {
           ...stockIssue.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          issuedBy: user ? { id: user.id, username: user.username } : null,
+          issuedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: updatedItem ? { item_id: updatedItem.item_id, item_name: updatedItem.item_name, current_stock: updatedItem.current_stock } : null
         }
@@ -135,7 +135,7 @@ class StockIssueController {
         data: {
           ...stockIssue.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          issuedBy: user ? { id: user.id, username: user.username } : null,
+          issuedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: item ? { item_id: item.item_id, item_name: item.item_name } : null
         }
@@ -198,7 +198,7 @@ class StockIssueController {
         data: {
           ...updatedIssue.toJSON(),
           department: department ? { id: department.id, department_name: department.department_name } : null,
-          issuedBy: user ? { id: user.id, username: user.username } : null,
+          issuedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
           item: item ? { item_id: item.item_id, item_name: item.item_name } : null
         }

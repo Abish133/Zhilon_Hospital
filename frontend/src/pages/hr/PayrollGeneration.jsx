@@ -236,19 +236,19 @@ const PayrollGeneration = () => {
       title: 'Gross Salary',
       dataIndex: 'gross_salary',
       key: 'gross_salary',
-      render: (val) => `â‚¹${parseFloat(val || 0).toLocaleString('en-IN')}`
+      render: (val) => `₹${parseFloat(val || 0).toLocaleString('en-IN')}`
     },
     {
       title: 'Deductions',
       dataIndex: 'total_deductions',
       key: 'total_deductions',
-      render: (val) => `â‚¹${parseFloat(val || 0).toLocaleString('en-IN')}`
+      render: (val) => `₹${parseFloat(val || 0).toLocaleString('en-IN')}`
     },
     {
       title: 'Net Salary',
       dataIndex: 'net_salary',
       key: 'net_salary',
-      render: (val) => <strong>â‚¹{parseFloat(val || 0).toLocaleString('en-IN')}</strong>
+      render: (val) => <strong>₹{parseFloat(val || 0).toLocaleString('en-IN')}</strong>
     },
     {
       title: 'Status',
@@ -349,17 +349,17 @@ const PayrollGeneration = () => {
         <Row gutter={16} style={{ marginBottom: 16 }}>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Gross" value={totalGross} prefix="â‚¹" precision={2} />
+              <Statistic title="Total Gross" value={totalGross} prefix="₹" precision={2} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Deductions" value={totalDeductions} prefix="â‚¹" precision={2} />
+              <Statistic title="Total Deductions" value={totalDeductions} prefix="₹" precision={2} />
             </Card>
           </Col>
           <Col span={6}>
             <Card>
-              <Statistic title="Total Net" value={totalNet} prefix="â‚¹" precision={2} valueStyle={{ color: '#3f8600' }} />
+              <Statistic title="Total Net" value={totalNet} prefix="₹" precision={2} valueStyle={{ color: '#3f8600' }} />
             </Card>
           </Col>
           <Col span={6}>
@@ -428,19 +428,19 @@ const PayrollGeneration = () => {
             <Descriptions.Item label="Days Absent">{selectedPayroll.days_absent}</Descriptions.Item>
             <Descriptions.Item label="Overtime Hours">{selectedPayroll.overtime_hours || 0}</Descriptions.Item>
             <Descriptions.Item label="Basic Salary">
-              â‚¹{parseFloat(selectedPayroll.basic_salary || 0).toLocaleString('en-IN')}
+              ₹{parseFloat(selectedPayroll.basic_salary || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Total Allowances">
-              â‚¹{parseFloat(selectedPayroll.total_allowances || 0).toLocaleString('en-IN')}
+              ₹{parseFloat(selectedPayroll.total_allowances || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Total Deductions">
-              â‚¹{parseFloat(selectedPayroll.total_deductions || 0).toLocaleString('en-IN')}
+              ₹{parseFloat(selectedPayroll.total_deductions || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Gross Salary">
-              â‚¹{parseFloat(selectedPayroll.gross_salary || 0).toLocaleString('en-IN')}
+              ₹{parseFloat(selectedPayroll.gross_salary || 0).toLocaleString('en-IN')}
             </Descriptions.Item>
             <Descriptions.Item label="Net Salary" span={2}>
-              <strong>â‚¹{parseFloat(selectedPayroll.net_salary || 0).toLocaleString('en-IN')}</strong>
+              <strong>₹{parseFloat(selectedPayroll.net_salary || 0).toLocaleString('en-IN')}</strong>
             </Descriptions.Item>
             {selectedPayroll.payment_date && (
               <>
@@ -532,7 +532,7 @@ const PayrollGeneration = () => {
             label="Amount"
             rules={[{ required: true, message: 'Please enter amount' }]}
           >
-            <InputNumber style={{ width: '100%' }} prefix="â‚¹" min={0} />
+            <InputNumber style={{ width: '100%' }} prefix="₹" min={0} />
           </Form.Item>
           <Form.Item
             name="reason"

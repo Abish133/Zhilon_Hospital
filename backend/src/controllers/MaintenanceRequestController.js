@@ -24,7 +24,7 @@ class MaintenanceRequestController {
           ...maintenanceRequest.toJSON(),
           equipment: equipment ? { equipment_id: equipment.equipment_id, equipment_code: equipment.equipment_code, equipment_name: equipment.equipment_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          reportedBy: user ? { id: user.id, username: user.username } : null
+          reportedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -52,7 +52,7 @@ class MaintenanceRequestController {
             ...request.toJSON(),
             equipment: equipment ? { equipment_id: equipment.equipment_id, equipment_code: equipment.equipment_code, equipment_name: equipment.equipment_name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            reportedBy: user ? { id: user.id, username: user.username } : null
+            reportedBy: user ? { id: user.id, username: user.name } : null
           };
         })
       );
@@ -81,7 +81,7 @@ class MaintenanceRequestController {
           ...maintenanceRequest.toJSON(),
           equipment: equipment ? { equipment_id: equipment.equipment_id, equipment_code: equipment.equipment_code, equipment_name: equipment.equipment_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          reportedBy: user ? { id: user.id, username: user.username } : null
+          reportedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -125,7 +125,7 @@ class MaintenanceRequestController {
           ...updatedRequest.toJSON(),
           equipment: equipment ? { equipment_id: equipment.equipment_id, equipment_code: equipment.equipment_code, equipment_name: equipment.equipment_name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          reportedBy: user ? { id: user.id, username: user.username } : null
+          reportedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {

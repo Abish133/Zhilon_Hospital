@@ -131,10 +131,10 @@ const AttendancePayroll = () => {
     { title: 'Emp Code', dataIndex: 'emp_code', key: 'code', width: 120 },
     { title: 'Name', dataIndex: 'name', key: 'name' },
     { title: 'Month', dataIndex: 'month', key: 'month', width: 150 },
-    { title: 'Basic', dataIndex: 'basic', key: 'basic', width: 100, render: (val) => `â‚¹${val}` },
-    { title: 'Allowances', dataIndex: 'allowances', key: 'allow', width: 120, render: (val) => `â‚¹${val}` },
-    { title: 'Deductions', dataIndex: 'deductions', key: 'deduct', width: 120, render: (val) => `â‚¹${val}` },
-    { title: 'Net Salary', dataIndex: 'net', key: 'net', width: 120, render: (val) => <strong>â‚¹{val}</strong> },
+    { title: 'Basic', dataIndex: 'basic', key: 'basic', width: 100, render: (val) => `₹${val}` },
+    { title: 'Allowances', dataIndex: 'allowances', key: 'allow', width: 120, render: (val) => `₹${val}` },
+    { title: 'Deductions', dataIndex: 'deductions', key: 'deduct', width: 120, render: (val) => `₹${val}` },
+    { title: 'Net Salary', dataIndex: 'net', key: 'net', width: 120, render: (val) => <strong>₹{val}</strong> },
     { 
       title: 'Status', 
       dataIndex: 'status', 
@@ -224,13 +224,13 @@ const AttendancePayroll = () => {
             <strong>{selectedEmployee?.name}</strong>
           </Form.Item>
           <Form.Item name="basic" label="Basic Salary" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
+            <InputNumber style={{ width: '100%' }} prefix="₹" />
           </Form.Item>
           <Form.Item name="allowances" label="Allowances" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
+            <InputNumber style={{ width: '100%' }} prefix="₹" />
           </Form.Item>
           <Form.Item name="deductions" label="Deductions" rules={[{ required: true }]}>
-            <InputNumber style={{ width: '100%' }} prefix="â‚¹" />
+            <InputNumber style={{ width: '100%' }} prefix="₹" />
           </Form.Item>
         </Form>
       </SliderModal>

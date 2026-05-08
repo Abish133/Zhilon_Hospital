@@ -87,7 +87,7 @@ const ChargeMaster = () => {
     { title: 'Service Name', dataIndex: 'service_name', key: 'service' },
     { title: 'Service Type', dataIndex: 'service_type', key: 'type', render: (type) => <Tag color="blue">{type}</Tag> },
     { title: 'Department', dataIndex: ['department', 'department_name'], key: 'department', render: (dept) => dept || 'N/A' },
-    { title: 'Charge (â‚¹)', dataIndex: 'charge_amount', key: 'charge', render: (val) => `â‚¹${val}` },
+    { title: 'Charge (₹)', dataIndex: 'charge_amount', key: 'charge', render: (val) => `₹${val}` },
     { title: 'GST (%)', dataIndex: 'gst_percentage', key: 'gst', render: (val) => val || 0 },
     { title: 'Status', dataIndex: 'is_active', key: 'status', render: (active) => <Tag color={active ? 'green' : 'red'}>{active ? 'Active' : 'Inactive'}</Tag> },
     {
@@ -155,7 +155,7 @@ const ChargeMaster = () => {
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item name="charge_amount" label="Charge Amount" rules={[{ required: true }]}>
-                <InputNumber style={{ width: '100%' }} prefix="â‚¹" min={0} />
+                <InputNumber style={{ width: '100%' }} prefix="₹" min={0} />
               </Form.Item>
             </Col>
             <Col span={12}>

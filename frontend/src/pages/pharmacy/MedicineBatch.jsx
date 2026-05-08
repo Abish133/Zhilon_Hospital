@@ -118,9 +118,9 @@ const MedicineBatch = () => {
     { title: 'Expiry Date', dataIndex: 'expiry_date', render: (date) => dayjs(date).format('DD-MM-YYYY') },
     { title: 'Received Qty', dataIndex: 'received_quantity' },
     { title: 'Available Qty', dataIndex: 'available_quantity' },
-    { title: 'Purchase Rate', dataIndex: 'purchase_rate', render: (val) => `â‚¹${val || 0}` },
-    { title: 'Selling Rate', dataIndex: 'selling_rate', render: (val) => `â‚¹${val || 0}` },
-    { title: 'MRP', dataIndex: 'mrp', render: (val) => `â‚¹${val || 0}` },
+    { title: 'Purchase Rate', dataIndex: 'purchase_rate', render: (val) => `₹${val || 0}` },
+    { title: 'Selling Rate', dataIndex: 'selling_rate', render: (val) => `₹${val || 0}` },
+    { title: 'MRP', dataIndex: 'mrp', render: (val) => `₹${val || 0}` },
     { title: 'Vendor', dataIndex: 'vendor_id', render: (id) => vendors.find(v => v.vendor_id === id)?.vendor_name || '-' },
     {
       title: 'Actions',

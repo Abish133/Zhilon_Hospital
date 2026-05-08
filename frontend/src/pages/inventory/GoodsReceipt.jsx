@@ -232,21 +232,21 @@ const GoodsReceipt = () => {
                   <Space style={{ marginTop: 8, width: '100%' }} wrap>
                     <InputNumber
                       addonBefore="Purchase Rate"
-                      prefix="â‚¹"
+                      prefix="₹"
                       value={item.purchase_rate}
                       onChange={(val) => handleItemChange(index, 'purchase_rate', val)}
                       style={{ width: 180 }}
                     />
                     <InputNumber
                       addonBefore="Selling Rate"
-                      prefix="â‚¹"
+                      prefix="₹"
                       value={item.selling_rate}
                       onChange={(val) => handleItemChange(index, 'selling_rate', val)}
                       style={{ width: 180 }}
                     />
                     <InputNumber
                       addonBefore="MRP"
-                      prefix="â‚¹"
+                      prefix="₹"
                       value={item.mrp}
                       onChange={(val) => handleItemChange(index, 'mrp', val)}
                       style={{ width: 150 }}

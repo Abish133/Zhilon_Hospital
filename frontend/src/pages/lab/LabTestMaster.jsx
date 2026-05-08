@@ -50,7 +50,7 @@ const LabTestMaster = () => {
     { title: 'Sample Type', dataIndex: 'sample_type', key: 'sample_type', render: (type) => <Tag>{type}</Tag> },
     { title: 'Department', dataIndex: 'department', key: 'department' },
     { title: 'TAT (hrs)', dataIndex: 'turn_around_time_hours', key: 'turn_around_time_hours' },
-    { title: 'Charge (â‚¹)', dataIndex: 'charge', key: 'charge', render: (charge) => `â‚¹${charge}` },
+    { title: 'Charge (₹)', dataIndex: 'charge', key: 'charge', render: (charge) => `₹${charge}` },
     { title: 'Status', dataIndex: 'is_active', key: 'is_active', render: (active) => <Tag color={active ? 'green' : 'red'}>{active ? 'Active' : 'Inactive'}</Tag> },
     {
       title: 'Actions',
@@ -130,7 +130,7 @@ const LabTestMaster = () => {
           <Form.Item name="turn_around_time_hours" label="Turn Around Time (hours)">
             <InputNumber style={{ width: '100%' }} min={1} />
           </Form.Item>
-          <Form.Item name="charge" label="Charge (â‚¹)" rules={[{ required: true }]}>
+          <Form.Item name="charge" label="Charge (₹)" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
           <Form.Item name="is_active" label="Status" initialValue={true}>

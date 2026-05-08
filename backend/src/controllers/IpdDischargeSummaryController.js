@@ -219,7 +219,7 @@ class IpdDischargeSummaryController {
             admission: admission ? { admission_id: admission.admission_id, status: admission.status } : null,
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
             dischargingDoctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
-            summaryPreparedBy: user ? { id: user.id, username: user.username } : null,
+            summaryPreparedBy: user ? { id: user.id, username: user.name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
           };
         })
@@ -252,7 +252,7 @@ class IpdDischargeSummaryController {
           admission: admission ? { admission_id: admission.admission_id, status: admission.status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
           dischargingDoctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
-          summaryPreparedBy: user ? { id: user.id, username: user.username } : null,
+          summaryPreparedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -300,7 +300,7 @@ class IpdDischargeSummaryController {
           admission: admission ? { admission_id: admission.admission_id, status: admission.status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
           dischargingDoctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
-          summaryPreparedBy: user ? { id: user.id, username: user.username } : null,
+          summaryPreparedBy: user ? { id: user.id, username: user.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });

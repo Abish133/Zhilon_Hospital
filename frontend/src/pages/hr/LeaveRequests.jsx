@@ -1,289 +1,209 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table, Button, Modal, Form, Input, Select, Tag, message, Card, Statistic, Row, Col,
-  DatePicker, Drawer, Space, Tabs, Descriptions, InputNumber
+  DatePicker, Drawer, Space, Tabs, Descriptions, Empty, Alert
 } from 'antd';
 import SliderModal from '@components/common/SliderModal';
 import {
-  PlusOutlined, CheckOutlined, CloseOutlined, CalendarOutlined, EyeOutlined
+  PlusOutlined, CheckOutlined, CloseOutlined, EyeOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import { leaveRequestService, employeeService } from '@services/index';
+import { useAuthStore } from '@store/index';
+
+const { RangePicker } = DatePicker;
+
+// Number of inclusive days between two dayjs dates (or null if either missing).
+const calcDays = (from, to) => {
+  if (!from || !to) return null;
+  return to.startOf('day').diff(from.startOf('day'), 'day') + 1;
+};
 
 const LeaveRequests = () => {
+  const { user } = useAuthStore();
+  // HR/Admin can approve/reject + see everyone; everyone else only sees their own list.
+  const role = (user?.role || '').toLowerCase();
+  const isAdminOrHr = role === 'admin' || role === 'hr';
+
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [stats, setStats] = useState(null);
-  const [form] = Form.useForm();
   const [tabActive, setTabActive] = useState('all');
+  const [employees, setEmployees] = useState([]);
+  const [createForm] = Form.useForm();
+  const [rejectForm] = Form.useForm();
+  const [rejectingId, setRejectingId] = useState(null);
 
-  // Mock data - Replace with API calls
-  const mockRequests = [
-    {
-      id: 1,
-      employee_id: 'EMP001',
-      employee_name: 'John Doe',
-      leave_type: 'casual',
-      from_date: '2024-02-20',
-      to_date: '2024-02-22',
-      no_of_days: 3,
-      reason: 'Personal work',
-      status: 'pending',
-      created_at: '2024-02-15',
-      approver_id: null,
-      approval_date: null
-    },
-    {
-      id: 2,
-      employee_id: 'EMP002',
-      employee_name: 'Jane Smith',
-      leave_type: 'medical',
-      from_date: '2024-02-18',
-      to_date: '2024-02-19',
-      no_of_days: 2,
-      reason: 'Medical appointment',
-      status: 'approved',
-      created_at: '2024-02-10',
-      approver_id: 'EMP100',
-      approval_date: '2024-02-11'
+  const fetchRequests = async () => {
+    setLoading(true);
+    try {
+      const params = {};
+      if (tabActive !== 'all') params.status = tabActive;
+      // Non-HR users only see their own leave history.
+      if (!isAdminOrHr && user?.employee_id) params.employee_id = user.employee_id;
+      const res = await leaveRequestService.list(params);
+      setRequests(res?.data || []);
+    } catch (err) {
+      message.error(err?.message || 'Failed to load leave requests');
+      setRequests([]);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  // HR/Admin needs the full employee list for the "Request leave on behalf of" dropdown.
+  const fetchEmployeesIfNeeded = async () => {
+    if (!isAdminOrHr) return;
+    try {
+      const res = await employeeService.getAll({ is_active: true });
+      setEmployees(res?.data || res || []);
+    } catch {
+      // Non-fatal — admins can still type employee_id manually if they know it.
+    }
+  };
 
   useEffect(() => {
     fetchRequests();
-    fetchStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tabActive]);
 
-  const fetchRequests = async () => {
-    try {
-      setLoading(true);
-      // Mock data - replace with actual API call
-      let filtered = mockRequests;
-      if (tabActive !== 'all') {
-        filtered = mockRequests.filter(r => r.status === tabActive);
-      }
-      setRequests(filtered);
-    } catch (error) {
-      message.error('Failed to load leave requests');
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    fetchEmployeesIfNeeded();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const fetchStats = async () => {
-    try {
-      // Mock stats - replace with actual API call
-      const mockStats = {
-        pending: mockRequests.filter(r => r.status === 'pending').length,
-        approved: mockRequests.filter(r => r.status === 'approved').length,
-        rejected: mockRequests.filter(r => r.status === 'rejected').length,
-        total: mockRequests.length
-      };
-      setStats(mockStats);
-    } catch (error) {
+  // Computed stats off the loaded list — keeps the cards in sync without an extra round-trip.
+  const stats = useMemo(() => {
+    const s = { pending: 0, approved: 0, rejected: 0, total: requests.length };
+    for (const r of requests) {
+      if (s[r.status] != null) s[r.status]++;
     }
-  };
+    return s;
+  }, [requests]);
 
   const handleCreateRequest = async (values) => {
+    setSubmitting(true);
     try {
-      setLoading(true);
-      const newRequest = {
-        id: Math.max(...requests.map(r => r.id), 0) + 1,
-        employee_id: 'EMP001',
-        employee_name: 'Current User',
+      const employee_id = isAdminOrHr ? values.employee_id : user?.employee_id;
+      if (!employee_id) {
+        message.error('Your account is not linked to an employee record. Ask HR to link it before requesting leave.');
+        return;
+      }
+      const [from, to] = values.date_range;
+      await leaveRequestService.create({
+        employee_id,
         leave_type: values.leave_type,
-        from_date: values.from_date.format('YYYY-MM-DD'),
-        to_date: values.to_date.format('YYYY-MM-DD'),
-        no_of_days: values.no_of_days,
-        reason: values.reason,
-        status: 'pending',
-        created_at: dayjs().format('YYYY-MM-DD'),
-        approver_id: null,
-        approval_date: null
-      };
-      
-      setRequests([...requests, newRequest]);
-      message.success('Leave request submitted successfully');
+        from_date: from.format('YYYY-MM-DD'),
+        to_date: to.format('YYYY-MM-DD'),
+        reason: values.reason
+      });
+      message.success('Leave request submitted');
       setIsModalVisible(false);
-      form.resetFields();
-      fetchStats();
-    } catch (error) {
-      message.error('Failed to create request');
+      createForm.resetFields();
+      await fetchRequests();
+    } catch (err) {
+      message.error(err?.message || 'Failed to submit leave request');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  const handleApproveRequest = async (id) => {
+  const handleApprove = (record) => {
     Modal.confirm({
-      title: 'Approve Leave Request',
-      content: 'Are you sure you want to approve this leave request?',
+      title: 'Approve leave request',
+      content: `Approve ${record.no_of_days} day(s) of ${record.leave_type} leave for ${record.employee?.full_name || `Employee #${record.employee_id}`}?`,
       okText: 'Approve',
       onOk: async () => {
         try {
-          setRequests(
-            requests.map(r =>
-              r.id === id
-                ? { ...r, status: 'approved', approval_date: dayjs().format('YYYY-MM-DD') }
-                : r
-            )
-          );
-          message.success('Leave request approved successfully');
-          fetchStats();
-        } catch (error) {
-          message.error('Failed to approve request');
+          await leaveRequestService.approve(record.id, '');
+          message.success('Leave request approved');
+          fetchRequests();
+        } catch (err) {
+          message.error(err?.message || 'Failed to approve');
         }
       }
     });
   };
 
-  const handleRejectRequest = async (id) => {
-    const rejectionReasonRef = { current: '' };
-    
-    Modal.confirm({
-      title: 'Reject Leave Request',
-      content: (
-        <Form>
-          <Form.Item label="Rejection Reason">
-            <Input.TextArea
-              rows={3}
-              onChange={(e) => { rejectionReasonRef.current = e.target.value; }}
-            />
-          </Form.Item>
-        </Form>
-      ),
-      okText: 'Reject',
-      onOk: async () => {
-        const reason = rejectionReasonRef.current;
-        if (!reason) {
-          message.error('Please provide rejection reason');
-          return;
-        }
-        try {
-          setRequests(
-            requests.map(r =>
-              r.id === id
-                ? { ...r, status: 'rejected', rejection_reason: reason }
-                : r
-            )
-          );
-          message.success('Leave request rejected successfully');
-          fetchStats();
-        } catch (error) {
-          message.error('Failed to reject request');
-        }
-      }
-    });
+  const handleRejectClick = (record) => {
+    setRejectingId(record.id);
+    rejectForm.resetFields();
   };
 
-  const handleViewRequest = (id) => {
-    const request = requests.find(r => r.id === id);
-    setSelectedRequest(request);
+  const handleRejectSubmit = async (values) => {
+    try {
+      await leaveRequestService.reject(rejectingId, values.rejection_reason);
+      message.success('Leave request rejected');
+      setRejectingId(null);
+      fetchRequests();
+    } catch (err) {
+      message.error(err?.message || 'Failed to reject');
+    }
+  };
+
+  const handleView = (record) => {
+    setSelectedRequest(record);
     setDrawerVisible(true);
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      pending: 'blue',
-      approved: 'green',
-      rejected: 'red',
-      cancelled: 'orange'
-    };
-    return colors[status] || 'default';
+  const statusColor = {
+    pending: 'blue', approved: 'green', rejected: 'red', cancelled: 'orange'
   };
-
-  const getLeaveTypeColor = (type) => {
-    const colors = {
-      casual: 'blue',
-      medical: 'red',
-      earned: 'green',
-      unpaid: 'orange'
-    };
-    return colors[type] || 'default';
+  const leaveTypeColor = {
+    casual: 'blue', medical: 'red', earned: 'green', unpaid: 'orange'
   };
 
   const columns = [
-    {
-      title: 'Request #',
-      dataIndex: 'id',
-      key: 'id',
-      width: 80
-    },
+    { title: 'Request #', dataIndex: 'id', key: 'id', width: 90 },
     {
       title: 'Employee',
-      dataIndex: 'employee_name',
-      key: 'employee_name'
+      key: 'employee',
+      render: (_, r) => r.employee?.full_name || `Employee #${r.employee_id}`
     },
     {
       title: 'Leave Type',
       dataIndex: 'leave_type',
-      key: 'leave_type',
-      render: (type) => (
-        <Tag color={getLeaveTypeColor(type)}>
-          {type?.charAt(0).toUpperCase() + type?.slice(1)}
-        </Tag>
-      )
+      render: (t) => <Tag color={leaveTypeColor[t]}>{(t || '').toUpperCase()}</Tag>
     },
     {
-      title: 'From Date',
+      title: 'From',
       dataIndex: 'from_date',
-      key: 'from_date',
-      render: (date) => dayjs(date).format('DD-MM-YYYY')
+      render: (d) => d ? dayjs(d).format('DD-MM-YYYY') : '—'
     },
     {
-      title: 'To Date',
+      title: 'To',
       dataIndex: 'to_date',
-      key: 'to_date',
-      render: (date) => dayjs(date).format('DD-MM-YYYY')
+      render: (d) => d ? dayjs(d).format('DD-MM-YYYY') : '—'
     },
-    {
-      title: 'Days',
-      dataIndex: 'no_of_days',
-      key: 'no_of_days',
-      align: 'center'
-    },
+    { title: 'Days', dataIndex: 'no_of_days', align: 'center', render: (v) => v != null ? Number(v) : '—' },
     {
       title: 'Status',
       dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={getStatusColor(status)}>{status?.toUpperCase()}</Tag>
-      )
+      render: (s) => <Tag color={statusColor[s]}>{(s || '').toUpperCase()}</Tag>
+    },
+    {
+      title: 'Requested',
+      dataIndex: 'requested_date',
+      render: (d) => d ? dayjs(d).format('DD-MM-YYYY') : '—'
     },
     {
       title: 'Actions',
       key: 'actions',
-      width: 200,
+      width: 240,
       render: (_, record) => (
         <Space size="small">
-          <Button
-            type="link"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewRequest(record.id)}
-          >
+          <Button type="link" size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
             View
           </Button>
-          {record.status === 'pending' && (
+          {isAdminOrHr && record.status === 'pending' && (
             <>
-              <Button
-                type="link"
-                size="small"
-                icon={<CheckOutlined />}
-                onClick={() => handleApproveRequest(record.id)}
-                style={{ color: 'green' }}
-              >
+              <Button type="link" size="small" icon={<CheckOutlined />} style={{ color: 'green' }} onClick={() => handleApprove(record)}>
                 Approve
               </Button>
-              <Button
-                type="link"
-                size="small"
-                icon={<CloseOutlined />}
-                onClick={() => handleRejectRequest(record.id)}
-                danger
-              >
+              <Button type="link" size="small" icon={<CloseOutlined />} danger onClick={() => handleRejectClick(record)}>
                 Reject
               </Button>
             </>
@@ -293,98 +213,85 @@ const LeaveRequests = () => {
     }
   ];
 
+  const dateRange = Form.useWatch('date_range', createForm);
+  const calculatedDays = calcDays(dateRange?.[0], dateRange?.[1]);
+
   return (
-    <div style={{ padding: '24px' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h1>Leave Requests</h1>
+    <div style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+        <h1 style={{ margin: 0 }}>Leave Requests</h1>
         <Button
           type="primary"
           icon={<PlusOutlined />}
           onClick={() => setIsModalVisible(true)}
+          // Without an employee_id, a non-HR user can't be the leave subject.
+          disabled={!isAdminOrHr && !user?.employee_id}
         >
           Request Leave
         </Button>
       </div>
 
-      {stats && (
-        <Row gutter={16} style={{ marginBottom: '24px' }}>
-          <Col xs={12} sm={6}>
-            <Card>
-              <Statistic
-                title="Pending"
-                value={stats.pending || 0}
-                suffix="requests"
-              />
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card>
-              <Statistic
-                title="Approved"
-                value={stats.approved || 0}
-                suffix="requests"
-              />
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card>
-              <Statistic
-                title="Rejected"
-                value={stats.rejected || 0}
-                suffix="requests"
-              />
-            </Card>
-          </Col>
-          <Col xs={12} sm={6}>
-            <Card>
-              <Statistic
-                title="Total"
-                value={stats.total || 0}
-                suffix="requests"
-              />
-            </Card>
-          </Col>
-        </Row>
+      {!isAdminOrHr && !user?.employee_id && (
+        <Alert
+          type="warning"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message="Your account isn't linked to an employee record"
+          description="Ask HR to link your user to your employee profile so you can submit leave requests."
+        />
       )}
+
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col xs={12} sm={6}><Card><Statistic title="Pending"  value={stats.pending}  suffix="requests" /></Card></Col>
+        <Col xs={12} sm={6}><Card><Statistic title="Approved" value={stats.approved} suffix="requests" /></Card></Col>
+        <Col xs={12} sm={6}><Card><Statistic title="Rejected" value={stats.rejected} suffix="requests" /></Card></Col>
+        <Col xs={12} sm={6}><Card><Statistic title="Total"    value={stats.total}    suffix="requests" /></Card></Col>
+      </Row>
 
       <Tabs
         activeKey={tabActive}
         onChange={setTabActive}
         items={[
-          { key: 'all', label: 'All Requests' },
+          { key: 'all', label: 'All' },
           { key: 'pending', label: 'Pending' },
           { key: 'approved', label: 'Approved' },
           { key: 'rejected', label: 'Rejected' }
         ]}
       />
 
-      <Card style={{ marginTop: '16px' }}>
+      <Card>
         <Table
           columns={columns}
           dataSource={requests}
           loading={loading}
           rowKey="id"
+          locale={{ emptyText: <Empty description="No leave requests yet" /> }}
         />
       </Card>
 
       <SliderModal
         title="Request Leave"
         open={isModalVisible}
-        onOk={() => form.submit()}
-        onCancel={() => {
-          setIsModalVisible(false);
-          form.resetFields();
-        }}
+        onOk={() => createForm.submit()}
+        confirmLoading={submitting}
+        onCancel={() => { setIsModalVisible(false); createForm.resetFields(); }}
         width={600}
       >
-        <Form
-          form={form}
-          onFinish={handleCreateRequest}
-          layout="vertical"
-          initialValues={{
-            leave_type: 'casual'
-          }}
-        >
+        <Form form={createForm} onFinish={handleCreateRequest} layout="vertical" initialValues={{ leave_type: 'casual' }}>
+          {isAdminOrHr && (
+            <Form.Item label="Employee" name="employee_id" rules={[{ required: true, message: 'Select an employee' }]}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                placeholder="Select employee"
+                options={employees.map(e => ({
+                  value: e.employee_id,
+                  label: `${e.full_name} (${e.emp_code})`
+                }))}
+              />
+            </Form.Item>
+          )}
+
           <Form.Item label="Leave Type" name="leave_type" rules={[{ required: true }]}>
             <Select>
               <Select.Option value="casual">Casual Leave</Select.Option>
@@ -394,73 +301,92 @@ const LeaveRequests = () => {
             </Select>
           </Form.Item>
 
-          <Form.Item label="From Date" name="from_date" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} />
+          <Form.Item
+            label="From – To"
+            name="date_range"
+            rules={[{ required: true, message: 'Pick the leave dates' }]}
+          >
+            <RangePicker style={{ width: '100%' }} format="DD-MM-YYYY" />
           </Form.Item>
 
-          <Form.Item label="To Date" name="to_date" rules={[{ required: true }]}>
-            <DatePicker style={{ width: '100%' }} />
-          </Form.Item>
+          {calculatedDays != null && (
+            <div style={{ marginBottom: 16, padding: '6px 12px', background: '#f5f5f5', borderRadius: 4 }}>
+              Total: <strong>{calculatedDays}</strong> day(s)
+            </div>
+          )}
 
-          <Form.Item label="Number of Days" name="no_of_days" rules={[{ required: true }]}>
-            <InputNumber min={1} style={{ width: '100%' }} />
-          </Form.Item>
-
-          <Form.Item label="Reason" name="reason" rules={[{ required: true }]}>
-            <Input.TextArea rows={4} placeholder="Please specify the reason for leave" />
+          <Form.Item label="Reason" name="reason" rules={[{ required: true, message: 'Please specify a reason' }]}>
+            <Input.TextArea rows={4} placeholder="Reason for leave" />
           </Form.Item>
         </Form>
       </SliderModal>
 
-      {selectedRequest && (
-        <Drawer
-          title="Leave Request Details"
-          placement="right"
-          onClose={() => {
-            setDrawerVisible(false);
-            setSelectedRequest(null);
-          }}
-          open={drawerVisible}
-          width={400}
-        >
-          <Descriptions column={1} bordered>
+      {/* Reject reason modal — separate so the form value is captured cleanly */}
+      <Modal
+        title="Reject Leave Request"
+        open={!!rejectingId}
+        onCancel={() => setRejectingId(null)}
+        onOk={() => rejectForm.submit()}
+        okText="Reject"
+        okButtonProps={{ danger: true }}
+        destroyOnClose
+      >
+        <Form form={rejectForm} onFinish={handleRejectSubmit} layout="vertical">
+          <Form.Item
+            label="Rejection Reason"
+            name="rejection_reason"
+            rules={[{ required: true, message: 'Provide a reason so the employee knows why' }]}
+          >
+            <Input.TextArea rows={4} placeholder="Why is this leave being rejected?" />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Drawer
+        title="Leave Request Details"
+        placement="right"
+        onClose={() => { setDrawerVisible(false); setSelectedRequest(null); }}
+        open={drawerVisible}
+        width={420}
+      >
+        {selectedRequest && (
+          <Descriptions column={1} bordered size="small">
             <Descriptions.Item label="Request ID">{selectedRequest.id}</Descriptions.Item>
             <Descriptions.Item label="Employee">
-              {selectedRequest.employee_name}
+              {selectedRequest.employee?.full_name || `Employee #${selectedRequest.employee_id}`}
             </Descriptions.Item>
             <Descriptions.Item label="Leave Type">
-              <Tag color={getLeaveTypeColor(selectedRequest.leave_type)}>
-                {selectedRequest.leave_type?.charAt(0).toUpperCase() + selectedRequest.leave_type?.slice(1)}
+              <Tag color={leaveTypeColor[selectedRequest.leave_type]}>
+                {(selectedRequest.leave_type || '').toUpperCase()}
               </Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="From Date">
-              {dayjs(selectedRequest.from_date).format('DD-MM-YYYY')}
-            </Descriptions.Item>
-            <Descriptions.Item label="To Date">
-              {dayjs(selectedRequest.to_date).format('DD-MM-YYYY')}
-            </Descriptions.Item>
-            <Descriptions.Item label="Number of Days">
-              {selectedRequest.no_of_days}
-            </Descriptions.Item>
-            <Descriptions.Item label="Reason">
-              {selectedRequest.reason}
-            </Descriptions.Item>
+            <Descriptions.Item label="From">{dayjs(selectedRequest.from_date).format('DD-MM-YYYY')}</Descriptions.Item>
+            <Descriptions.Item label="To">{dayjs(selectedRequest.to_date).format('DD-MM-YYYY')}</Descriptions.Item>
+            <Descriptions.Item label="Days">{Number(selectedRequest.no_of_days)}</Descriptions.Item>
+            <Descriptions.Item label="Reason">{selectedRequest.reason}</Descriptions.Item>
             <Descriptions.Item label="Status">
-              <Tag color={getStatusColor(selectedRequest.status)}>
-                {selectedRequest.status?.toUpperCase()}
-              </Tag>
+              <Tag color={statusColor[selectedRequest.status]}>{(selectedRequest.status || '').toUpperCase()}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="Request Date">
-              {dayjs(selectedRequest.created_at).format('DD-MM-YYYY')}
+            <Descriptions.Item label="Requested On">
+              {selectedRequest.requested_date ? dayjs(selectedRequest.requested_date).format('DD-MM-YYYY HH:mm') : '—'}
             </Descriptions.Item>
             {selectedRequest.approval_date && (
-              <Descriptions.Item label="Approval Date">
-                {dayjs(selectedRequest.approval_date).format('DD-MM-YYYY')}
+              <Descriptions.Item label={selectedRequest.status === 'rejected' ? 'Rejected On' : 'Approved On'}>
+                {dayjs(selectedRequest.approval_date).format('DD-MM-YYYY HH:mm')}
               </Descriptions.Item>
             )}
+            {selectedRequest.approver?.name && (
+              <Descriptions.Item label="By">{selectedRequest.approver.name}</Descriptions.Item>
+            )}
+            {selectedRequest.approval_comments && (
+              <Descriptions.Item label="Comments">{selectedRequest.approval_comments}</Descriptions.Item>
+            )}
+            {selectedRequest.rejection_reason && (
+              <Descriptions.Item label="Rejection Reason">{selectedRequest.rejection_reason}</Descriptions.Item>
+            )}
           </Descriptions>
-        </Drawer>
-      )}
+        )}
+      </Drawer>
     </div>
   );
 };

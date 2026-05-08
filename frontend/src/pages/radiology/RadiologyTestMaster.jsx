@@ -48,7 +48,7 @@ const RadiologyTestMaster = () => {
     { title: 'Body Part', dataIndex: 'body_part', key: 'body_part' },
     { title: 'Contrast', dataIndex: 'contrast_required', key: 'contrast_required', render: (contrast) => <Tag color={contrast ? 'orange' : 'default'}>{contrast ? 'Required' : 'Not Required'}</Tag> },
     { title: 'Duration (min)', dataIndex: 'duration_minutes', key: 'duration_minutes' },
-    { title: 'Charge (â‚¹)', dataIndex: 'charge', key: 'charge', render: (charge) => `â‚¹${charge}` },
+    { title: 'Charge (₹)', dataIndex: 'charge', key: 'charge', render: (charge) => `₹${charge}` },
     { title: 'Status', dataIndex: 'is_active', key: 'is_active', render: (active) => <Tag color={active ? 'green' : 'red'}>{active ? 'Active' : 'Inactive'}</Tag> },
     {
       title: 'Actions',
@@ -129,7 +129,7 @@ const RadiologyTestMaster = () => {
           <Form.Item name="duration_minutes" label="Duration (minutes)" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={1} />
           </Form.Item>
-          <Form.Item name="charge" label="Charge (â‚¹)" rules={[{ required: true }]}>
+          <Form.Item name="charge" label="Charge (₹)" rules={[{ required: true }]}>
             <InputNumber style={{ width: '100%' }} min={0} />
           </Form.Item>
           <Form.Item name="is_active" label="Status" initialValue={true}>

@@ -48,7 +48,7 @@ class PaymentAdvanceController {
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           admission: admission ? { admission_id: admission.admission_id, admission_date: admission.admission_date, status: admission.status } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          receivedBy: user ? { id: user.id, username: user.username } : null
+          receivedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -81,7 +81,7 @@ class PaymentAdvanceController {
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
             admission: admission ? { admission_id: admission.admission_id, admission_date: admission.admission_date, status: admission.status } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            receivedBy: user ? { id: user.id, username: user.username } : null
+            receivedBy: user ? { id: user.id, username: user.name } : null
           };
         })
       );
@@ -112,7 +112,7 @@ class PaymentAdvanceController {
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           admission: admission ? { admission_id: admission.admission_id, admission_date: admission.admission_date, status: admission.status } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          receivedBy: user ? { id: user.id, username: user.username } : null
+          receivedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -169,7 +169,7 @@ class PaymentAdvanceController {
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           admission: admission ? { admission_id: admission.admission_id, admission_date: admission.admission_date, status: admission.status } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          receivedBy: user ? { id: user.id, username: user.username } : null
+          receivedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {

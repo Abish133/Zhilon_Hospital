@@ -192,7 +192,7 @@
 //                       Room {bed.room_number || '-'} - Bed {bed.bed_number}
 //                     </div>
 //                     <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8 }}>
-//                       {bed.bed_type} - â‚¹{bed.charge_per_day}/day
+//                       {bed.bed_type} - ₹{bed.charge_per_day}/day
 //                     </div>
 //                     <Space size="small" style={{ marginTop: 'auto' }}>
 //                       {bed.status === 'Occupied' && (
@@ -362,7 +362,7 @@ const BedManagement = () => {
       title: 'Charge/Day',
       dataIndex: 'charge_per_day',
       key: 'charge_per_day',
-      render: (charge) => `â‚¹${charge}`
+      render: (charge) => `₹${charge}`
     },
     {
       title: 'Actions',
@@ -477,7 +477,7 @@ const BedManagement = () => {
               min={0}
               style={{ width: '100%' }}
               placeholder="Enter charge per day"
-              prefix="â‚¹"
+              prefix="₹"
             />
           </Form.Item>
  

@@ -65,7 +65,7 @@ const Inventory = () => {
     { title: 'Category', key: 'category', render: (_, record) => <span style={{ color: '#000' }}>{record.category?.category_name || '-'}</span> },
     { title: 'Stock', dataIndex: 'current_stock', key: 'current_stock', render: (stock, record) => <Tag color={stock < record.reorder_level ? 'red' : 'green'}>{stock} {record.unit_of_measure}</Tag> },
     { title: 'Reorder Level', dataIndex: 'reorder_level', key: 'reorder_level', render: (val) => <span style={{ color: '#000' }}>{val}</span> },
-    { title: 'Rate', dataIndex: 'rate_per_unit', key: 'rate_per_unit', render: (val) => <span style={{ color: '#000' }}>â‚¹{val ? Number(val).toFixed(2) : '0.00'}</span> },
+    { title: 'Rate', dataIndex: 'rate_per_unit', key: 'rate_per_unit', render: (val) => <span style={{ color: '#000' }}>₹{val ? Number(val).toFixed(2) : '0.00'}</span> },
     {
       title: 'Actions',
       key: 'actions',
@@ -197,7 +197,7 @@ const Inventory = () => {
             <InputNumber style={{ width: '100%' }} min={0} placeholder="Enter reorder level" />
           </Form.Item>
           <Form.Item name="rate_per_unit" label="Rate Per Unit">
-            <InputNumber style={{ width: '100%' }} min={0} prefix="â‚¹" placeholder="Enter rate" />
+            <InputNumber style={{ width: '100%' }} min={0} prefix="₹" placeholder="Enter rate" />
           </Form.Item>
         </Form>
       </SliderModal>
@@ -245,7 +245,7 @@ const Inventory = () => {
             <InputNumber style={{ width: '100%' }} min={0} placeholder="Enter reorder level" />
           </Form.Item>
           <Form.Item name="rate_per_unit" label="Rate Per Unit">
-            <InputNumber style={{ width: '100%' }} min={0} prefix="â‚¹" placeholder="Enter rate" />
+            <InputNumber style={{ width: '100%' }} min={0} prefix="₹" placeholder="Enter rate" />
           </Form.Item>
         </Form>
       </SliderModal>

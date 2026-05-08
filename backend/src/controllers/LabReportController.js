@@ -30,7 +30,7 @@ class LabReportController {
         data: {
           ...labReport.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          approvedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          approvedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -58,7 +58,7 @@ class LabReportController {
           return {
             ...labReport.toJSON(),
             order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-            approvedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+            approvedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
           };
         })
@@ -87,7 +87,7 @@ class LabReportController {
         data: {
           ...labReport.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          approvedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          approvedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -131,7 +131,7 @@ class LabReportController {
         data: {
           ...updatedLabReport.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          approvedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          approvedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });

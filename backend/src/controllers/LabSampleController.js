@@ -62,7 +62,7 @@ class LabSampleController {
         data: {
           ...labSample.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          collectedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          collectedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -116,7 +116,7 @@ class LabSampleController {
           return {
             ...labSample.toJSON(),
             order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-            collectedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+            collectedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
           };
         })
@@ -145,7 +145,7 @@ class LabSampleController {
         data: {
           ...labSample.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          collectedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          collectedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -189,7 +189,7 @@ class LabSampleController {
         data: {
           ...updatedLabSample.toJSON(),
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
-          collectedBy: user ? { id: user.id, username: user.username, email: user.email } : null,
+          collectedBy: user ? { id: user.id, username: user.name, email: user.email } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });

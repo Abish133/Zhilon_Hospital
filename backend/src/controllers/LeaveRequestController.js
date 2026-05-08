@@ -80,7 +80,9 @@ class LeaveRequestController {
       const requests = await LeaveRequest.findAll({
         where,
         include: [
-          { model: Employee, attributes: ['employee_id', 'full_name'] },
+          // The LeaveRequest.belongsTo(Employee) association uses `as: 'employee'`
+          // — matching aliases here is required, otherwise Sequelize throws EagerLoadingError.
+          { model: Employee, as: 'employee', attributes: ['employee_id', 'full_name', 'emp_code'] },
           { model: User, as: 'approver', attributes: ['id', 'name'] }
         ],
         order: [['requested_date', 'DESC']]
@@ -101,7 +103,7 @@ class LeaveRequestController {
       const hospital_id = req.user?.hospital_id;
       const request = await LeaveRequest.findByPk(req.params.id, {
         include: [
-          { model: Employee },
+          { model: Employee, as: 'employee' },
           { model: User, as: 'approver', attributes: ['id', 'name', 'email'] }
         ]
       });

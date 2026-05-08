@@ -80,7 +80,7 @@ const MaintenanceHistory = () => {
       title: 'Cost', 
       dataIndex: 'cost', 
       key: 'cost', 
-      render: (cost) => cost ? `â‚¹${cost}` : 'N/A'
+      render: (cost) => cost ? `₹${cost}` : 'N/A'
     },
     { 
       title: 'Serviced By', 
@@ -249,8 +249,8 @@ const MaintenanceHistory = () => {
           <Form.Item name="cost" label="Cost">
             <InputNumber
               style={{ width: '100%' }}
-              formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
+              formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/₹\s?|(,*)/g, '')}
               placeholder="Enter maintenance cost"
             />
           </Form.Item>
@@ -287,7 +287,7 @@ const MaintenanceHistory = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Work Done">{selectedHistory.work_done || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Parts Replaced">{selectedHistory.parts_replaced || 'N/A'}</Descriptions.Item>
-            <Descriptions.Item label="Cost">{selectedHistory.cost ? `â‚¹${selectedHistory.cost}` : 'N/A'}</Descriptions.Item>
+            <Descriptions.Item label="Cost">{selectedHistory.cost ? `₹${selectedHistory.cost}` : 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Serviced By">{selectedHistory.serviced_by || 'N/A'}</Descriptions.Item>
             <Descriptions.Item label="Next Service Date">
               {selectedHistory.next_service_date ? dayjs(selectedHistory.next_service_date).format('DD MMM YYYY') : 'N/A'}

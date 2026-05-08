@@ -8,9 +8,9 @@ import { formatCurrency } from '@utils/helpers';
 // Fallback currency formatter if the import fails
 const safeCurrency = (amount) => {
   try {
-    return formatCurrency ? formatCurrency(amount) : `â‚¹${amount || 0}`;
+    return formatCurrency ? formatCurrency(amount) : `₹${amount || 0}`;
   } catch {
-    return `â‚¹${amount || 0}`;
+    return `₹${amount || 0}`;
   }
 };
 

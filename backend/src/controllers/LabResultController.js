@@ -67,8 +67,8 @@ class LabResultController {
           order: order ? { order_id: order.order_id, order_date: order.order_date, status: order.status } : null,
           detail: detail ? { detail_id: detail.detail_id, test_name: detail.test_name, status: detail.status } : null,
           test: test ? { test_id: test.test_id, test_code: test.test_code, test_name: test.test_name } : null,
-          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.username } : null,
-          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.username } : null,
+          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.name } : null,
+          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -104,8 +104,8 @@ class LabResultController {
             order: order ? { order_id: order.order_id, order_date: order.order_date } : null,
             detail: detail ? { detail_id: detail.detail_id, test_name: detail.test_name } : null,
             test: test ? { test_id: test.test_id, test_code: test.test_code, test_name: test.test_name } : null,
-            enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.username } : null,
-            verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.username } : null,
+            enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.name } : null,
+            verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.name } : null,
             hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
           };
         })
@@ -139,8 +139,8 @@ class LabResultController {
           order: order ? { order_id: order.order_id, order_date: order.order_date } : null,
           detail: detail ? { detail_id: detail.detail_id, test_name: detail.test_name } : null,
           test: test ? { test_id: test.test_id, test_code: test.test_code, test_name: test.test_name } : null,
-          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.username } : null,
-          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.username } : null,
+          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.name } : null,
+          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });
@@ -189,8 +189,8 @@ class LabResultController {
           order: order ? { order_id: order.order_id, order_date: order.order_date } : null,
           detail: detail ? { detail_id: detail.detail_id, test_name: detail.test_name } : null,
           test: test ? { test_id: test.test_id, test_code: test.test_code, test_name: test.test_name } : null,
-          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.username } : null,
-          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.username } : null,
+          enteredBy: enteredByUser ? { id: enteredByUser.id, username: enteredByUser.name } : null,
+          verifiedBy: verifiedByUser ? { id: verifiedByUser.id, username: verifiedByUser.name } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
       });

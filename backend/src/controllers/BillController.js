@@ -207,7 +207,7 @@ class BillController {
           billingEpisode: episode ? { episode_id: episode.episode_id, episode_type: episode.episode_type, status: episode.status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          generatedBy: user ? { id: user.id, username: user.username } : null
+          generatedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -315,7 +315,7 @@ class BillController {
           billingEpisode: episode ? { episode_id: episode.episode_id, episode_type: episode.episode_type, status: episode.status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          generatedBy: user ? { id: user.id, username: user.username } : null
+          generatedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {
@@ -387,7 +387,7 @@ class BillController {
           billingEpisode: episode ? { episode_id: episode.episode_id, episode_type: episode.episode_type, status: episode.status } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-          generatedBy: user ? { id: user.id, username: user.username } : null
+          generatedBy: user ? { id: user.id, username: user.name } : null
         }
       });
     } catch (error) {

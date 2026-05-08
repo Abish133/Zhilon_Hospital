@@ -145,7 +145,7 @@ const LabOrders = () => {
         key: 'charge',
         render: (_, row) => row.covered_by_package_charge_id
           ? <Tag color="purple">Covered by Package</Tag>
-          : `â‚¹${row.charge}`
+          : `₹${row.charge}`
       },
       {
         title: 'Status',

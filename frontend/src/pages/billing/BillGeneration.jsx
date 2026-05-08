@@ -634,8 +634,8 @@ const BillGeneration = () => {
               style={{ width: '100%' }} 
               min={0}
               max={totals.net_amount}
-              formatter={value => `â‚¹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-              parser={value => value.replace(/â‚¹\s?|(,*)/g, '')}
+              formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+              parser={value => value.replace(/₹\s?|(,*)/g, '')}
             />
           </Form.Item>
 
