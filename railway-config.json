@@ -1,0 +1,35 @@
+{
+  "name": "Zhilon-Hospital-HMS",
+  "services": {
+    "backend": {
+      "source": {
+        "repo": "Abish133/Zhilon_Hospital",
+        "branch": "r.abish"
+      },
+      "rootDirectory": "backend",
+      "buildCommand": "npm install",
+      "startCommand": "npm run migrate && npm start",
+      "healthcheckPath": "/api/health",
+      "healthcheckTimeout": 300,
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10
+    },
+    "frontend": {
+      "source": {
+        "repo": "Abish133/Zhilon_Hospital",
+        "branch": "r.abish"
+      },
+      "rootDirectory": "frontend",
+      "buildCommand": "npm install && npm run build",
+      "startCommand": "npx serve -s dist -l $PORT",
+      "restartPolicyType": "ON_FAILURE",
+      "restartPolicyMaxRetries": 10
+    }
+  },
+  "databases": {
+    "mysql": {
+      "type": "mysql",
+      "plan": "hobby"
+    }
+  }
+}
