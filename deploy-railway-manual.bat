@@ -48,17 +48,29 @@ echo ============================================================
 echo This will open your browser for authentication...
 echo Please login with your GitHub account (Abish133)
 echo.
+echo IMPORTANT: After logging in successfully in the browser,
+echo            come back to this window and press any key.
+echo.
 pause
 
 railway login
-if %ERRORLEVEL% NEQ 0 (
+if !ERRORLEVEL! NEQ 0 (
     echo [ERROR] Railway login failed
     echo Please try again or login manually: railway login
     pause
     exit /b 1
 )
 
+echo.
 echo [SUCCESS] Successfully logged in to Railway
+echo.
+echo Verifying login status...
+railway whoami
+if !ERRORLEVEL! NEQ 0 (
+    echo [ERROR] Login verification failed
+    pause
+    exit /b 1
+)
 echo.
 pause
 
@@ -69,16 +81,25 @@ echo STEP 3: Creating Railway Project
 echo ============================================================
 echo Project Name: Zhilon-Hospital-HMS
 echo.
+echo NOTE: If you already have a project, you can skip this step.
+echo       Just press Ctrl+C when prompted and continue manually.
+echo.
+pause
 
 railway init
-if %ERRORLEVEL% NEQ 0 (
-    echo [ERROR] Failed to create Railway project
-    echo You may need to create it manually at railway.app
-    pause
-    exit /b 1
+if !ERRORLEVEL! NEQ 0 (
+    echo [WARNING] Project creation may have failed or already exists
+    echo You can continue manually or create project at railway.app
+    echo.
+    set /p CONTINUE="Do you want to continue? (y/n): "
+    if /i "!CONTINUE!" NEQ "y" (
+        echo Exiting...
+        pause
+        exit /b 1
+    )
 )
 
-echo [SUCCESS] Railway project created
+echo [SUCCESS] Railway project ready
 echo.
 pause
 
