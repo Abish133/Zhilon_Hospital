@@ -33,7 +33,7 @@ const IpdMedications = ({ admissionId }) => {
     setLoading(true);
     try {
       const response = await apiClient.get(`/ipd/medications/admission/${admissionId}`);
-      setMedications(response.data?.data || []);
+      setMedications(response?.data || []);
     } catch (error) {
       message.error('Failed to fetch medications');
     } finally {

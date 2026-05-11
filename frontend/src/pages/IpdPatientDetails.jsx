@@ -21,7 +21,7 @@ const IpdPatientDetails = () => {
     setLoading(true);
     try {
       const response = await apiClient.get(`/ipd-admissions/${admissionId}`);
-      setAdmission(response.data?.data);
+      setAdmission(response?.data);
     } catch (error) {
       // silent - not found is handled below
     } finally {

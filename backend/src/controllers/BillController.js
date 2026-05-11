@@ -219,10 +219,13 @@ class BillController {
   // Get bill with detailed charges
   static async getBillWithCharges(req, res) {
     try {
-      const bill = await Bill.findByPk(req.params.id, {
+      // Multi-tenant guard: scope by hospital_id in the where clause so a
+      // user from hospital A cannot read hospital B's bill by guessing the ID.
+      const bill = await Bill.findOne({
+        where: { bill_id: req.params.id, hospital_id: req.hospitalId },
         include: [
-          { 
-            model: BillingEpisode, 
+          {
+            model: BillingEpisode,
             as: 'billingEpisode',
             include: [
               { model: Patient, as: 'patient' },
@@ -235,7 +238,7 @@ class BillController {
           { model: User, as: 'generatedBy', attributes: { exclude: ['password'] } }
         ]
       });
-      
+
       if (!bill) {
         return res.status(404).json({ success: false, message: 'Bill not found' });
       }

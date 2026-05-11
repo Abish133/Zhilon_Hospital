@@ -8,7 +8,7 @@ class PharmacySaleService extends BaseService {
 
   async dispense(data) {
     const response = await apiClient.post('/pharmacy/sales/dispense', data);
-    return response.data;
+    return response;
   }
 }
 

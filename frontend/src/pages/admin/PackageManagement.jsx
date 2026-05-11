@@ -23,12 +23,12 @@ const PackageManagement = () => {
   // Lab + Radiology test catalogs for the package builder.
   const { data: labTestsData } = useApiQuery(
     ['lab-tests-active'],
-    async () => (await apiClient.get('/lab-tests')).data,
+    async () => await apiClient.get('/lab-tests'),
     { enabled: packageModal }
   );
   const { data: radTestsData } = useApiQuery(
     ['radiology-tests-active'],
-    async () => (await apiClient.get('/radiology-tests')).data,
+    async () => await apiClient.get('/radiology-tests'),
     { enabled: packageModal }
   );
   const labTests = labTestsData?.data || [];
@@ -66,7 +66,7 @@ const PackageManagement = () => {
   // Open billing episodes (OPD visits + IPD admissions still active) â€” used by Apply modal.
   const { data: episodesData } = useApiQuery(
     ['open-billing-episodes'],
-    async () => (await apiClient.get('/billing-episodes', { params: { status: 'Open' } })).data,
+    async () => await apiClient.get('/billing-episodes', { params: { status: 'Open' } }),
     { enabled: applyModal }
   );
   const openEpisodes = episodesData?.data || [];

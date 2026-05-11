@@ -19,7 +19,7 @@ const AdvancePayment = () => {
   // Fetch patients for search
   const { data: patientsData, refetch: searchPatients } = useApiQuery(
     ['patients-search'],
-    async () => (await apiClient.get('/patients')).data,
+    async () => await apiClient.get('/patients'),
     { enabled: false }
   );
 
@@ -35,12 +35,12 @@ const AdvancePayment = () => {
   // Fetch advance payments
   const { data: advancesData, isLoading, refetch } = useApiQuery(
     ['payment-advances'],
-    async () => (await apiClient.get('/payment-advances')).data
+    async () => await apiClient.get('/payment-advances')
   );
 
   // Create advance payment mutation
   const createAdvanceMutation = useApiMutation(
-    async (advanceData) => (await apiClient.post('/payment-advances', advanceData)).data,
+    async (advanceData) => await apiClient.post('/payment-advances', advanceData),
     {
       onSuccess: () => {
         message.success('Advance payment recorded successfully');

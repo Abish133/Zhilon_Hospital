@@ -56,7 +56,7 @@ const IPDDischarge = () => {
       // Check outstanding bill
       try {
         const billRes = await apiClient.get(`/bills/admission/${admissionId}`);
-        const bill = billRes.data?.data;
+        const bill = billRes?.data;
         if (bill && bill.balance_amount > 0) {
           setOutstandingBill(bill);
         }

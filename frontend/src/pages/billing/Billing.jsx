@@ -36,7 +36,7 @@ const Billing = () => {
         params.append('end_date', filters.date_range[1].format('YYYY-MM-DD'));
       }
       const response = await apiClient.get(`/bills?${params}`);
-      return response.data;
+      return response;
     }
   );
 
@@ -49,7 +49,7 @@ const Billing = () => {
         params.append('end_date', filters.date_range[1].format('YYYY-MM-DD'));
       }
       const response = await apiClient.get(`/bills/summary?${params}`);
-      return response.data;
+      return response;
     }
   );
 
@@ -57,14 +57,14 @@ const Billing = () => {
     ['unbilled-episodes'],
     async () => {
       const response = await apiClient.get('/billing-episodes/unbilled');
-      return response.data;
+      return response;
     }
   );
 
   const processPaymentMutation = useApiMutation(
     async (paymentData) => {
       const response = await apiClient.post('/payments', paymentData);
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {
@@ -87,7 +87,7 @@ const Billing = () => {
   const handlePrintBill = async (record) => {
     try {
       const chargesRes = await apiClient.get(`/bill-charges/episode/${record.episode_id}`);
-      const charges = chargesRes.data?.data?.charges || [];
+      const charges = chargesRes?.data?.charges || [];
       const billData = {
         bill_number: record.bill_number, bill_date: record.bill_date, bill_type: record.bill_type,
         patient_name: `${record.patient?.first_name || ''} ${record.patient?.last_name || ''}`.trim(),

@@ -27,7 +27,7 @@ const BillGeneration = () => {
     ['episode-charges', episodeId],
     async () => {
       const response = await apiClient.get(`/bill-charges/episode/${episodeId}`);
-      return response.data;
+      return response;
     },
     { enabled: !!episodeId }
   );
@@ -36,7 +36,7 @@ const BillGeneration = () => {
     ['charge-masters'],
     async () => {
       const response = await apiClient.get('/charge-masters');
-      return response.data;
+      return response;
     }
   );
 
@@ -44,7 +44,7 @@ const BillGeneration = () => {
     ['billing-episode', episodeId],
     async () => {
       const response = await apiClient.get(`/billing-episodes/${episodeId}`);
-      return response.data;
+      return response;
     },
     { enabled: !!episodeId }
   );
@@ -54,7 +54,7 @@ const BillGeneration = () => {
     async () => {
       try {
         const response = await apiClient.get(`/bills/episode/${episodeId}`);
-        return response.data;
+        return response;
       } catch (e) {
         return null;
       }
@@ -65,7 +65,7 @@ const BillGeneration = () => {
   const addChargeMutation = useApiMutation(
     async (chargeData) => {
       const response = await apiClient.post('/bill-charges/from-master', chargeData);
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {
@@ -83,7 +83,7 @@ const BillGeneration = () => {
   const deleteChargeMutation = useApiMutation(
     async (chargeId) => {
       const response = await apiClient.delete(`/bill-charges/${chargeId}`);
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {
@@ -99,7 +99,7 @@ const BillGeneration = () => {
   const generateBillMutation = useApiMutation(
     async (billData) => {
       const response = await apiClient.post('/bills/generate', billData);
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {
@@ -114,7 +114,7 @@ const BillGeneration = () => {
   const processPaymentMutation = useApiMutation(
     async (paymentData) => {
       const response = await apiClient.post('/payments', paymentData);
-      return response.data;
+      return response;
     },
     {
       onSuccess: () => {

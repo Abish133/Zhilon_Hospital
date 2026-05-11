@@ -34,7 +34,7 @@ const IPDDailyCare = () => {
     ['ipd-orders', admissionId],
     async () => {
       const res = await apiClient.get(`/ipd-progress-notes?admission_id=${admissionId}&note_type=Order`);
-      return res.data;
+      return res;
     },
     { enabled: !!admissionId }
   );

@@ -1,35 +1,14 @@
-import axios from 'axios';
+// Single source of truth for the HTTP client.
+// Previously this file declared a SEPARATE axios instance whose response
+// interceptor returned the raw axios response (so callers wrote `r.data` to
+// access the JSON body). The other file at @config/api unwraps `response.data`
+// automatically — divergent return shapes caused download/blob bugs.
+//
+// Now both imports resolve to the same configured instance from @config/api,
+// which unwraps the body. Callers that used to do `(await get()).data` should
+// drop the `.data`; callers that did `return response.data` should just
+// `return response`.
+import apiClient from '@config/api';
 
-export const apiClient = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
-
-// Request interceptor to add auth token
-apiClient.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Response interceptor for error handling
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
-    }
-    return Promise.reject(error);
-  }
-);
-
+export { apiClient };
 export default apiClient;

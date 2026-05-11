@@ -24,20 +24,20 @@ const RefundManagement = () => {
   // Fetch paid + partially-paid bills (refunds can apply to partial payments too)
   const { data: billsData, refetch: refetchBills } = useApiQuery(
     ['refundable-bills', searchQuery],
-    async () => (await apiClient.get('/bills', {
+    async () => await apiClient.get('/bills', {
       params: searchQuery ? { search: searchQuery } : {}
-    })).data
+    })
   );
 
   // Fetch refunds
   const { data: refundsData, isLoading, refetch } = useApiQuery(
     ['refunds'],
-    async () => (await apiClient.get('/refunds')).data
+    async () => await apiClient.get('/refunds')
   );
 
   // Process refund mutation
   const processRefundMutation = useApiMutation(
-    async (refundData) => (await apiClient.post('/refunds', refundData)).data,
+    async (refundData) => await apiClient.post('/refunds', refundData),
     {
       onSuccess: () => {
         message.success('Refund processed successfully');

@@ -134,8 +134,10 @@ const LabReport = () => {
             <Button icon={<PrinterOutlined />} onClick={handlePrint}>
               Print
             </Button>
+            {/* "Save as PDF" uses the print dialog — there's no backend PDF
+                endpoint yet, so don't mislead users with a "Download" label. */}
             <Button icon={<DownloadOutlined />} onClick={handleDownload}>
-              Download PDF
+              Save as PDF
             </Button>
             <Button onClick={() => navigate('/lab')}>
               Back to Orders

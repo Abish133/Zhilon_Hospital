@@ -51,8 +51,36 @@ const validateHospitalOwnership = (record, hospitalId) => {
   }
 };
 
+/**
+ * Controller-friendly multi-tenant guard. Use after fetching by primary key:
+ *
+ *   const bill = await Bill.findByPk(req.params.id);
+ *   if (!ensureSameHospital(req, res, bill)) return;
+ *
+ * Returns true if the caller may proceed; otherwise sends a 404 (NOT 403, to
+ * avoid leaking the existence of records that belong to another hospital) and
+ * returns false. If the record has no hospital_id (global master) or the
+ * caller has none (system admin without tenant), passes through.
+ */
+const ensureSameHospital = (req, res, record, opts = {}) => {
+  const { notFoundMessage = 'Record not found' } = opts;
+  if (!record) {
+    res.status(404).json({ success: false, message: notFoundMessage });
+    return false;
+  }
+  const callerHospitalId = req.user?.hospital_id;
+  if (callerHospitalId == null) return true;
+  if (record.hospital_id == null) return true;
+  if (String(record.hospital_id) !== String(callerHospitalId)) {
+    res.status(404).json({ success: false, message: notFoundMessage });
+    return false;
+  }
+  return true;
+};
+
 module.exports = {
   addHospitalScope,
   scopedWhere,
-  validateHospitalOwnership
+  validateHospitalOwnership,
+  ensureSameHospital
 };

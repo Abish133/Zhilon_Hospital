@@ -54,7 +54,7 @@ const AdvancedReports = () => {
       }
 
       const response = await apiClient.get(endpoint, { params });
-      const body = response.data;
+      const body = response;
 
       if (body?.success) {
         setReportData({

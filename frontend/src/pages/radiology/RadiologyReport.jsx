@@ -94,7 +94,7 @@ const RadiologyReport = () => {
               <>
                 <Button icon={<PrinterOutlined />} onClick={() => window.print()}>Print</Button>
                 {/* No backend PDF endpoint yet — print dialog → "Save as PDF" is the practical path. */}
-                <Button icon={<DownloadOutlined />} type="primary" onClick={() => window.print()}>Download</Button>
+                <Button icon={<DownloadOutlined />} type="primary" onClick={() => window.print()}>Save as PDF</Button>
               </>
             )}
           </Space>
