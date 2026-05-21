@@ -33,7 +33,7 @@ class RadiologyTestsController {
   static async getRadiologyTestById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const radiologyTest = await RadiologyTests.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const radiologyTest = await RadiologyTests.findOne({ where: { rad_test_id: req.params.id, hospital_id: req.hospitalId } });
       if (!radiologyTest || (hospital_id && radiologyTest.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'Radiology test not found' });
       }
@@ -53,7 +53,7 @@ class RadiologyTestsController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Radiology test not found' });
       }
-      const updatedTest = await RadiologyTests.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedTest = await RadiologyTests.findOne({ where: { rad_test_id: req.params.id, hospital_id: req.hospitalId } });
       res.json({ success: true, data: updatedTest });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });

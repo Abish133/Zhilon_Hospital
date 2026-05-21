@@ -78,7 +78,7 @@ class InventoryItemController {
 
   static async getItemById(req, res) {
     try {
-      const item = await InventoryItem.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const item = await InventoryItem.findOne({ where: { item_id: req.params.id, hospital_id: req.hospitalId } });
 
       if (!item) {
         return res.status(404).json({ success: false, message: 'Inventory item not found' });
@@ -115,7 +115,7 @@ class InventoryItemController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Inventory item not found' });
         }
-        const deactivatedItem = await InventoryItem.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedItem = await InventoryItem.findOne({ where: { item_id: req.params.id, hospital_id: req.hospitalId } });
         const hospital = await Hospital.findByPk(deactivatedItem.hospital_id);
         return res.json({ 
           success: true, 
@@ -136,7 +136,7 @@ class InventoryItemController {
         return res.status(404).json({ success: false, message: 'Inventory item not found' });
       }
 
-      const updatedItem = await InventoryItem.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedItem = await InventoryItem.findOne({ where: { item_id: req.params.id, hospital_id: req.hospitalId } });
       const hospital = await Hospital.findByPk(updatedItem.hospital_id);
       let category = null;
       if (updatedItem.category_id) {

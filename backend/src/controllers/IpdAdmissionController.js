@@ -178,7 +178,7 @@ class IpdAdmissionController {
           await Bed.update({ status: 'Available' }, { where: { bed_id: existing.bed_id }, transaction: t });
         }
         await t.commit();
-        const deactivatedAdmission = await IpdAdmission.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedAdmission = await IpdAdmission.findOne({ where: { admission_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Admission deactivated successfully', data: deactivatedAdmission });
       }
 

@@ -45,7 +45,7 @@ const OTPreOpChecklist = () => {
         consent_signed_by: values.consent_signed_by,
         npo_status: values.npo_status,
         pre_anesthetic_checkup: values.pre_anesthetic_checkup || false,
-        pre_op_vitals: values.pre_op_vitals ? JSON.stringify(values.pre_op_vitals) : null,
+        pre_op_vitals: values.pre_op_vitals || null,
         allergies_checked: values.allergies_checked || false,
         site_marking_done: values.site_marking_done || false,
         pre_op_medications: values.pre_op_medications,

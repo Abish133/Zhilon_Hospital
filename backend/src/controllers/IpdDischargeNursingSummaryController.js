@@ -78,7 +78,7 @@ class IpdDischargeNursingSummaryController {
 
   static async getNursingSummaryById(req, res) {
     try {
-      const summary = await IpdDischargeNursingSummary.findOne({ where: { summary_id: req.params.id, hospital_id: req.hospitalId } });
+      const summary = await IpdDischargeNursingSummary.findOne({ where: { discharge_nurse_id: req.params.id, hospital_id: req.hospitalId } });
 
       if (!summary) {
         return res.status(404).json({ success: false, message: 'Nursing discharge summary not found' });
@@ -116,7 +116,7 @@ class IpdDischargeNursingSummaryController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Nursing discharge summary not found' });
         }
-        const deactivatedSummary = await IpdDischargeNursingSummary.findOne({ where: { summary_id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedSummary = await IpdDischargeNursingSummary.findOne({ where: { discharge_nurse_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Nursing discharge summary deactivated successfully', data: deactivatedSummary });
       }
 
@@ -129,7 +129,7 @@ class IpdDischargeNursingSummaryController {
         return res.status(404).json({ success: false, message: 'Nursing discharge summary not found' });
       }
 
-      const updatedSummary = await IpdDischargeNursingSummary.findOne({ where: { summary_id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedSummary = await IpdDischargeNursingSummary.findOne({ where: { discharge_nurse_id: req.params.id, hospital_id: req.hospitalId } });
       const admission = await IpdAdmission.findByPk(updatedSummary.admission_id);
       const primaryNurse = await Employee.findByPk(updatedSummary.primary_nurse_id);
       const lastShiftNurse = await Employee.findByPk(updatedSummary.last_shift_nurse_id);

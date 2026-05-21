@@ -49,7 +49,7 @@ class OtRoomsController {
  
   static async getOtRoomById(req, res) {
     try {
-      const otRoom = await OtRoom.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otRoom = await OtRoom.findOne({ where: { room_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otRoom) {
         return res.status(404).json({ success: false, message: 'OT room not found' });
       }
@@ -76,7 +76,7 @@ class OtRoomsController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT room not found' });
       }
-      const updatedRoom = await OtRoom.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedRoom = await OtRoom.findOne({ where: { room_id: req.params.id, hospital_id: req.hospitalId } });
       const hospital = await Hospital.findByPk(updatedRoom.hospital_id);
      
       res.json({

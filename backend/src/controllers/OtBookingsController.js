@@ -144,7 +144,7 @@ class OtBookingsController {
  
   static async getOtBookingById(req, res) {
     try {
-      const otBooking = await OtBooking.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otBooking = await OtBooking.findOne({ where: { booking_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otBooking) {
         return res.status(404).json({ success: false, message: 'OT booking not found' });
       }
@@ -183,7 +183,7 @@ class OtBookingsController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT booking not found' });
       }
-      const updatedBooking = await OtBooking.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedBooking = await OtBooking.findOne({ where: { booking_id: req.params.id, hospital_id: req.hospitalId } });
       const patient = await Patient.findByPk(updatedBooking.patient_id);
       const surgeon = await Doctor.findByPk(updatedBooking.surgeon_id);
       const assistantSurgeon = await Doctor.findByPk(updatedBooking.assistant_surgeon_id);

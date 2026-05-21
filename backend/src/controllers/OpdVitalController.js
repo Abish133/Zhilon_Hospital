@@ -81,7 +81,7 @@ class OpdVitalController {
 
   static async getVitalById(req, res) {
     try {
-      const vital = await OpdVital.findOne({ where: { vital_id: req.params.id, hospital_id: req.hospitalId } });
+      const vital = await OpdVital.findOne({ where: { vitals_id: req.params.id, hospital_id: req.hospitalId } });
 
       if (!vital) {
         return res.status(404).json({ success: false, message: 'Vitals not found' });
@@ -115,7 +115,7 @@ class OpdVitalController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Vitals not found' });
         }
-        const deactivatedVital = await OpdVital.findOne({ where: { vital_id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedVital = await OpdVital.findOne({ where: { vitals_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Vitals deactivated successfully', data: deactivatedVital });
       }
 
@@ -128,7 +128,7 @@ class OpdVitalController {
         return res.status(404).json({ success: false, message: 'Vitals not found' });
       }
 
-      const updatedVital = await OpdVital.findOne({ where: { vital_id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedVital = await OpdVital.findOne({ where: { vitals_id: req.params.id, hospital_id: req.hospitalId } });
       const visit = await OpdVisit.findByPk(updatedVital.visit_id);
       const hospital = await Hospital.findByPk(updatedVital.hospital_id);
 

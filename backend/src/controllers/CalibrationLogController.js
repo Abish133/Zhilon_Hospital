@@ -48,7 +48,7 @@ class CalibrationLogController {
     try {
       const [updated] = await CalibrationLog.update(req.body, { where: { calibration_id: req.params.id, hospital_id: req.hospitalId } });
       if (!updated) return res.status(404).json({ success: false, message: 'Calibration log not found' });
-      const log = await CalibrationLog.findOne({ where: { log_id: req.params.id, hospital_id: req.hospitalId } });
+      const log = await CalibrationLog.findOne({ where: { calibration_id: req.params.id, hospital_id: req.hospitalId } });
       res.json({ success: true, data: log });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });

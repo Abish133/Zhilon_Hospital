@@ -69,7 +69,7 @@ class GrnDetailController {
 
   static async getGrnDetailById(req, res) {
     try {
-      const grnDetail = await GrnDetail.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const grnDetail = await GrnDetail.findOne({ where: { grn_detail_id: req.params.id, hospital_id: req.hospitalId } });
       if (!grnDetail) {
         return res.status(404).json({ success: false, message: 'GRN detail not found' });
       }
@@ -105,7 +105,7 @@ class GrnDetailController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'GRN detail not found' });
         }
-        const deactivatedDetail = await GrnDetail.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedDetail = await GrnDetail.findOne({ where: { grn_detail_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({
           success: true,
           message: 'GRN detail deactivated successfully',
@@ -120,7 +120,7 @@ class GrnDetailController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'GRN detail not found' });
       }
-      const updatedDetail = await GrnDetail.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedDetail = await GrnDetail.findOne({ where: { grn_detail_id: req.params.id, hospital_id: req.hospitalId } });
       const hospital = await Hospital.findByPk(updatedDetail.hospital_id);
  const grn = await GoodsReceiptNote.findByPk(updatedDetail.grn_id);
       const item = await InventoryItem.findByPk(updatedDetail.item_id);

@@ -66,7 +66,7 @@ class RadiologyReportsController {
   static async getRadiologyReportById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const radiologyReport = await RadiologyReports.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const radiologyReport = await RadiologyReports.findOne({ where: { rad_report_id: req.params.id, hospital_id: req.hospitalId } });
       if (!radiologyReport || (hospital_id && radiologyReport.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'Radiology report not found' });
       }
@@ -97,7 +97,7 @@ class RadiologyReportsController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Radiology report not found' });
       }
-      const updatedReport = await RadiologyReports.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedReport = await RadiologyReports.findOne({ where: { rad_report_id: req.params.id, hospital_id: req.hospitalId } });
       const radiologyOrder = await RadiologyOrders.findByPk(updatedReport.rad_order_id);
       const reportedBy = await Doctor.findByPk(updatedReport.reported_by);
 

@@ -64,7 +64,9 @@ const IPDDailyCare = () => {
   );
 
   const admission = admissionData?.data;
-  const progressNotes = progressNotesData?.data || [];
+  // Exclude "Order" notes here — those belong to the Orders tab, which fetches
+  // them separately with note_type=Order.
+  const progressNotes = (progressNotesData?.data || []).filter(n => n.note_type !== 'Order');
   const orders = ordersData?.data || [];
 
   const handleProgressNote = (values) => {

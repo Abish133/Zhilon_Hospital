@@ -66,7 +66,7 @@ class OtPreOperativeController {
   static async getOtPreOperativeById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const otPreOperative = await OtPreOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otPreOperative = await OtPreOperative.findOne({ where: { pre_op_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otPreOperative || (hospital_id && otPreOperative.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'OT pre-operative record not found' });
       }
@@ -99,7 +99,7 @@ class OtPreOperativeController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT pre-operative record not found' });
       }
-      const updatedPreOp = await OtPreOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedPreOp = await OtPreOperative.findOne({ where: { pre_op_id: req.params.id, hospital_id: req.hospitalId } });
       const otBooking = await OtBooking.findByPk(updatedPreOp.booking_id);
       const patient = await Patient.findByPk(updatedPreOp.patient_id);
       const checklistBy = await User.findByPk(updatedPreOp.pre_op_checklist_by);

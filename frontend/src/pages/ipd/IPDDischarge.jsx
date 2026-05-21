@@ -96,28 +96,32 @@ const IPDDischarge = () => {
         hospital_id: user?.hospital_id
       };
 
-      // Create nursing summary if nursing fields are filled
-      if (values.primary_nurse_id || values.last_shift_nurse_id) {
-        const nursingSummaryData = {
-          admission_id: parseInt(admissionId),
-          primary_nurse_id: values.primary_nurse_id,
-          last_shift_nurse_id: values.last_shift_nurse_id,
-          patient_condition_at_discharge: values.patient_condition_at_discharge,
-          vitals_at_discharge: values.discharge_vitals || null,
-          wound_status: values.wound_status,
-          catheter_status: values.catheter_status,
-          iv_line_status: values.iv_line_status,
-          discharge_education_given: values.discharge_education_given || false,
-          nurse_remarks: values.nurse_remarks,
-          hospital_id: user?.hospital_id
-        };
-
-        await ipdDischargeNursingSummaryService.create(nursingSummaryData);
+      // Optional nursing discharge summary. The backend requires BOTH nurses,
+      // so only attempt it when both are selected — and never let a failure here
+      // block the actual discharge below.
+      if (values.primary_nurse_id && values.last_shift_nurse_id) {
+        try {
+          await ipdDischargeNursingSummaryService.create({
+            admission_id: parseInt(admissionId),
+            primary_nurse_id: values.primary_nurse_id,
+            last_shift_nurse_id: values.last_shift_nurse_id,
+            patient_condition_at_discharge: values.patient_condition_at_discharge,
+            vitals_at_discharge: values.discharge_vitals || null,
+            wound_status: values.wound_status,
+            catheter_status: values.catheter_status,
+            iv_line_status: values.iv_line_status,
+            discharge_education_given: values.discharge_education_given || false,
+            nurse_remarks: values.nurse_remarks,
+            hospital_id: user?.hospital_id
+          });
+        } catch (e) {
+          message.warning('Nursing discharge summary was not saved; proceeding with discharge.');
+        }
       }
 
       dischargeMutation.mutate(dischargeSummaryData);
     } catch (error) {
-      message.error('Failed to create nursing summary');
+      message.error('Failed to discharge patient');
     }
   };
 

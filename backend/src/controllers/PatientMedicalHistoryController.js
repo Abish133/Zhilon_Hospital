@@ -68,7 +68,7 @@ class PatientMedicalHistoryController {
 
   static async getMedicalHistoryById(req, res) {
     try {
-      const medicalHistory = await PatientMedicalHistory.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const medicalHistory = await PatientMedicalHistory.findOne({ where: { history_id: req.params.id, hospital_id: req.hospitalId } });
       if (!medicalHistory) {
         return res.status(404).json({ success: false, message: 'Medical history not found' });
       }
@@ -102,7 +102,7 @@ class PatientMedicalHistoryController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'Medical history not found' });
       }
-      const updatedHistory = await PatientMedicalHistory.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedHistory = await PatientMedicalHistory.findOne({ where: { history_id: req.params.id, hospital_id: req.hospitalId } });
       const patient = await Patient.findByPk(updatedHistory.patient_id);
       const hospital = await Hospital.findByPk(updatedHistory.hospital_id);
       const updatedBy = updatedHistory.updated_by ? await User.findByPk(updatedHistory.updated_by) : null;

@@ -70,7 +70,7 @@ class OtIntraOperativeController {
   static async getOtIntraOperativeById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const otIntraOperative = await OtIntraOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otIntraOperative = await OtIntraOperative.findOne({ where: { intra_op_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otIntraOperative || (hospital_id && otIntraOperative.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'OT intra-operative record not found' });
       }
@@ -105,7 +105,7 @@ class OtIntraOperativeController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT intra-operative record not found' });
       }
-      const updatedIntraOp = await OtIntraOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedIntraOp = await OtIntraOperative.findOne({ where: { intra_op_id: req.params.id, hospital_id: req.hospitalId } });
       const otBooking = await OtBooking.findByPk(updatedIntraOp.booking_id);
       const patient = await Patient.findByPk(updatedIntraOp.patient_id);
       const recordedBy = await User.findByPk(updatedIntraOp.recorded_by);

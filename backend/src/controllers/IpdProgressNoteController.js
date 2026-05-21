@@ -50,11 +50,14 @@ class IpdProgressNoteController {
 
   static async getAllProgressNotes(req, res) {
     try {
-      const { admission_id } = req.query;
+      const { admission_id, note_type } = req.query;
       const whereClause = { is_active: true, hospital_id: req.hospitalId };
 
       if (admission_id) {
         whereClause.admission_id = admission_id;
+      }
+      if (note_type) {
+        whereClause.note_type = note_type;
       }
 
       const progressNotes = await IpdProgressNote.findAll({
@@ -86,7 +89,7 @@ class IpdProgressNoteController {
 
   static async getProgressNoteById(req, res) {
     try {
-      const progressNote = await IpdProgressNote.findOne({ where: { note_id: req.params.id, hospital_id: req.hospitalId } });
+      const progressNote = await IpdProgressNote.findOne({ where: { progress_id: req.params.id, hospital_id: req.hospitalId } });
 
       if (!progressNote) {
         return res.status(404).json({ success: false, message: 'Progress note not found' });
@@ -123,7 +126,7 @@ class IpdProgressNoteController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Progress note not found' });
         }
-        const deactivatedNote = await IpdProgressNote.findOne({ where: { note_id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedNote = await IpdProgressNote.findOne({ where: { progress_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Progress note deactivated successfully', data: deactivatedNote });
       }
 
@@ -136,7 +139,7 @@ class IpdProgressNoteController {
         return res.status(404).json({ success: false, message: 'Progress note not found' });
       }
 
-      const updatedNote = await IpdProgressNote.findOne({ where: { note_id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedNote = await IpdProgressNote.findOne({ where: { progress_id: req.params.id, hospital_id: req.hospitalId } });
       const admission = await IpdAdmission.findByPk(updatedNote.admission_id);
       const user = await User.findByPk(updatedNote.recorded_by, { attributes: { exclude: ['password'] } });
       const hospital = await Hospital.findByPk(updatedNote.hospital_id);

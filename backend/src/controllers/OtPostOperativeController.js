@@ -66,7 +66,7 @@ class OtPostOperativeController {
   static async getOtPostOperativeById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const otPostOperative = await OtPostOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otPostOperative = await OtPostOperative.findOne({ where: { post_op_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otPostOperative || (hospital_id && otPostOperative.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'OT post-operative record not found' });
       }
@@ -99,7 +99,7 @@ class OtPostOperativeController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT post-operative record not found' });
       }
-      const updatedPostOp = await OtPostOperative.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedPostOp = await OtPostOperative.findOne({ where: { post_op_id: req.params.id, hospital_id: req.hospitalId } });
       const otBooking = await OtBooking.findByPk(updatedPostOp.booking_id);
       const patient = await Patient.findByPk(updatedPostOp.patient_id);
       const recordedBy = await User.findByPk(updatedPostOp.recorded_by);

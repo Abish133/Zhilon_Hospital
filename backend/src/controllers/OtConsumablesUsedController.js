@@ -124,7 +124,7 @@ class OtConsumablesUsedController {
   static async getOtConsumablesUsedById(req, res) {
     try {
       const hospital_id = req.user?.hospital_id;
-      const otConsumablesUsed = await OtConsumablesUsed.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const otConsumablesUsed = await OtConsumablesUsed.findOne({ where: { usage_id: req.params.id, hospital_id: req.hospitalId } });
       if (!otConsumablesUsed || (hospital_id && otConsumablesUsed.hospital_id !== hospital_id)) {
         return res.status(404).json({ success: false, message: 'OT consumables usage record not found' });
       }
@@ -157,7 +157,7 @@ class OtConsumablesUsedController {
       if (!updated) {
         return res.status(404).json({ success: false, message: 'OT consumables usage record not found' });
       }
-      const updatedConsumable = await OtConsumablesUsed.findOne({ where: { id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedConsumable = await OtConsumablesUsed.findOne({ where: { usage_id: req.params.id, hospital_id: req.hospitalId } });
       const otBooking = await OtBooking.findByPk(updatedConsumable.booking_id);
       const inventoryItem = await InventoryItem.findByPk(updatedConsumable.item_id);
       const recordedBy = await User.findByPk(updatedConsumable.recorded_by);

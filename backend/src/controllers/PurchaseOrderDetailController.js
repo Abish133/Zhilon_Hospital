@@ -68,7 +68,7 @@ class PurchaseOrderDetailController {
 
   static async getDetailById(req, res) {
     try {
-      const detail = await PurchaseOrderDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+      const detail = await PurchaseOrderDetail.findOne({ where: { po_detail_id: req.params.id, hospital_id: req.hospitalId } });
 
       if (!detail) {
         return res.status(404).json({ success: false, message: 'Purchase order detail not found' });
@@ -104,7 +104,7 @@ class PurchaseOrderDetailController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Purchase order detail not found' });
         }
-        const deactivatedDetail = await PurchaseOrderDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedDetail = await PurchaseOrderDetail.findOne({ where: { po_detail_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Purchase order detail deactivated successfully', data: deactivatedDetail });
       }
 
@@ -124,7 +124,7 @@ class PurchaseOrderDetailController {
         return res.status(404).json({ success: false, message: 'Purchase order detail not found' });
       }
 
-      const updatedDetail = await PurchaseOrderDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedDetail = await PurchaseOrderDetail.findOne({ where: { po_detail_id: req.params.id, hospital_id: req.hospitalId } });
       const purchaseOrder = await PurchaseOrder.findByPk(updatedDetail.po_id);
       const item = await InventoryItem.findByPk(updatedDetail.item_id);
       const hospital = await Hospital.findByPk(updatedDetail.hospital_id);

@@ -55,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false
     },
     note_type: {
-      type: DataTypes.ENUM('Doctor', 'Nurse'),
+      type: DataTypes.ENUM('Doctor', 'Nurse', 'Physiotherapist', 'Dietitian', 'Order'),
       allowNull: false
     },
     doctor_notes: {
