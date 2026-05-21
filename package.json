@@ -7,7 +7,7 @@
     "build:frontend": "npm run build --prefix frontend",
     "postbuild:frontend": "node scripts/move-build.js",
     "build": "npm run install:all && npm run build:frontend && npm run postbuild:frontend",
-    "start": "npm run start --prefix backend",
+    "start": "npm run migrate --prefix backend && npm run start --prefix backend",
     "migrate": "npm run db:migrate --prefix backend",
     "seed": "npm run seed --prefix backend",
     "db:init": "npm run db:reset-and-seed --prefix backend"
