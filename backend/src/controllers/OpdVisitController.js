@@ -102,6 +102,18 @@ class OpdVisitController {
       const visits = await OpdVisit.findAll({ where: { is_active: true, hospital_id: req.hospitalId }
       });
 
+      // Billing episodes are a separate table linked by opd_visit_id; batch-load
+      // them so each visit can expose its billing_episode_id to the UI.
+      const visitIds = visits.map(v => v.visit_id);
+      const episodes = visitIds.length
+        ? await BillingEpisode.findAll({
+            where: { opd_visit_id: visitIds, hospital_id: req.hospitalId },
+            attributes: ['episode_id', 'opd_visit_id']
+          })
+        : [];
+      const episodeByVisit = {};
+      episodes.forEach(e => { episodeByVisit[e.opd_visit_id] = e.episode_id; });
+
       const visitsWithDetails = await Promise.all(
         visits.map(async (visit) => {
           const patient = await Patient.findByPk(visit.patient_id);
@@ -112,9 +124,10 @@ class OpdVisitController {
           if (visit.appointment_id) {
             appointment = await OpdAppointment.findByPk(visit.appointment_id);
           }
-          
+
           return {
             ...visit.toJSON(),
+            billing_episode_id: episodeByVisit[visit.visit_id] || null,
             patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
             doctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
             department: department ? { id: department.id, department_name: department.department_name } : null,
@@ -146,11 +159,16 @@ class OpdVisitController {
       if (visit.appointment_id) {
         appointment = await OpdAppointment.findByPk(visit.appointment_id);
       }
+      const episode = await BillingEpisode.findOne({
+        where: { opd_visit_id: visit.visit_id, hospital_id: req.hospitalId },
+        attributes: ['episode_id']
+      });
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         data: {
           ...visit.toJSON(),
+          billing_episode_id: episode?.episode_id || null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
           doctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
           department: department ? { id: department.id, department_name: department.department_name } : null,

@@ -2,7 +2,7 @@ import BaseService from './BaseService';
 
 class RefundService extends BaseService {
   constructor() {
-    super('/api/refunds');
+    super('/refunds');
   }
 
   getByPatient(patientId) {

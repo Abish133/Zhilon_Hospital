@@ -42,12 +42,21 @@ const enforceHospitalScope = (req, res, next) => {
     return res.status(403).json({ success: false, message: 'No hospital context on user' });
   }
   req.hospitalId = req.user.hospital_id;
-  
-  // For GET requests, enforce hospital_id in query
+
+  // For GET requests, force hospital_id into the query so list/report endpoints
+  // are tenant-scoped. NOTE: in Express 5 `req.query` is a read-only getter, so
+  // mutating `req.query.hospital_id` directly is silently discarded. We must
+  // redefine `req.query` as an own data property for the value to persist.
   if (req.method === 'GET') {
-    req.query.hospital_id = req.user.hospital_id;
-  } 
-  // For POST/PUT/PATCH, enforce hospital_id in body
+    const scopedQuery = { ...req.query, hospital_id: req.user.hospital_id };
+    Object.defineProperty(req, 'query', {
+      value: scopedQuery,
+      writable: true,
+      configurable: true,
+      enumerable: true
+    });
+  }
+  // For POST/PUT/PATCH, enforce hospital_id in body (req.body is writable)
   else if (['POST', 'PUT', 'PATCH'].includes(req.method)) {
     if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) {
       req.body.hospital_id = req.user.hospital_id;

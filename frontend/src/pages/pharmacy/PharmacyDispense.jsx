@@ -90,11 +90,13 @@ const PharmacyDispense = () => {
       try {
         const prescResponse = await opdPrescriptionService.getByPatientId(patientData.patient_id);
         const body = prescResponse?.data ?? prescResponse;
-        const patientPrescriptions = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
+        const allPrescriptions = Array.isArray(body?.data) ? body.data : (Array.isArray(body) ? body : []);
+        // Only show prescriptions that haven't been dispensed yet.
+        const patientPrescriptions = allPrescriptions.filter(p => p.dispense_status !== 'Dispensed');
         setPrescriptions(patientPrescriptions);
 
         if (patientPrescriptions.length === 0) {
-          message.info('No prescriptions found for this patient');
+          message.info('No pending prescriptions to dispense for this patient');
         }
       } catch (prescError) {
         setPrescriptions([]);
@@ -138,6 +140,7 @@ const PharmacyDispense = () => {
     const batch = availableBatches[0];
     const item = {
       key: Date.now(),
+      prescription_id: prescription.prescription_id || null,
       medicine_id: medicine.medicine_id,
       medicine_name: medicine.medicine_name,
       batch_id: batch.batch_id,
@@ -239,9 +242,16 @@ const PharmacyDispense = () => {
 
     setLoading(true);
     try {
+      // Collect every prescription line being dispensed so the backend can mark
+      // them all as Dispensed (manual items have no prescription_id).
+      const prescriptionIds = [...new Set(
+        dispensedItems.map(item => item.prescription_id).filter(Boolean)
+      )];
+
       const dispenseData = {
         uhid: patient.uhid,
         prescription_id: selectedPrescription?.prescription_id || null,
+        prescription_ids: prescriptionIds,
         medicines: dispensedItems.map(item => ({
           medicine_id: item.medicine_id,
           quantity: item.quantity

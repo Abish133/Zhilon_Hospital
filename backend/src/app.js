@@ -236,17 +236,13 @@ app.use('/api/reports-export', guard('reports'), reportExportRoutes);
 app.use('/api/notifications', guard('notification'), notificationRoutes);
 
 const logger = require('./utils/logger');
+const path = require('path');
 
-// Global error handler
-app.use((err, req, res, _next) => {
-  logger.error('Unhandled error', { method: req.method, url: req.originalUrl, error: err.message, stack: err.stack });
-  res.status(err.status || 500).json({
-    success: false,
-    message: err.message || 'Internal server error'
-  });
-});
+// Serve static files from the 'public' directory (built React app)
+app.use(express.static(path.join(__dirname, '../public')));
 
-app.get('/', (req, res) => {
+// API root info endpoint
+app.get('/api', (req, res) => {
   res.json({ message: 'Hospital Management System SaaS API is running' });
 });
 
@@ -291,6 +287,29 @@ app.get('/health', async (req, res) => {
       }
     });
   }
+});
+
+// Handle React routing — all non-API GET requests serve the React app
+app.use((req, res, next) => {
+  if (req.method !== 'GET' || req.url.startsWith('/api/')) {
+    return next();
+  }
+  const indexPath = path.join(__dirname, '../public', 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      // If index.html doesn't exist yet (e.g. build not done), just send API info
+      res.json({ message: 'Hospital Management System API is running. Frontend not built yet.' });
+    }
+  });
+});
+
+// Global error handler — MUST be last middleware
+app.use((err, req, res, _next) => {
+  logger.error('Unhandled error', { method: req.method, url: req.originalUrl, error: err.message, stack: err.stack });
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal server error'
+  });
 });
 
 // Test database connection

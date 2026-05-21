@@ -122,6 +122,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BOOLEAN,
       allowNull: false,
       defaultValue: true
+    },
+    dispense_status: {
+      type: DataTypes.STRING(20),
+      allowNull: false,
+      defaultValue: 'Pending'
     }
   }, {
     sequelize,

@@ -264,7 +264,7 @@ class BillController {
   static async getAll(req, res) {
     try {
       const { payment_status, bill_type, patient_id, uhid, search } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (payment_status) where.payment_status = payment_status;
       if (bill_type) where.bill_type = bill_type;
@@ -493,9 +493,10 @@ class BillController {
   static async getByEpisodeId(req, res) {
     try {
       const bill = await Bill.findOne({
-        where: { 
+        where: {
           episode_id: req.params.episodeId,
-          is_active: true 
+          hospital_id: req.hospitalId,
+          is_active: true
         },
         include: [
           { model: Patient, as: 'patient' },
@@ -506,14 +507,9 @@ class BillController {
         order: [['bill_date', 'DESC']]
       });
 
-      if (!bill) {
-        return res.status(404).json({ 
-          success: false, 
-          message: 'No bill found for this episode' 
-        });
-      }
-
-      res.json({ success: true, data: bill });
+      // "Has a bill been generated yet?" is a normal existence check, not an
+      // error — return 200 with null so the bill screen doesn't log a 404.
+      res.json({ success: true, data: bill || null });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -522,25 +518,23 @@ class BillController {
   static async getByAdmissionId(req, res) {
     try {
       const { admissionId } = req.params;
-      // Find billing episode for this admission
+      // Find billing episode for this admission (tenant-scoped)
       const episode = await BillingEpisode.findOne({
-        where: { admission_id: admissionId, is_active: true }
+        where: { admission_id: admissionId, hospital_id: req.hospitalId, is_active: true }
       });
 
+      // No episode / no bill yet are normal states, not errors — return 200 null
+      // so the IPD bill screen doesn't log a 404.
       if (!episode) {
-        return res.status(404).json({ success: false, message: 'No billing episode found for this admission' });
+        return res.json({ success: true, data: null });
       }
 
       const bill = await Bill.findOne({
-        where: { episode_id: episode.episode_id, is_active: true },
+        where: { episode_id: episode.episode_id, hospital_id: req.hospitalId, is_active: true },
         order: [['bill_date', 'DESC']]
       });
 
-      if (!bill) {
-        return res.status(404).json({ success: false, message: 'No bill generated yet for this admission' });
-      }
-
-      res.json({ success: true, data: bill });
+      res.json({ success: true, data: bill || null });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

@@ -3,6 +3,7 @@ const MedicineController = require('../controllers/MedicineController');
 const router = express.Router();
  
 router.get('/', MedicineController.getAllMedicines);
+router.get('/search', MedicineController.searchMedicines);
 router.get('/:id', MedicineController.getMedicineById);
 router.post('/', MedicineController.createMedicine);
 router.put('/:id', MedicineController.updateMedicine);

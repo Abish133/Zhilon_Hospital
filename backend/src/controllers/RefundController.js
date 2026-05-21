@@ -86,7 +86,7 @@ class RefundController {
   static async getAll(req, res) {
     try {
       const { patient_id, bill_id } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (patient_id) where.patient_id = patient_id;
       if (bill_id) where.bill_id = bill_id;

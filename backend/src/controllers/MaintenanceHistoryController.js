@@ -35,7 +35,7 @@ class MaintenanceHistoryController {
   static async getAll(req, res) {
     try {
       const { maintenance_type, equipment_id } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (maintenance_type) where.maintenance_type = maintenance_type;
       if (equipment_id) where.equipment_id = equipment_id;

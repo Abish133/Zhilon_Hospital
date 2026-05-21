@@ -51,8 +51,8 @@ class IpdProgressNoteController {
   static async getAllProgressNotes(req, res) {
     try {
       const { admission_id } = req.query;
-      const whereClause = { is_active: true };
-      
+      const whereClause = { is_active: true, hospital_id: req.hospitalId };
+
       if (admission_id) {
         whereClause.admission_id = admission_id;
       }

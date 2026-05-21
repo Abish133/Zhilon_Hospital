@@ -1,8 +1,13 @@
 import { Card, Table, Button, Space, message, Descriptions, Divider, Form, Select, InputNumber, Input, Row, Col, Tag, Spin, Popconfirm } from 'antd';
 import SliderModal from '@components/common/SliderModal';
-import { PrinterOutlined, DollarOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
+import { PrinterOutlined, DollarOutlined, FilePdfOutlined, PlusOutlined, DeleteOutlined, EyeOutlined, MedicineBoxOutlined } from '@ant-design/icons';
 import { generateBillPDF } from '@utils/pdfGenerator';
 import { printBill } from '@utils/billPrintHelper';
+import jsPDF from 'jspdf';
+import { applyPlugin } from 'jspdf-autotable';
+
+// jspdf-autotable v5 doesn't attach doc.autoTable on plain import — apply the plugin.
+applyPlugin(jsPDF);
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useState } from 'react';
 import { formatCurrency, formatDate } from '@utils/helpers';
@@ -22,6 +27,11 @@ const BillGeneration = () => {
   const [paymentForm] = Form.useForm();
   const [chargeForm] = Form.useForm();
   const [selectedCharges, setSelectedCharges] = useState([]);
+
+  // Pharmacy itemized-detail drill-down (for a "Pharmacy charges" line)
+  const [pharmacyModal, setPharmacyModal] = useState(false);
+  const [pharmacySale, setPharmacySale] = useState(null);
+  const [pharmacyLoading, setPharmacyLoading] = useState(false);
 
   const { data: chargesData, isLoading: chargesLoading, refetch: refetchCharges } = useApiQuery(
     ['episode-charges', episodeId],
@@ -279,11 +289,104 @@ const BillGeneration = () => {
     }
   };
 
+  // ── Pharmacy itemized detail ──────────────────────────────────────
+  // A "Pharmacy charges" line is a single rolled-up BillCharge whose service_id
+  // points at the PharmacySale. Fetch that sale's per-medicine breakdown.
+  const openPharmacyDetail = async (record) => {
+    setPharmacyModal(true);
+    setPharmacyLoading(true);
+    setPharmacySale(null);
+    try {
+      const resp = await apiClient.get(`/pharmacy-sales/${record.service_id}`);
+      setPharmacySale(resp?.data || null);
+    } catch (e) {
+      message.error('Could not load pharmacy details');
+    } finally {
+      setPharmacyLoading(false);
+    }
+  };
+
+  const pharmacyItems = pharmacySale?.details || [];
+  const pharmacyHeader = () => ({
+    title: episode.episode_type === 'IPD' ? 'PHARMACY ISSUE' : 'PHARMACY BILL',
+    patient: `${patient.first_name || ''} ${patient.last_name || ''}`.trim() || (pharmacySale?.patient ? `${pharmacySale.patient.first_name || ''} ${pharmacySale.patient.last_name || ''}`.trim() : ''),
+    uhid: patient.uhid || pharmacySale?.uhid || 'N/A',
+    saleNo: `PH-${String(pharmacySale?.sale_id || '').padStart(6, '0')}`,
+    date: formatDate(pharmacySale?.sale_date || new Date()),
+    gross: Number(pharmacySale?.total_amount || 0),
+    tax: Number(pharmacySale?.tax_amount || 0),
+    net: Number(pharmacySale?.net_amount || 0)
+  });
+
+  const printPharmacy = () => {
+    if (!pharmacySale) return;
+    const h = pharmacyHeader();
+    const rows = pharmacyItems.map((d, i) => `
+      <tr>
+        <td>${i + 1}</td>
+        <td>${d.medicine_name || '-'}</td>
+        <td style="text-align:center">${d.quantity || 0}</td>
+        <td style="text-align:right">${Number(d.rate || 0).toFixed(2)}</td>
+        <td style="text-align:center">${Number(d.gst_percentage || 0)}%</td>
+        <td style="text-align:right">${Number(d.amount || 0).toFixed(2)}</td>
+      </tr>`).join('');
+    const html = `<html><head><title>${h.saleNo}</title><style>
+      body{font-family:Arial,sans-serif;margin:24px;color:#111;font-size:13px}
+      h2{text-align:center;margin:0 0 2px}
+      .sub{text-align:center;color:#666;margin-bottom:14px}
+      .meta{display:flex;justify-content:space-between;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:12px}
+      table{width:100%;border-collapse:collapse;margin-top:8px}
+      th,td{border:1px solid #ddd;padding:6px 10px}
+      th{background:#f3f4f6;text-align:left}
+      tfoot td{font-weight:bold;border:none}
+      .right{text-align:right}
+    </style></head><body>
+      <h2>Pharmacy ${episode.episode_type === 'IPD' ? 'Issue Note' : 'Bill'}</h2>
+      <div class="sub">${h.saleNo} • ${h.date}</div>
+      <div class="meta"><div><b>Patient:</b> ${h.patient}</div><div><b>UHID:</b> ${h.uhid}</div></div>
+      <table><thead><tr><th>#</th><th>Medicine</th><th style="text-align:center">Qty</th><th class="right">Rate</th><th style="text-align:center">GST%</th><th class="right">Amount</th></tr></thead>
+      <tbody>${rows || '<tr><td colspan="6" style="text-align:center">No items</td></tr>'}</tbody>
+      <tfoot>
+        <tr><td colspan="5" class="right">Gross</td><td class="right">₹${h.gross.toFixed(2)}</td></tr>
+        <tr><td colspan="5" class="right">Tax</td><td class="right">₹${h.tax.toFixed(2)}</td></tr>
+        <tr><td colspan="5" class="right">Net Total</td><td class="right">₹${h.net.toFixed(2)}</td></tr>
+      </tfoot></table>
+      <p style="margin-top:30px;text-align:right">Pharmacist: ____________________</p>
+    </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { message.error('Pop-up blocked. Allow pop-ups to print.'); return; }
+    w.document.write(html); w.document.close(); w.focus(); w.print();
+  };
+
+  const downloadPharmacyPDF = () => {
+    if (!pharmacySale) return;
+    const h = pharmacyHeader();
+    const doc = new jsPDF();
+    doc.setFontSize(15); doc.text(`Pharmacy ${episode.episode_type === 'IPD' ? 'Issue Note' : 'Bill'}`, 105, 18, { align: 'center' });
+    doc.setFontSize(10); doc.text(`${h.saleNo}  •  ${h.date}`, 105, 25, { align: 'center' });
+    doc.text(`Patient: ${h.patient}`, 14, 35);
+    doc.text(`UHID: ${h.uhid}`, 150, 35);
+    doc.autoTable({
+      startY: 40,
+      head: [['#', 'Medicine', 'Qty', 'Rate', 'GST%', 'Amount']],
+      body: pharmacyItems.map((d, i) => [i + 1, d.medicine_name || '-', d.quantity || 0, Number(d.rate || 0).toFixed(2), `${Number(d.gst_percentage || 0)}%`, Number(d.amount || 0).toFixed(2)]),
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [37, 99, 235] }
+    });
+    const y = (doc.lastAutoTable?.finalY || 60) + 8;
+    doc.setFontSize(10);
+    doc.text(`Gross: ${h.gross.toFixed(2)}`, 150, y);
+    doc.text(`Tax: ${h.tax.toFixed(2)}`, 150, y + 6);
+    doc.setFontSize(12); doc.text(`Net Total: ${h.net.toFixed(2)}`, 150, y + 14);
+    doc.save(`${h.saleNo}.pdf`);
+    message.success('Pharmacy bill downloaded');
+  };
+
   const chargeColumns = [
-    { 
-      title: 'Service', 
-      dataIndex: 'description', 
-      key: 'description' 
+    {
+      title: 'Service',
+      dataIndex: 'description',
+      key: 'description'
     },
     { 
       title: 'Category', 
@@ -321,28 +424,41 @@ const BillGeneration = () => {
       key: 'net_amount', 
       render: (val) => <div style={{ fontWeight: 600 }}>{formatCurrency(val)}</div> 
     },
-    ...(!billExists ? [{
+    {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 110,
+      align: 'center',
       render: (_, record) => (
-        <Popconfirm
-          title="Remove this charge?"
-          description="This cannot be undone."
-          okText="Remove"
-          okButtonProps={{ danger: true }}
-          cancelText="Cancel"
-          onConfirm={() => deleteChargeMutation.mutate(record.charge_id)}
-        >
-          <Button
-            icon={<DeleteOutlined />}
-            size="small"
-            danger
-            loading={deleteChargeMutation.isPending}
-          />
-        </Popconfirm>
+        <Space>
+          {record.service_type === 'Pharmacy' && record.service_id && (
+            <Button
+              icon={<EyeOutlined />}
+              size="small"
+              title="View pharmacy items"
+              onClick={() => openPharmacyDetail(record)}
+            />
+          )}
+          {!billExists && (
+            <Popconfirm
+              title="Remove this charge?"
+              description="This cannot be undone."
+              okText="Remove"
+              okButtonProps={{ danger: true }}
+              cancelText="Cancel"
+              onConfirm={() => deleteChargeMutation.mutate(record.charge_id)}
+            >
+              <Button
+                icon={<DeleteOutlined />}
+                size="small"
+                danger
+                loading={deleteChargeMutation.isPending}
+              />
+            </Popconfirm>
+          )}
+        </Space>
       )
-    }] : [])
+    }
   ];
 
   if (chargesLoading) {
@@ -666,6 +782,68 @@ const BillGeneration = () => {
             </Space>
           </Form.Item>
         </Form>
+      </SliderModal>
+
+      {/* Pharmacy itemized detail — right-side slider drawer */}
+      <SliderModal
+        title={<Space><MedicineBoxOutlined style={{ color: '#2563eb' }} /><span>Pharmacy Items</span></Space>}
+        open={pharmacyModal}
+        onCancel={() => setPharmacyModal(false)}
+        width={620}
+        footer={
+          <div style={{ textAlign: 'right' }}>
+            <Space>
+              <Button onClick={() => setPharmacyModal(false)}>Close</Button>
+              <Button icon={<PrinterOutlined />} onClick={printPharmacy} disabled={!pharmacySale}>Print</Button>
+              <Button type="primary" icon={<FilePdfOutlined />} onClick={downloadPharmacyPDF} disabled={!pharmacySale}>Download PDF</Button>
+            </Space>
+          </div>
+        }
+      >
+        {pharmacyLoading ? (
+          <div style={{ textAlign: 'center', padding: 32 }}><Spin /></div>
+        ) : !pharmacySale ? (
+          <div style={{ textAlign: 'center', padding: 24, color: '#888' }}>No pharmacy details found for this charge.</div>
+        ) : (
+          <>
+            <Descriptions bordered size="small" column={2} style={{ marginBottom: 12 }}>
+              <Descriptions.Item label="Sale No">{`PH-${String(pharmacySale.sale_id).padStart(6, '0')}`}</Descriptions.Item>
+              <Descriptions.Item label="Date">{formatDate(pharmacySale.sale_date)}</Descriptions.Item>
+              <Descriptions.Item label="Patient">{patient.first_name} {patient.last_name}</Descriptions.Item>
+              <Descriptions.Item label="UHID">{patient.uhid || pharmacySale.uhid}</Descriptions.Item>
+            </Descriptions>
+            <Table
+              size="small"
+              pagination={false}
+              rowKey={(r) => r.sale_detail_id || r.id || r.medicine_id}
+              dataSource={pharmacyItems}
+              columns={[
+                { title: '#', key: 'idx', width: 48, align: 'center', render: (_, __, i) => i + 1 },
+                { title: 'Medicine', dataIndex: 'medicine_name', key: 'medicine_name' },
+                { title: 'Qty', dataIndex: 'quantity', key: 'quantity', align: 'center', width: 70 },
+                { title: 'Rate', dataIndex: 'rate', key: 'rate', align: 'right', width: 90, render: (v) => formatCurrency(v) },
+                { title: 'GST%', dataIndex: 'gst_percentage', key: 'gst', align: 'center', width: 70, render: (v) => `${Number(v || 0)}%` },
+                { title: 'Amount', dataIndex: 'amount', key: 'amount', align: 'right', width: 100, render: (v) => <strong>{formatCurrency(v)}</strong> }
+              ]}
+              summary={() => (
+                <>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell colSpan={5} align="right">Gross</Table.Summary.Cell>
+                    <Table.Summary.Cell align="right">{formatCurrency(pharmacySale.total_amount || 0)}</Table.Summary.Cell>
+                  </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell colSpan={5} align="right">Tax</Table.Summary.Cell>
+                    <Table.Summary.Cell align="right">{formatCurrency(pharmacySale.tax_amount || 0)}</Table.Summary.Cell>
+                  </Table.Summary.Row>
+                  <Table.Summary.Row>
+                    <Table.Summary.Cell colSpan={5} align="right"><strong>Net Total</strong></Table.Summary.Cell>
+                    <Table.Summary.Cell align="right"><strong>{formatCurrency(pharmacySale.net_amount || 0)}</strong></Table.Summary.Cell>
+                  </Table.Summary.Row>
+                </>
+              )}
+            />
+          </>
+        )}
       </SliderModal>
     </div>
   );

@@ -35,7 +35,7 @@ class MaintenanceRequestController {
   static async getAll(req, res) {
     try {
       const { status, priority } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (status) where.status = status;
       if (priority) where.priority = priority;

@@ -174,7 +174,7 @@ class OpdVitalController {
             as: 'patient'
           }]
         }],
-        where: { is_active: true },
+        where: { is_active: true, hospital_id: req.hospitalId },
         order: [['recorded_at', 'DESC']]
       });
 

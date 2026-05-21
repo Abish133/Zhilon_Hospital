@@ -5,14 +5,14 @@ class PharmacySaleController {
   static async dispenseMedicine(req, res) {
     const transaction = await PharmacySale.sequelize.transaction();
     try {
-      const { uhid, prescription_id, admission_id, medicines, dispensed_by, hospital_id } = req.body;
+      const { uhid, prescription_id, prescription_ids, admission_id, medicines, dispensed_by, hospital_id } = req.body;
 
       if (!uhid || !medicines || !Array.isArray(medicines) || medicines.length === 0 || !hospital_id) {
         await transaction.rollback();
         return res.status(400).json({ success: false, message: 'uhid, medicines array, and hospital_id are required' });
       }
 
-      const patient = await Patient.findOne({ where: { uhid } });
+      const patient = await Patient.findOne({ where: { uhid, hospital_id } });
       if (!patient) {
         await transaction.rollback();
         return res.status(404).json({ success: false, message: 'Patient not found' });
@@ -46,12 +46,15 @@ class PharmacySaleController {
           return res.status(404).json({ success: false, message: `Medicine ID ${medicine_id} not found` });
         }
 
+        const today = new Date().toISOString().slice(0, 10);
         const batch = await MedicineBatch.findOne({
           where: {
             medicine_id,
             available_quantity: { [Op.gte]: quantity },
             is_active: true,
-            hospital_id
+            hospital_id,
+            // Never dispense expired stock; FEFO still picks the nearest valid expiry.
+            expiry_date: { [Op.gte]: today }
           },
           order: [['expiry_date', 'ASC']],
           lock: transaction.LOCK.UPDATE,
@@ -60,7 +63,7 @@ class PharmacySaleController {
 
         if (!batch) {
           await transaction.rollback();
-          return res.status(400).json({ success: false, message: `Insufficient stock for ${medicine.medicine_name}` });
+          return res.status(400).json({ success: false, message: `No in-stock, non-expired batch available for ${medicine.medicine_name}` });
         }
 
         const rate = parseFloat(batch.mrp || batch.selling_rate || medicine.mrp || 0);
@@ -147,6 +150,18 @@ class PharmacySaleController {
         }
       }
 
+      // Mark dispensed prescription lines so they drop off the dispense screen.
+      // Accept an array (preferred) or fall back to the single linked prescription.
+      const toMark = Array.isArray(prescription_ids) && prescription_ids.length
+        ? prescription_ids
+        : (prescription_id ? [prescription_id] : []);
+      if (toMark.length) {
+        await OpdPrescription.update(
+          { dispense_status: 'Dispensed' },
+          { where: { prescription_id: toMark, hospital_id }, transaction }
+        );
+      }
+
       await transaction.commit();
 
       const saleWithDetails = await PharmacySale.findByPk(pharmacySale.sale_id, {
@@ -203,14 +218,15 @@ class PharmacySaleController {
 
   static async getSaleById(req, res) {
     try {
-      const sale = await PharmacySale.findByPk(req.params.id, {
+      const sale = await PharmacySale.findOne({
+        where: { sale_id: req.params.id, hospital_id: req.hospitalId },
         include: [
           { model: PharmacySaleDetail, as: 'details' },
           { model: Patient, as: 'patient' },
           { model: Hospital, as: 'hospital' }
         ]
       });
-      
+
       if (!sale) {
         return res.status(404).json({ success: false, message: 'Sale not found' });
       }
@@ -241,7 +257,8 @@ class PharmacySaleController {
   static async deleteSale(req, res) {
     const transaction = await PharmacySale.sequelize.transaction();
     try {
-      const sale = await PharmacySale.findByPk(req.params.id, {
+      const sale = await PharmacySale.findOne({
+        where: { sale_id: req.params.id, hospital_id: req.hospitalId },
         include: [{ model: PharmacySaleDetail, as: 'details' }],
         transaction,
         lock: transaction.LOCK.UPDATE

@@ -202,7 +202,7 @@ class PaymentController {
   static async getAll(req, res) {
     try {
       const { payment_type, payment_mode, bill_id } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (payment_type) where.payment_type = payment_type;
       if (payment_mode) where.payment_mode = payment_mode;

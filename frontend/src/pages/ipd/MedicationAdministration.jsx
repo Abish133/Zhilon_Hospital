@@ -67,7 +67,7 @@ const MedicationAdministration = ({ admissionId }) => {
         quantity: values.quantity,
         notes: values.notes
       });
-      message.success('Medication administered and charge posted');
+      message.success('Medication administration recorded');
       setModalOpen(false);
       fetchData();
     } catch (error) {
@@ -178,7 +178,7 @@ const MedicationAdministration = ({ admissionId }) => {
             name="quantity"
             label="Quantity (units)"
             rules={[{ required: true, message: 'Please enter quantity' }]}
-            extra="Quantity will be deducted from stock (FEFO) and posted as bill charge"
+            extra="Units given — recorded for the clinical history. Stock & billing are handled at pharmacy issuance."
           >
             <InputNumber min={1} style={{ width: '100%' }} />
           </Form.Item>

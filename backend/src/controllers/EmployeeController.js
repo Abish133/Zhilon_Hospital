@@ -26,7 +26,8 @@ class EmployeeController {
   // Get user details by ID
   static async getUserById(req, res) {
     try {
-      const user = await User.findByPk(req.params.userId, {
+      const user = await User.findOne({
+        where: { id: req.params.userId, hospital_id: req.hospitalId },
         attributes: ['id', 'name', 'email', 'role']
       });
 

@@ -32,6 +32,13 @@ class OpdAppointmentService extends BaseService {
   updateStatus(id, status) {
     return apiClient.patch(`${this.endpoint}/${id}/status`, { status });
   }
+
+  // Check in an appointment: creates the OPD visit + billing episode and
+  // returns the new visit in `data.visit`. If already checked in, the backend
+  // responds 409 with the existing `data.visit_id`.
+  checkIn(id) {
+    return apiClient.post(`${this.endpoint}/${id}/check-in`);
+  }
 }
 
 export default new OpdAppointmentService();

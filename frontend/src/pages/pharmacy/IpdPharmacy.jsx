@@ -74,7 +74,7 @@ const IpdPharmacy = () => {
           medicine_id: m.medicine_id,
           quantity: m.quantity
         })),
-        dispensed_by: user?.user_id,
+        dispensed_by: user?.id,
         hospital_id: user?.hospital_id
       };
 

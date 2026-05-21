@@ -2,7 +2,7 @@ import BaseService from './BaseService';
 
 class PaymentAdvanceService extends BaseService {
   constructor() {
-    super('/api/payment-advances');
+    super('/payment-advances');
   }
 
   getByPatient(patientId) {

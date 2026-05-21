@@ -38,8 +38,8 @@ class BillingEpisodeController {
   static async getAll(req, res) {
     try {
       const { status, episode_type, patient_id } = req.query;
-      const where = { is_active: true };
-      
+      const where = { is_active: true, hospital_id: req.hospitalId };
+
       if (status) where.status = status;
       if (episode_type) where.episode_type = episode_type;
       if (patient_id) where.patient_id = patient_id;

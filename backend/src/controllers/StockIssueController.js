@@ -151,7 +151,8 @@ class StockIssueController {
       const { is_active, ...updateData } = req.body;
 
       if (is_active === 0 || is_active === false) {
-        const issue = await StockIssue.findByPk(req.params.id, {
+        const issue = await StockIssue.findOne({
+          where: { issue_id: req.params.id, hospital_id: req.hospitalId },
           transaction, lock: transaction.LOCK.UPDATE
         });
         if (!issue) {
@@ -212,7 +213,8 @@ class StockIssueController {
   static async deleteStockIssue(req, res) {
     const transaction = await StockIssue.sequelize.transaction();
     try {
-      const issue = await StockIssue.findByPk(req.params.id, {
+      const issue = await StockIssue.findOne({
+        where: { issue_id: req.params.id, hospital_id: req.hospitalId },
         transaction, lock: transaction.LOCK.UPDATE
       });
       if (!issue) {

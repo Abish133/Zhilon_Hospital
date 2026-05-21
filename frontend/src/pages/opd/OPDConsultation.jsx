@@ -190,7 +190,7 @@ const OPDConsultation = () => {
               test_code: test?.test_code,
               test_name: test?.test_name,
               sample_type: test?.sample_type,
-              charge: test?.price,
+              charge: test?.charge,
               status: 'Pending',
               hospital_id: user?.hospital_id
             });

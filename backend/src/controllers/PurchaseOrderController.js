@@ -110,7 +110,7 @@ class PurchaseOrderController {
   static async getAllPurchaseOrders(req, res) {
     try {
       const { status } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       if (status) where.status = status;
 
       const purchaseOrders = await PurchaseOrder.findAll({ where });

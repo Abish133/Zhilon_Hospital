@@ -41,7 +41,7 @@ class PreventiveMaintenanceController {
   static async getAllPM(req, res) {
     try {
       const { equipment_id, pm_schedule } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (equipment_id) where.equipment_id = equipment_id;
       if (pm_schedule) where.pm_schedule = pm_schedule;

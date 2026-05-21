@@ -75,7 +75,7 @@ class PharmacySaleDetailController {
   static async getAllSaleDetails(req, res) {
     try {
       const { sale_id, medicine_id, batch_id } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (sale_id) where.sale_id = sale_id;
       if (medicine_id) where.medicine_id = medicine_id;
@@ -108,7 +108,7 @@ class PharmacySaleDetailController {
 
   static async getSaleDetailById(req, res) {
     try {
-      const saleDetail = await PharmacySaleDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+      const saleDetail = await PharmacySaleDetail.findOne({ where: { sale_detail_id: req.params.id, hospital_id: req.hospitalId } });
       
       if (!saleDetail) {
         return res.status(404).json({ success: false, message: 'Sale detail not found' });
@@ -146,11 +146,11 @@ class PharmacySaleDetailController {
         if (!updated) {
           return res.status(404).json({ success: false, message: 'Sale detail not found' });
         }
-        const deactivatedSaleDetail = await PharmacySaleDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+        const deactivatedSaleDetail = await PharmacySaleDetail.findOne({ where: { sale_detail_id: req.params.id, hospital_id: req.hospitalId } });
         return res.json({ success: true, message: 'Sale detail deactivated successfully', data: deactivatedSaleDetail });
       }
 
-      const existingSaleDetail = await PharmacySaleDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+      const existingSaleDetail = await PharmacySaleDetail.findOne({ where: { sale_detail_id: req.params.id, hospital_id: req.hospitalId } });
       if (!existingSaleDetail) {
         return res.status(404).json({ success: false, message: 'Sale detail not found' });
       }
@@ -174,7 +174,7 @@ class PharmacySaleDetailController {
         return res.status(404).json({ success: false, message: 'Sale detail not found' });
       }
 
-      const updatedSaleDetail = await PharmacySaleDetail.findOne({ where: { detail_id: req.params.id, hospital_id: req.hospitalId } });
+      const updatedSaleDetail = await PharmacySaleDetail.findOne({ where: { sale_detail_id: req.params.id, hospital_id: req.hospitalId } });
       const sale = await PharmacySale.findByPk(updatedSaleDetail.sale_id);
       const medicine = updatedSaleDetail.medicine_id ? await Medicine.findByPk(updatedSaleDetail.medicine_id) : null;
       const batch = updatedSaleDetail.batch_id ? await MedicineBatch.findByPk(updatedSaleDetail.batch_id) : null;

@@ -40,6 +40,27 @@ const OPDAppointments = () => {
     }
   };
 
+  // Check-in / consult both require a *visit*, not the appointment id. Calling
+  // check-in creates the visit (or, if already checked in, the backend returns
+  // 409 with the existing visit_id). Either way we navigate to the real visit.
+  const goToVisitStage = async (appointmentId, stage) => {
+    try {
+      const response = await opdAppointmentService.checkIn(appointmentId);
+      const visitId = response?.data?.visit?.visit_id;
+      if (response?.success && visitId) {
+        fetchAppointments();
+        navigate(`/opd/${stage}/${visitId}`);
+      }
+    } catch (error) {
+      const existingVisitId = error?.data?.visit_id;
+      if (existingVisitId) {
+        navigate(`/opd/${stage}/${existingVisitId}`);
+      } else {
+        message.error(error?.message || 'Failed to open visit');
+      }
+    }
+  };
+
   const handleCancelAppointment = async (appointmentId) => {
     try {
       const response = await opdAppointmentService.update(appointmentId, { status: 'Cancelled', is_active: false });
@@ -143,7 +164,7 @@ const OPDAppointments = () => {
               size="small"
               type="primary"
               icon={<CheckCircleOutlined />}
-              onClick={() => navigate(`/opd/vitals/${record.appointment_id}`)}
+              onClick={() => goToVisitStage(record.appointment_id, 'vitals')}
             >
               Check-in
             </Button>
@@ -153,7 +174,7 @@ const OPDAppointments = () => {
               size="small"
               type="primary"
               icon={<MedicineBoxOutlined />}
-              onClick={() => navigate(`/opd/consultation/${record.appointment_id}`)}
+              onClick={() => goToVisitStage(record.appointment_id, 'consultation')}
             >
               Consult
             </Button>

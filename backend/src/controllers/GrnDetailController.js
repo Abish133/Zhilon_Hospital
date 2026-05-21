@@ -44,7 +44,7 @@ class GrnDetailController {
   static async getAllGrnDetails(req, res) {
     try {
       const grnDetails = await GrnDetail.findAll({
-        where: { is_active: true }
+        where: { is_active: true, hospital_id: req.hospitalId }
       });
 
       const detailsWithHospital = await Promise.all(

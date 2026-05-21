@@ -51,7 +51,7 @@ class EquipmentController {
   static async getAllEquipment(req, res) {
     try {
       const { equipment_type, department_id, status } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (equipment_type) where.equipment_type = equipment_type;
       if (department_id) where.department_id = department_id;

@@ -57,8 +57,8 @@ class OpdPrescriptionController {
   static async getAllPrescriptions(req, res) {
     try {
       const { patient_id, consultation_id, visit_id } = req.query;
-      const where = { is_active: true };
-      
+      const where = { is_active: true, hospital_id: req.hospitalId };
+
       if (patient_id) where.patient_id = patient_id;
       if (consultation_id) where.consultation_id = consultation_id;
       if (visit_id) where.visit_id = visit_id;
@@ -193,9 +193,10 @@ class OpdPrescriptionController {
   static async getPrescriptionsByPatientId(req, res) {
     try {
       const prescriptions = await OpdPrescription.findAll({
-        where: { 
+        where: {
           patient_id: req.params.patientId,
-          is_active: true 
+          is_active: true,
+          hospital_id: req.hospitalId
         },
         order: [['prescribed_at', 'DESC']]
       });

@@ -34,6 +34,50 @@ const OPDPrescriptions = () => {
     setViewModalVisible(true);
   };
 
+  const handlePrint = () => {
+    const p = selectedPrescription;
+    if (!p) return;
+    const patientName = `${p.patient?.first_name || ''} ${p.patient?.last_name || ''}`.trim() || 'N/A';
+    const html = `<html><head><title>Prescription #${p.prescription_id}</title><style>
+      body{font-family:Arial,sans-serif;margin:28px;color:#111;font-size:13px}
+      h2{text-align:center;margin:0 0 2px}
+      .sub{text-align:center;color:#666;margin-bottom:16px}
+      .meta{display:flex;justify-content:space-between;border-bottom:1px solid #ccc;padding-bottom:8px;margin-bottom:12px}
+      .rx{font-size:26px;font-weight:bold;margin:8px 0}
+      table{width:100%;border-collapse:collapse;margin-top:6px}
+      th,td{border:1px solid #ddd;padding:7px 10px;text-align:left}
+      th{background:#f3f4f6}
+      .foot{margin-top:48px;text-align:right}
+    </style></head><body>
+      <h2>Prescription</h2>
+      <div class="sub">#${p.prescription_id} • ${dayjs(p.prescribed_at).format('DD MMM YYYY, hh:mm A')}</div>
+      <div class="meta">
+        <div><b>Patient:</b> ${patientName}<br/><b>UHID:</b> ${p.patient?.uhid || 'N/A'}</div>
+        <div><b>Prescribed by:</b> ${p.prescribedBy?.name || '—'}</div>
+      </div>
+      <div class="rx">℞</div>
+      <table>
+        <thead><tr><th>Medicine</th><th>Dosage</th><th>Frequency</th><th>Route</th><th>Duration</th><th>Qty</th></tr></thead>
+        <tbody><tr>
+          <td>${p.medicine_name || '-'}</td>
+          <td>${p.dosage || '-'}</td>
+          <td>${p.frequency || '-'}</td>
+          <td>${p.route || '-'}</td>
+          <td>${p.duration || '-'}</td>
+          <td>${p.quantity ?? '-'}</td>
+        </tr></tbody>
+      </table>
+      ${p.instructions ? `<p style="margin-top:12px"><b>Instructions:</b> ${p.instructions}</p>` : ''}
+      <div class="foot"><p>____________________________</p><p>Doctor's Signature</p></div>
+    </body></html>`;
+    const w = window.open('', '_blank');
+    if (!w) { return; }
+    w.document.write(html);
+    w.document.close();
+    w.focus();
+    w.print();
+  };
+
   const filteredPrescriptions = prescriptions.filter(p => 
     p.patient?.first_name?.toLowerCase().includes(searchText.toLowerCase()) ||
     p.patient?.last_name?.toLowerCase().includes(searchText.toLowerCase()) ||
@@ -134,7 +178,7 @@ const OPDPrescriptions = () => {
         open={viewModalVisible}
         onCancel={() => setViewModalVisible(false)}
         footer={[
-          <Button key="print" icon={<PrinterOutlined />}>
+          <Button key="print" type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
             Print
           </Button>,
           <Button key="close" onClick={() => setViewModalVisible(false)}>

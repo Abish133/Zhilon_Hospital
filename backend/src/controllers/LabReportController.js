@@ -42,7 +42,7 @@ class LabReportController {
   static async getAllLabReports(req, res) {
     try {
       const { order_id, approved_by } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (order_id) where.order_id = order_id;
       if (approved_by) where.approved_by = approved_by;

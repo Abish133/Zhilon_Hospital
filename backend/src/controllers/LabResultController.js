@@ -81,7 +81,7 @@ class LabResultController {
   static async getAllLabResults(req, res) {
     try {
       const { order_id, test_id, status, critical_value } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (order_id) where.order_id = order_id;
       if (test_id) where.test_id = test_id;

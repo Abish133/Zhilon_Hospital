@@ -1,5 +1,10 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import { applyPlugin } from 'jspdf-autotable';
+
+// jspdf-autotable v5 no longer auto-attaches `doc.autoTable` on import; we must
+// apply the plugin to the jsPDF class so `doc.autoTable(...)` works. This patches
+// the shared jsPDF prototype, so any module using `doc.autoTable` benefits.
+applyPlugin(jsPDF);
 
 export const generateBillPDF = (billData) => {
   const doc = new jsPDF();

@@ -29,6 +29,7 @@ class PatientClinicalHistoryController {
   static async getAll(req, res) {
     try {
       const clinicalHistories = await PatientClinicalHistory.findAll({
+        where: { hospital_id: req.hospitalId },
         include: [
           { model: Patient, as: 'patient', attributes: ['patient_id', 'first_name', 'last_name'] },
           { model: Hospital, as: 'hospital', attributes: ['id', 'hospitalName'] },
@@ -45,7 +46,8 @@ class PatientClinicalHistoryController {
 
   static async getById(req, res) {
     try {
-      const clinicalHistory = await PatientClinicalHistory.findByPk(req.params.id, {
+      const clinicalHistory = await PatientClinicalHistory.findOne({
+        where: { clinical_history_id: req.params.id, hospital_id: req.hospitalId },
         include: [
           { model: Patient, as: 'patient', attributes: ['patient_id', 'first_name', 'last_name'] },
           { model: Hospital, as: 'hospital', attributes: ['id', 'hospitalName'] },
@@ -67,7 +69,7 @@ class PatientClinicalHistoryController {
   static async getByPatientId(req, res) {
     try {
       const clinicalHistories = await PatientClinicalHistory.findAll({
-        where: { patient_id: req.params.patientId },
+        where: { patient_id: req.params.patientId, hospital_id: req.hospitalId },
         include: [
           { model: Patient, as: 'patient', attributes: ['patient_id', 'first_name', 'last_name'] },
           { model: Hospital, as: 'hospital', attributes: ['id', 'hospitalName'] },

@@ -98,7 +98,7 @@ class LabSampleController {
   static async getAllLabSamples(req, res) {
     try {
       const { order_id, sample_type, condition_on_receipt, collected_by } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (order_id) where.order_id = order_id;
       if (sample_type) where.sample_type = sample_type;

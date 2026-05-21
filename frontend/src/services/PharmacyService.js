@@ -6,16 +6,11 @@ class PharmacyService extends BaseService {
     super('/pharmacy');
   }
 
+  // Dispensing is served by POST /api/pharmacy/sales/dispense (see
+  // PharmacySaleController.dispenseMedicine). Keep this in sync with
+  // PharmacySaleService.dispense, which is what the UI actually calls.
   dispense(data) {
-    return apiClient.post(`${this.endpoint}/dispense`, data);
-  }
-
-  getLowStock() {
-    return apiClient.get(`${this.endpoint}/stock/low`);
-  }
-
-  getExpiringStock(months = 3) {
-    return apiClient.get(`${this.endpoint}/stock/expiry`, { params: { months } });
+    return apiClient.post('/pharmacy/sales/dispense', data);
   }
 }
 

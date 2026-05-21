@@ -188,7 +188,7 @@ class BillChargeController {
   static async getAll(req, res) {
     try {
       const { episode_id, service_type } = req.query;
-      const where = { is_active: true };
+      const where = { is_active: true, hospital_id: req.hospitalId };
       
       if (episode_id) where.episode_id = episode_id;
       if (service_type) where.service_type = service_type;
@@ -309,7 +309,8 @@ class BillChargeController {
   static async delete(req, res) {
     const t = await sequelize.transaction();
     try {
-      const charge = await BillCharge.findByPk(req.params.id, {
+      const charge = await BillCharge.findOne({
+        where: { charge_id: req.params.id, hospital_id: req.hospitalId },
         lock: t.LOCK.UPDATE,
         transaction: t
       });

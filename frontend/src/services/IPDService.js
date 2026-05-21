@@ -7,27 +7,27 @@ class IPDService extends BaseService {
   }
 
   async getAll(params = {}) {
-    return apiClient.get('/api/ipd-admissions', { params });
+    return apiClient.get('/ipd-admissions', { params });
   }
 
   async admitPatient(data) {
-    return apiClient.post('/api/ipd-admissions', data);
+    return apiClient.post('/ipd-admissions', data);
   }
 
   async addProgressNote(admissionId, data) {
-    return apiClient.post(`/api/ipd-progress-notes`, { ...data, admission_id: admissionId });
+    return apiClient.post(`/ipd-progress-notes`, { ...data, admission_id: admissionId });
   }
 
   async dischargePatient(admissionId, data) {
-    return apiClient.post(`/api/ipd-admissions/${admissionId}/discharge`, data);
+    return apiClient.post(`/ipd-admissions/${admissionId}/discharge`, data);
   }
 
   async getBedAvailability() {
-    return apiClient.get('/api/beds/availability');
+    return apiClient.get('/beds/availability');
   }
 
   async getByPatient(uhid) {
-    return apiClient.get(`/api/ipd-admissions/patient/${uhid}`);
+    return apiClient.get(`/ipd-admissions/patient/${uhid}`);
   }
 }
 

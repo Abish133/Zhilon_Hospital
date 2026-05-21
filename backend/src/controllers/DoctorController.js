@@ -46,7 +46,8 @@ class DoctorController {
   // Get employee details by ID
   static async getEmployeeById(req, res) {
     try {
-      const employee = await Employee.findByPk(req.params.employeeId, {
+      const employee = await Employee.findOne({
+        where: { employee_id: req.params.employeeId, hospital_id: req.hospitalId },
         attributes: ['employee_id', 'full_name', 'email']
       });
 

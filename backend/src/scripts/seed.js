@@ -520,6 +520,8 @@ async function main() {
       const net=presc.quantity*m.selling_rate;
       const sale=await PharmacySale.create({ patient_id:pat.patient_id, uhid:pat.uhid, visit_type:'OPD', visit_id:presc.visit_id, prescription_id:presc.prescription_id, sale_date:now, total_amount:net, discount_amount:0, tax_amount:0, net_amount:net, payment_mode:'Cash', dispensed_by:userMap.Pharmacist.id, hospital_id:H, is_active:true },{ transaction:t });
       await PharmacySaleDetail.create({ sale_id:sale.sale_id, medicine_id:m.medicine_id, batch_id:bat?.batch_id, medicine_name:m.medicine_name, quantity:presc.quantity, rate:m.selling_rate, amount:net, gst_percentage:0, hospital_id:H, is_active:true },{ transaction:t });
+      // Mark the prescription as Dispensed so it won't reappear on the dispense screen.
+      await presc.update({ dispense_status:'Dispensed' }, { transaction:t });
     }
     console.log(`  ✔ OPD Pharmacy Sales (5)`);
 
@@ -757,12 +759,151 @@ async function main() {
     ],{ transaction:t });
     console.log(`  ✔ Audit Logs (8)`);
 
+    // ── 20. SECOND HOSPITAL — multi-tenant isolation demo ────────────
+    // A separate, self-contained tenant. Its data must NEVER appear when
+    // logged in as New Begin Hospital (and vice-versa). Use this to verify
+    // cross-hospital data isolation across OPD, pharmacy, billing and IPD.
+    console.log('\n🏥  Seeding City Care Hospital (tenant #2)...\n');
+
+    const hosp2 = await Hospital.create({
+      hospitalName: 'City Care Hospital',
+      licenseNumber: 'LIC-2025-CCH-0002',
+      address: '88 MG Road, Bengaluru, Karnataka 560001',
+      phone: '+91-80-40506070',
+      hospitalEmail: 'info@citycare.hospital',
+      hospitalType: 'general',
+      gst_number: '29CITYC5678K1Z3',
+      pan_number: 'CITYC5678K',
+      registration_number: 'REG-KA-2025-0099',
+      website: 'https://citycare.hospital',
+      numbering_prefixes: { uhid:'CCH', bill:'BILL', grn:'GRN', po:'PO' },
+      settings: {}, isActive: true
+    }, { transaction: t });
+    const H2 = hosp2.id;
+
+    // NOTE: department_code is globally unique in the schema, so tenant #2 uses
+    // its own prefixed codes to avoid colliding with tenant #1's GEN/CAR/etc.
+    const depts2 = await Department.bulkCreate([
+      { department_code:'CCH-GEN', department_name:'General Medicine', department_type:'Clinical', hospital_id:H2, is_active:true },
+      { department_code:'CCH-CAR', department_name:'Cardiology',       department_type:'Clinical', hospital_id:H2, is_active:true },
+      { department_code:'CCH-PHM', department_name:'Pharmacy',         department_type:'Support',  hospital_id:H2, is_active:true },
+      { department_code:'CCH-LAB', department_name:'Laboratory',       department_type:'Support',  hospital_id:H2, is_active:true },
+    ], { transaction: t });
+    const [d2Gen, d2Car, d2Phm, d2Lab] = depts2;
+
+    const docs2 = await Doctor.bulkCreate([
+      { name:'Dr. Vivek Rao',    specialization:'General Medicine', registration_number:'CCH-REG-001', email:'vivek@cch.in', phone:'9100000001', experience:10, department_id:d2Gen.id, hospital_id:H2, is_active:true },
+      { name:'Dr. Shalini Gupta',specialization:'Cardiology',       registration_number:'CCH-REG-002', email:'shalini@cch.in',phone:'9100000002', experience:16, department_id:d2Car.id, hospital_id:H2, is_active:true },
+    ], { transaction: t });
+    const [d2Vivek, d2Shalini] = docs2;
+
+    const sched2 = [];
+    for (const doc of docs2)
+      for (const day of ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'])
+        sched2.push({ doctor_id:doc.id, day_of_week:day, start_time:'09:00:00', end_time:'17:00:00', slot_duration_minutes:15, max_appointments:24, hospital_id:H2, is_active:true });
+    await DoctorSchedules.bulkCreate(sched2, { transaction: t });
+
+    // Staff + login users for tenant #2
+    const emp2Defs = [
+      { code:'CCH-ADM', name:'CityCare Admin',   role:'Admin',        email:'admin@cch.in',        deptId:d2Gen.id, dId:null },
+      { code:'CCH-DOC', name:'Dr. Vivek Rao',    role:'Doctor',       email:'dr.vivek@cch.in',     deptId:d2Gen.id, dId:d2Vivek.id },
+      { code:'CCH-PHM', name:'Nisha Pharmacist', role:'Pharmacist',   email:'pharmacist@cch.in',   deptId:d2Phm.id, dId:null },
+      { code:'CCH-REC', name:'Reception CCH',    role:'Receptionist', email:'receptionist@cch.in', deptId:d2Gen.id, dId:null },
+      { code:'CCH-NUR', name:'Latha Nurse',      role:'Nurse',        email:'nurse@cch.in',        deptId:d2Gen.id, dId:null },
+    ];
+    const u2 = {};
+    const e2 = {};
+    for (let i=0; i<emp2Defs.length; i++) {
+      const def = emp2Defs[i];
+      const emp = await Employee.create({
+        emp_code:def.code, full_name:def.name, gender:'F', date_of_birth:'1988-04-10',
+        mobile:`+9192220${String(i).padStart(5,'0')}`, email:def.email,
+        address:'Bengaluru, Karnataka', role:def.role, qualification:'Graduate',
+        joining_date:thirtyDaysAgo, department_id:def.deptId, hospital_id:H2, is_active:true
+      }, { transaction: t });
+      e2[def.role] = emp;
+      const user = await User.create({
+        name:def.name, email:def.email, password:pwHash, role:def.role,
+        employee_id:emp.employee_id, doctor_id:def.dId||null, hospital_id:H2, isActive:true
+      }, { transaction: t, hooks:false });
+      u2[def.role] = user;
+    }
+
+    // Patients for tenant #2 (note: distinct UHIDs, separate hospital)
+    const pat2Defs = [
+      { fn:'Aravind', ln:'Shetty', g:'M', age:40, dob:'1985-02-10', mob:'9876500001', bg:'O+' },
+      { fn:'Divya',   ln:'Menon',  g:'F', age:33, dob:'1992-08-19', mob:'9876500002', bg:'A+' },
+      { fn:'Faisal',  ln:'Khan',   g:'M', age:58, dob:'1967-12-01', mob:'9876500003', bg:'B+' },
+      { fn:'Nandini', ln:'Hegde',  g:'F', age:27, dob:'1998-05-23', mob:'9876500004', bg:'AB+' },
+    ];
+    const pats2 = [];
+    for (let i=0; i<pat2Defs.length; i++) {
+      const p = pat2Defs[i];
+      pats2.push(await Patient.create({
+        uhid:`CCH-${String(2001+i).padStart(6,'0')}`, first_name:p.fn, last_name:p.ln,
+        gender:p.g, age:p.age, date_of_birth:p.dob, mobile_number:p.mob,
+        email:`${p.fn.toLowerCase()}.${p.ln.toLowerCase()}@mail.com`,
+        city:'Bengaluru', state:'Karnataka', pincode:'560001', blood_group:p.bg,
+        insurance_status:false, hospital_id:H2, isActive:true
+      }, { transaction: t }));
+    }
+    const [p2Aravind, p2Divya, p2Faisal, p2Nandini] = pats2;
+
+    // Medicines + batches for tenant #2
+    const medCat2 = await MedicineCategory.bulkCreate([
+      { category_name:'Analgesics',  hospital_id:H2, is_active:true },
+      { category_name:'Antibiotics', hospital_id:H2, is_active:true },
+      { category_name:'Cardiac',     hospital_id:H2, is_active:true },
+    ], { transaction: t });
+    const med2Defs = [
+      { code:'CM01', name:'Paracetamol 650mg', cat:medCat2[0], form:'Tablet', mfr:'Cipla', mrp:25, pur:14, sell:22 },
+      { code:'CM02', name:'Amoxicillin 500mg', cat:medCat2[1], form:'Capsule',mfr:'Sun',   mrp:130,pur:85, sell:120 },
+      { code:'CM03', name:'Atenolol 50mg',     cat:medCat2[2], form:'Tablet', mfr:'USV',   mrp:45, pur:28, sell:40 },
+    ];
+    const meds2 = await Medicine.bulkCreate(med2Defs.map(m=>({ medicine_code:m.code, medicine_name:m.name, category_id:m.cat.category_id, dosage_form:m.form, manufacturer:m.mfr, hospital_id:H2, isActive:true })), { transaction:t });
+    const getMed2 = code => meds2.find(m=>m.medicine_code===code);
+    const exp2 = new Date(); exp2.setFullYear(exp2.getFullYear()+2);
+    const batches2 = await MedicineBatch.bulkCreate(med2Defs.map((m,i)=>({ medicine_id:getMed2(m.code).medicine_id, hospital_id:H2, batch_number:`CCH-BATCH-${String(i+1).padStart(3,'0')}`, expiry_date:exp2.toISOString().slice(0,10), mrp:m.mrp, purchase_rate:m.pur, selling_rate:m.sell, received_quantity:300, available_quantity:300, received_date:thirtyDaysAgo, is_active:true })), { transaction:t });
+    const getBatch2 = code => batches2.find(b=>b.medicine_id===getMed2(code).medicine_id);
+
+    // OPD chain (appointment → visit → episode → vital → consultation → prescriptions)
+    const appt2 = await OpdAppointment.create({ patient_id:p2Aravind.patient_id, doctor_id:d2Vivek.id, department_id:d2Gen.id, appointment_date:today, appointment_time:'09:30:00', visit_type:'New', status:'Completed', hospital_id:H2, is_active:true }, { transaction:t });
+    const visit2 = await OpdVisit.create({ appointment_id:appt2.appointment_id, patient_id:p2Aravind.patient_id, uhid:p2Aravind.uhid, doctor_id:d2Vivek.id, department_id:d2Gen.id, visit_date:today, token_number:1, visit_type:'New', status:'Completed', checked_in_at:now, hospital_id:H2, is_active:true }, { transaction:t });
+    const ep2 = await BillingEpisode.create({ patient_id:p2Aravind.patient_id, hospital_id:H2, uhid:p2Aravind.uhid, episode_type:'OPD', opd_visit_id:visit2.visit_id, start_date:new Date(today), status:'Open', is_active:true }, { transaction:t });
+    await OpdVital.create({ visit_id:visit2.visit_id, bp_systolic:126, bp_diastolic:82, pulse_rate:78, temperature:98.6, respiratory_rate:16, spo2:98, weight:74, height:170, bmi:25.6, hospital_id:H2, recorded_at:now, is_active:true }, { transaction:t });
+    const cons2 = await OpdConsultation.create({ visit_id:visit2.visit_id, patient_id:p2Aravind.patient_id, doctor_id:d2Vivek.id, chief_complaints:'Fever and cough x 2 days', clinical_notes:'Mild pharyngeal congestion.', examination_findings:'Chest clear.', diagnosis_code:'J06.9', diagnosis_description:'Acute URTI', treatment_plan:'Antipyretics + antibiotics', follow_up_date:inWeek, follow_up_instructions:'Review if fever persists', consultation_date:now, hospital_id:H2, is_active:true }, { transaction:t });
+    // One dispensed + one pending prescription
+    const rx2a = await OpdPrescription.create({ consultation_id:cons2.consultation_id, visit_id:visit2.visit_id, patient_id:p2Aravind.patient_id, medicine_id:getMed2('CM01').medicine_id, medicine_name:'Paracetamol 650mg', dosage:'1 tab', frequency:'TDS', route:'Oral', duration:'3 days', quantity:9, instructions:'After meals', prescribed_by:d2Vivek.id, prescribed_at:now, hospital_id:H2, dispense_status:'Dispensed', is_active:true }, { transaction:t });
+    await OpdPrescription.create({ consultation_id:cons2.consultation_id, visit_id:visit2.visit_id, patient_id:p2Aravind.patient_id, medicine_id:getMed2('CM02').medicine_id, medicine_name:'Amoxicillin 500mg', dosage:'1 cap', frequency:'BD', route:'Oral', duration:'5 days', quantity:10, instructions:'After food', prescribed_by:d2Vivek.id, prescribed_at:now, hospital_id:H2, dispense_status:'Pending', is_active:true }, { transaction:t });
+    // Dispense the first prescription (stock out + sale)
+    const ccBatch = getBatch2('CM01'), net2 = 9*getMed2('CM01').selling_rate;
+    const sale2 = await PharmacySale.create({ patient_id:p2Aravind.patient_id, uhid:p2Aravind.uhid, visit_type:'OPD', visit_id:visit2.visit_id, prescription_id:rx2a.prescription_id, sale_date:now, total_amount:net2, discount_amount:0, tax_amount:0, net_amount:net2, payment_mode:'Cash', dispensed_by:u2.Pharmacist.id, hospital_id:H2, is_active:true }, { transaction:t });
+    await PharmacySaleDetail.create({ sale_id:sale2.sale_id, medicine_id:getMed2('CM01').medicine_id, batch_id:ccBatch?.batch_id, medicine_name:'Paracetamol 650mg', quantity:9, rate:getMed2('CM01').selling_rate, amount:net2, gst_percentage:0, hospital_id:H2, is_active:true }, { transaction:t });
+    // (Batch stock is left as-seeded, mirroring tenant #1 — decrementing here would
+    // fire the MedicineBatch afterUpdate hook on a separate connection and deadlock
+    // against this seed transaction.)
+
+    // OPD bill + payment for tenant #2
+    await BillCharge.create({ episode_id:ep2.episode_id, hospital_id:H2, charge_date:now, service_type:'Consultation', service_id:null, description:'General OPD Consultation', quantity:1, rate:400, amount:400, discount_percent:0, discount_amount:0, taxable_amount:400, gst_percent:0, gst_amount:0, net_amount:400, is_active:true }, { transaction:t });
+    const bill2 = await Bill.create({ bill_number:'CCH-BILL-000001', episode_id:ep2.episode_id, patient_id:p2Aravind.patient_id, hospital_id:H2, uhid:p2Aravind.uhid, bill_type:'OPD', bill_date:now, gross_amount:400, discount_amount:0, taxable_amount:400, tax_amount:0, net_amount:400, advance_adjusted:0, paid_amount:400, balance_amount:0, payment_status:'Paid', generated_by:u2.Receptionist.id, is_active:true }, { transaction:t });
+    await Payment.create({ bill_id:bill2.bill_id, hospital_id:H2, payment_date:now, payment_type:'Bill Payment', payment_mode:'Cash', amount_paid:400, received_by:u2.Receptionist.id, receipt_number:'CCH-RCP-000001', is_active:true }, { transaction:t });
+
+    // One IPD admission for tenant #2 (ward + bed)
+    const ward2 = await Ward.create({ ward_name:'General Ward', ward_type:'General', total_beds:6, available_beds:5, floor_number:1, department_id:d2Gen.id, hospital_id:H2, is_active:true }, { transaction:t });
+    const beds2 = await Bed.bulkCreate(Array.from({length:6}, (_,i)=>({ ward_id:ward2.ward_id, room_number:`C-${Math.ceil((i+1)/2)}`, bed_number:`C${i+1}`, bed_type:'General', status:'Available', charge_per_day:1500, hospital_id:H2, is_active:true })), { transaction:t });
+    const admBed2 = beds2[0];
+    const adm2 = await IpdAdmission.create({ patient_id:p2Faisal.patient_id, uhid:p2Faisal.uhid, admitting_doctor_id:d2Shalini.id, department_id:d2Car.id, ward_id:ward2.ward_id, bed_id:admBed2.bed_id, room_number:admBed2.room_number, bed_number:admBed2.bed_number, admission_date:dt(-1,10), admission_reason:'Unstable angina, observation', provisional_diagnosis:'Unstable Angina', admission_type:'Emergency', advance_paid:5000, status:'Admitted', admitted_by:u2.Admin.id, hospital_id:H2, is_active:true }, { transaction:t });
+    await admBed2.update({ status:'Occupied' }, { transaction:t });
+    await BillingEpisode.create({ patient_id:p2Faisal.patient_id, hospital_id:H2, uhid:p2Faisal.uhid, episode_type:'IPD', admission_id:adm2.admission_id, start_date:dt(-1,10), status:'Open', is_active:true }, { transaction:t });
+    console.log(`  ✔ City Care Hospital #${H2} — 4 depts, 2 doctors, 5 staff/users, 4 patients, OPD chain, dispense, bill, 1 IPD admission`);
+
     await t.commit();
 
     console.log('\n✅  Seed complete.\n');
     console.log('═══════════════════════════════════════════════════════');
     console.log('  LOGIN CREDENTIALS — password for ALL: password123');
     console.log('───────────────────────────────────────────────────────');
+    console.log('  New Begin Hospital (tenant #1):');
     for (const [role,email] of [
       ['Admin',        'admin@nbh.in'],
       ['Doctor',       'dr.anita@nbh.in'],
@@ -774,6 +915,15 @@ async function main() {
       ['Accountant',   'accountant@nbh.in'],
       ['HR',           'hr@nbh.in'],
       ['Employee',     'employee@nbh.in'],
+    ]) console.log(`  ${role.padEnd(14)} → ${email}`);
+    console.log('───────────────────────────────────────────────────────');
+    console.log('  City Care Hospital (tenant #2 — for isolation testing):');
+    for (const [role,email] of [
+      ['Admin',        'admin@cch.in'],
+      ['Doctor',       'dr.vivek@cch.in'],
+      ['Pharmacist',   'pharmacist@cch.in'],
+      ['Receptionist', 'receptionist@cch.in'],
+      ['Nurse',        'nurse@cch.in'],
     ]) console.log(`  ${role.padEnd(14)} → ${email}`);
     console.log('═══════════════════════════════════════════════════════\n');
 
