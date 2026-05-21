@@ -107,7 +107,7 @@ const OPDConsultation = () => {
     } catch { /* silent */ }
   };
 
-  const handleSubmit = async (values) => {
+  const saveConsultation = async (values, { keepOpen = false } = {}) => {
     setLoading(true);
     try {
       const doctorId = user?.doctor_id || visit?.doctor_id;
@@ -146,9 +146,10 @@ const OPDConsultation = () => {
         consultationId = consultRes.data.consultation_id;
       }
 
-      // 2. Save Prescriptions
+      // 2. Save Prescriptions (skip incomplete rows — e.g. when parking early)
       if (values.prescriptions?.length > 0) {
         for (const prescription of values.prescriptions) {
+          if (!prescription?.medicine_id) continue;
           const medicine = medicines.find(m => m.medicine_id === prescription.medicine_id);
           await opdPrescriptionService.create({
             consultation_id: consultationId,
@@ -219,8 +220,16 @@ const OPDConsultation = () => {
         }
       }
 
-      // 5. Update Visit Status
-      await opdVisitService.update(visitId, { status: 'Completed' });
+      // 5. Update Visit Status. "Keep open" parks the visit in In-consultation so
+      // the doctor can resume via "Continue Consult" after investigation results
+      // come back; otherwise the visit is Completed exactly as before.
+      await opdVisitService.update(visitId, { status: keepOpen ? 'In-consultation' : 'Completed' });
+
+      if (keepOpen) {
+        message.success('Consultation saved and investigations ordered. Visit kept open — use "Continue Consult" once results are back.');
+        navigate('/opd/queue');
+        return;
+      }
 
       message.success('Consultation saved successfully!');
       setSavedConsultation({
@@ -236,6 +245,21 @@ const OPDConsultation = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // "Save & Complete" — full validation (incl. treatment plan), marks visit Completed.
+  const handleSubmit = (values) => saveConsultation(values, { keepOpen: false });
+
+  // "Save & Order Investigations (Keep Open)" — only the early fields are required
+  // (treatment plan / prescription may come after results). Keeps the visit open.
+  const handleSaveKeepOpen = async () => {
+    try {
+      await form.validateFields(['chief_complaints', 'clinical_notes']);
+    } catch (err) {
+      return; // AntD highlights the missing required fields
+    }
+    const values = form.getFieldsValue(true);
+    await saveConsultation(values, { keepOpen: true });
   };
 
   const handlePrintPrescription = () => {
@@ -471,9 +495,12 @@ const OPDConsultation = () => {
         </Card>
 
         <Form.Item>
-          <Space>
+          <Space wrap>
             <Button type="primary" htmlType="submit" size="large" loading={loading} icon={<FileTextOutlined />}>
-              {existingConsultation ? 'Update Consultation' : 'Save Consultation'}
+              {existingConsultation ? 'Update & Complete' : 'Save & Complete Consultation'}
+            </Button>
+            <Button size="large" loading={loading} icon={<ExperimentOutlined />} onClick={handleSaveKeepOpen}>
+              Save &amp; Order Investigations (Keep Open)
             </Button>
             <Button size="large" onClick={() => navigate('/opd')}>Cancel</Button>
           </Space>
