@@ -15,8 +15,11 @@ class DocumentService extends BaseService {
     if (patient_id != null) formData.append('patient_id', patient_id);
     if (document_type) formData.append('document_type', document_type);
     if (description) formData.append('description', description);
-    // Let the browser set the multipart boundary — don't hardcode Content-Type.
-    return apiClient.post(`${this.endpoint}/upload`, formData);
+    // Force multipart so axios doesn't coerce the FormData to JSON (the instance
+    // default Content-Type is application/json); the browser fills in the boundary.
+    return apiClient.post(`${this.endpoint}/upload`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   }
 
   download(documentId) {

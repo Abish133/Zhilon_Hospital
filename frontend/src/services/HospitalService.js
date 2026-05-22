@@ -18,11 +18,14 @@ class HospitalService {
   }
 
   // Upload a hospital logo (PNG/JPG). Returns { logo_url, hospital }.
-  // Let the browser set the multipart boundary — don't hardcode Content-Type.
+  // Force multipart so axios doesn't coerce the FormData to JSON (the instance
+  // default Content-Type is application/json); the browser fills in the boundary.
   uploadLogo(id, file) {
     const formData = new FormData();
     formData.append('logo', file);
-    return apiClient.post(`${this.endpoint}/${id}/logo`, formData);
+    return apiClient.post(`${this.endpoint}/${id}/logo`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
   }
 }
 

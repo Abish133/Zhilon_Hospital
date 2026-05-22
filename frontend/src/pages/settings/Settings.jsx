@@ -275,7 +275,7 @@ const Settings = () => {
             },
             {
               key: '1.5',
-              label: 'Branding & Layout',
+              label: 'Branding & Documents',
               children: (
                 <Spin spinning={fetchingHospital}>
                   <Form form={brandingForm} layout="vertical" onFinish={handleSaveBranding}>
@@ -303,12 +303,27 @@ const Settings = () => {
                     <Form.Item name="logo_url" hidden>
                       <Input />
                     </Form.Item>
-                    <Form.Item label="Header HTML Template" name="header_html" extra="HTML for document headers (e.g., invoices, reports)">
-                      <Input.TextArea rows={4} placeholder="<div style='text-align: center;'><h1>Hospital Name</h1></div>" />
+                    <Form.Item label="Footer Note" name="footer_html" extra="A short line printed at the bottom of generated documents — e.g. a thank-you message or terms. Plain text.">
+                      <Input.TextArea rows={2} maxLength={200} showCount placeholder="Thank you for choosing us. Wishing you a speedy recovery!" />
                     </Form.Item>
-                    <Form.Item label="Footer HTML Template" name="footer_html" extra="HTML for document footers">
-                      <Input.TextArea rows={4} placeholder="<div style='text-align: center;'><p>Thank you</p></div>" />
-                    </Form.Item>
+
+                    <Divider style={{ margin: '8px 0 16px' }} />
+
+                    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                      <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 4 }}>What appears on your documents</div>
+                      <div style={{ fontSize: 12, color: '#64748b', marginBottom: 12 }}>
+                        Your logo and the details below are printed automatically on generated PDFs. Edit these in the <b>General</b> and <b>Billing</b> tabs — no HTML needed.
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 24px', fontSize: 13 }}>
+                        <div><span style={{ color: '#64748b' }}>Hospital name: </span>{hospital?.hospitalName || '—'}</div>
+                        <div><span style={{ color: '#64748b' }}>Phone: </span>{hospital?.phone || '—'}</div>
+                        <div><span style={{ color: '#64748b' }}>Email: </span>{hospital?.hospitalEmail || '—'}</div>
+                        <div><span style={{ color: '#64748b' }}>Address: </span>{hospital?.address || '—'}</div>
+                        <div><span style={{ color: '#64748b' }}>GST: </span>{hospital?.gst_number || '—'}</div>
+                        <div><span style={{ color: '#64748b' }}>Reg. no: </span>{hospital?.registration_number || '—'}</div>
+                      </div>
+                    </div>
+
                     <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={savingSection === 'Branding'}>
                       Save Changes
                     </Button>
