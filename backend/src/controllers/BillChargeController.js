@@ -61,12 +61,12 @@ class BillChargeController {
         net_amount
       }, { transaction: t });
 
-      // Verify episode is still active
-      if (episode.status !== 'active') {
+      // Verify episode is still open (Open/Closed are the only episode states)
+      if (episode.status !== 'Open') {
         await t.rollback();
-        return res.status(400).json({ 
-          success: false, 
-          message: 'Episode is not in active status' 
+        return res.status(400).json({
+          success: false,
+          message: 'Episode is not open'
         });
       }
 
@@ -325,11 +325,11 @@ class BillChargeController {
         transaction: t
       });
 
-      if (episode && episode.status !== 'active') {
+      if (episode && episode.status !== 'Open') {
         await t.rollback();
         return res.status(400).json({
           success: false,
-          message: 'Cannot delete charge: episode is not active'
+          message: 'Cannot delete charge: episode is not open'
         });
       }
 
