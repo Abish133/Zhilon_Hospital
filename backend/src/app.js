@@ -241,6 +241,10 @@ const path = require('path');
 // Serve static files from the 'public' directory (built React app)
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Serve hospital logos publicly (non-sensitive branding assets). Only the
+// `logos` subfolder is exposed — patient documents under uploads stay private.
+app.use('/uploads/logos', express.static(path.join(__dirname, '../uploads/logos')));
+
 // API root info endpoint
 app.get('/api', (req, res) => {
   res.json({ message: 'Hospital Management System SaaS API is running' });

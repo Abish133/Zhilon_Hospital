@@ -1,12 +1,18 @@
-import { Card, Tabs, Form, Input, Select, Switch, Button, Space, Divider, message, Modal, List, Spin, Tag } from 'antd';
-import { SaveOutlined, ExclamationCircleOutlined, EditOutlined, DeleteOutlined, PlusOutlined, RightOutlined } from '@ant-design/icons';
+import { Card, Tabs, Form, Input, Select, Switch, Button, Space, Divider, message, Modal, List, Spin, Tag, Upload } from 'antd';
+import { SaveOutlined, ExclamationCircleOutlined, EditOutlined, DeleteOutlined, PlusOutlined, RightOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DepartmentFormModal } from '@components/common/EmployeeModals';
 import { departmentService, hospitalService } from '@/services';
 import { useAuthStore } from '@/store';
+import apiClient from '@config/api';
 
 const { confirm } = Modal;
+
+// Logos are served from the backend origin (not under /api). Build an absolute
+// URL for previewing a stored relative path like "/uploads/logos/logo-x.png".
+const ASSET_BASE = (apiClient.defaults.baseURL || '').replace(/\/api\/?$/, '');
+const toLogoUrl = (u) => !u ? null : (/^https?:/i.test(u) ? u : `${ASSET_BASE}${u.startsWith('/') ? '' : '/'}${u}`);
 
 const Settings = () => {
   const navigate = useNavigate();
@@ -26,6 +32,8 @@ const Settings = () => {
   const [fetchingDepts, setFetchingDepts] = useState(false);
   const [hospital, setHospital] = useState(null);
   const [fetchingHospital, setFetchingHospital] = useState(false);
+  const [logoPreview, setLogoPreview] = useState(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
@@ -67,6 +75,7 @@ const Settings = () => {
           header_html: h.header_html,
           footer_html: h.footer_html
         });
+        setLogoPreview(toLogoUrl(h.logo_url));
         billingForm.setFieldsValue({
           gst_number: h.gst_number,
           pan_number: h.pan_number,
@@ -120,6 +129,36 @@ const Settings = () => {
       message.error(error?.response?.data?.message || 'Failed to save branding settings');
     } finally {
       setSavingSection(null);
+    }
+  };
+
+  // Validate, upload, and persist the logo immediately (returns a stored URL we
+  // drop into the hidden logo_url field so "Save Changes" keeps it).
+  const handleLogoUpload = async ({ file, onSuccess, onError }) => {
+    if (!hospitalId) { message.error('Hospital context missing'); return; }
+    const isImage = ['image/png', 'image/jpeg'].includes(file.type);
+    if (!isImage) { message.error('Logo must be a PNG or JPG image'); onError?.(new Error('bad type')); return; }
+    if (file.size > 2 * 1024 * 1024) { message.error('Logo must be 2MB or smaller'); onError?.(new Error('too big')); return; }
+
+    setUploadingLogo(true);
+    try {
+      const res = await hospitalService.uploadLogo(hospitalId, file);
+      if (res.success) {
+        const url = res.data.logo_url;
+        brandingForm.setFieldsValue({ logo_url: url });
+        setLogoPreview(toLogoUrl(url));
+        if (res.data.hospital) setHospital(res.data.hospital);
+        message.success('Logo uploaded successfully');
+        onSuccess?.(res);
+      } else {
+        message.error(res.message || 'Logo upload failed');
+        onError?.(new Error(res.message));
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Logo upload failed');
+      onError?.(error);
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -240,8 +279,29 @@ const Settings = () => {
               children: (
                 <Spin spinning={fetchingHospital}>
                   <Form form={brandingForm} layout="vertical" onFinish={handleSaveBranding}>
-                    <Form.Item label="Logo URL" name="logo_url" extra="Provide an absolute URL for the hospital logo">
-                      <Input placeholder="https://example.com/logo.png" />
+                    <Form.Item label="Hospital Logo" extra="PNG or JPG, up to 2MB. Appears on generated PDF documents (payslips, prescriptions).">
+                      <Space direction="vertical" size="middle">
+                        {logoPreview && (
+                          <img
+                            src={logoPreview}
+                            alt="Hospital logo"
+                            style={{ maxHeight: 80, maxWidth: 240, objectFit: 'contain', border: '1px solid #f0f0f0', borderRadius: 6, padding: 4 }}
+                          />
+                        )}
+                        <Upload
+                          accept="image/png,image/jpeg"
+                          showUploadList={false}
+                          customRequest={handleLogoUpload}
+                        >
+                          <Button icon={<UploadOutlined />} loading={uploadingLogo}>
+                            {logoPreview ? 'Change Logo' : 'Upload Logo'}
+                          </Button>
+                        </Upload>
+                      </Space>
+                    </Form.Item>
+                    {/* logo_url is set by the uploader and persisted on Save */}
+                    <Form.Item name="logo_url" hidden>
+                      <Input />
                     </Form.Item>
                     <Form.Item label="Header HTML Template" name="header_html" extra="HTML for document headers (e.g., invoices, reports)">
                       <Input.TextArea rows={4} placeholder="<div style='text-align: center;'><h1>Hospital Name</h1></div>" />

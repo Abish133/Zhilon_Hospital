@@ -104,6 +104,29 @@ class HospitalController {
     }
   }
 
+  static async uploadLogo(req, res) {
+    try {
+      // Ensure user can only update their own hospital's logo
+      if (req.hospitalId && req.params.id != req.hospitalId) {
+        return res.status(403).json({ success: false, message: 'Access denied to update this hospital' });
+      }
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No logo file uploaded' });
+      }
+
+      const logoUrl = `/uploads/logos/${req.file.filename}`;
+      const [updated] = await Hospital.update({ logo_url: logoUrl }, { where: { id: req.params.id } });
+      if (!updated) {
+        return res.status(404).json({ success: false, message: 'Hospital not found' });
+      }
+
+      const hospital = await Hospital.findOne({ where: { id: req.params.id } });
+      res.json({ success: true, message: 'Logo uploaded successfully', data: { logo_url: logoUrl, hospital } });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
   static async deleteHospital(req, res) {
     try {
       // Ensure user can only delete their own hospital
