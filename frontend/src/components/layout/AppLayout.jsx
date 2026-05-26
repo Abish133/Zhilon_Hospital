@@ -54,7 +54,8 @@ const AppLayout = () => {
         { key: '/opd/appointments', label: 'Appointments' },
         { key: '/opd/visits', label: 'Visits', roles: [ROLES.RECEPTIONIST, ROLES.NURSE] },
         { key: '/opd/queue', label: 'Queue' },
-        { key: '/opd/prescriptions', label: 'Prescriptions', roles: [ROLES.DOCTOR, ROLES.PHARMACIST] }
+        { key: '/opd/prescriptions', label: 'Prescriptions', roles: [ROLES.DOCTOR, ROLES.PHARMACIST] },
+        { key: '/opd/billing', label: 'Billing Collection', roles: [ROLES.RECEPTIONIST, ROLES.ACCOUNTANT, ROLES.ADMIN] }
       ]
     },
     {
@@ -80,7 +81,8 @@ const AppLayout = () => {
         { key: '/pharmacy/sales', label: 'Sales' },
         { key: '/pharmacy/medicines', label: 'Medicines' },
         { key: '/pharmacy/batches', label: 'Batches' },
-        { key: '/pharmacy/medicine-categories', label: 'Categories' }
+        { key: '/pharmacy/medicine-categories', label: 'Categories' },
+        { key: '/pharmacy/billing', label: 'Billing Collection', roles: [ROLES.PHARMACIST, ROLES.ACCOUNTANT, ROLES.ADMIN] }
       ]
     },
     {
@@ -88,7 +90,8 @@ const AppLayout = () => {
       roles: [ROLES.LAB_TECH, ROLES.ADMIN],
       children: [
         { key: '/lab', label: 'Lab Orders' },
-        { key: '/lab/test-master', label: 'Test Master', roles: [ROLES.ADMIN] }
+        { key: '/lab/test-master', label: 'Test Master', roles: [ROLES.ADMIN] },
+        { key: '/lab/billing', label: 'Billing Collection', roles: [ROLES.LAB_TECH, ROLES.ACCOUNTANT, ROLES.ADMIN] }
       ]
     },
     {

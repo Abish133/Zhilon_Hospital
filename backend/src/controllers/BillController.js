@@ -57,12 +57,12 @@ class BillController {
         return res.status(400).json({ success: false, message: 'No charges found for this episode' });
       }
 
-      // Calculate totals
-      const gross_amount = charges.reduce((sum, charge) => sum + parseFloat(charge.net_amount), 0);
-      const disc_amount = parseFloat(discount_amount) || 0;
-      const taxable_amount = gross_amount - disc_amount;
-      const tax_amount = charges.reduce((sum, charge) => sum + parseFloat(charge.gst_amount || 0), 0);
-      const net_amount = taxable_amount + tax_amount;
+      // Calculate totals correctly from charges
+      const totalGross = charges.reduce((sum, charge) => sum + parseFloat(charge.amount), 0);
+      const totalDisc = charges.reduce((sum, charge) => sum + parseFloat(charge.discount_amount), 0) + (parseFloat(discount_amount) || 0);
+      const totalTax = charges.reduce((sum, charge) => sum + parseFloat(charge.gst_amount || 0), 0);
+      const totalNet = totalGross - totalDisc + totalTax;
+      const totalPaid = charges.reduce((sum, charge) => sum + parseFloat(charge.paid_amount || 0), 0);
 
       // Get advance payments for IPD with lock
       let advance_adjusted = 0;
@@ -80,8 +80,10 @@ class BillController {
         advance_adjusted = advances.reduce((sum, adv) => sum + parseFloat(adv.balance_amount), 0);
       }
 
-      const balance_amount = net_amount - advance_adjusted;
-      const payment_status = balance_amount <= 0 ? 'Paid' : 'Unpaid';
+      const balance_amount = totalNet - advance_adjusted - totalPaid;
+      let payment_status = 'Unpaid';
+      if (balance_amount <= 0) payment_status = 'Paid';
+      else if (totalPaid > 0 || advance_adjusted > 0) payment_status = 'Partial';
 
       const bill_number = await generateSequentialNumber({
         model: Bill,
@@ -99,12 +101,13 @@ class BillController {
         bill_type: episode.episode_type,
         generated_by,
         hospital_id,
-        gross_amount,
-        discount_amount: disc_amount,
-        taxable_amount,
-        tax_amount,
-        net_amount,
+        gross_amount: totalGross,
+        discount_amount: totalDisc,
+        taxable_amount: totalGross - totalDisc,
+        tax_amount: totalTax,
+        net_amount: totalNet,
         advance_adjusted,
+        paid_amount: totalPaid,
         balance_amount,
         payment_status
       }, { transaction: t });

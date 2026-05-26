@@ -177,7 +177,7 @@ const Billing = () => {
 
       <PaymentModal open={paymentModalOpen} onCancel={() => setPaymentModalOpen(false)} bill={selectedBill} onSuccess={() => { setPaymentModalOpen(false); refetch(); }} loading={processPaymentMutation.isPending} />
       <ViewDetailsModal open={viewModalOpen} onCancel={() => setViewModalOpen(false)} record={selectedBill} type="Bill" />
-      <SliderModal title="Generate New Bill â€” Select Visit / Episode" open={unbilledModalOpen} onCancel={() => setUnbilledModalOpen(false)} footer={null} width={900}>
+      <SliderModal title="Generate New Bill - Select Visit / Episode" open={unbilledModalOpen} onCancel={() => setUnbilledModalOpen(false)} footer={null} width={900}>
         <DataTable columns={unbilledColumns} dataSource={unbilledEpisodes} loading={unbilledLoading} rowKey="episode_id" pagination={{ pageSize: 10 }} />
       </SliderModal>
     </div>

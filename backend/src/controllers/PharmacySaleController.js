@@ -145,7 +145,10 @@ class PharmacySaleController {
             taxable_amount: totalAmount,
             gst_percent: effectiveGstPct,
             gst_amount: totalTax,
-            net_amount: netAmount
+            net_amount: netAmount,
+            payment_status: 'Unpaid',
+            paid_amount: 0,
+            balance_amount: netAmount
           }, { transaction });
         }
       }

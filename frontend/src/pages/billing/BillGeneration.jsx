@@ -21,6 +21,7 @@ const BillGeneration = () => {
   const { episodeId } = useParams();
   const [searchParams] = useSearchParams();
   const visitType = searchParams.get('type'); // OPD or IPD
+  const departmentFilter = searchParams.get('department'); // Pharmacy, Investigation, etc.
   
   const [paymentModal, setPaymentModal] = useState(false);
   const [addChargeModal, setAddChargeModal] = useState(false);
@@ -59,7 +60,7 @@ const BillGeneration = () => {
     { enabled: !!episodeId }
   );
 
-  const { data: existingBillData } = useApiQuery(
+  const { data: existingBillData, refetch: refetchBill } = useApiQuery(
     ['episode-bill', episodeId],
     async () => {
       try {
@@ -130,8 +131,10 @@ const BillGeneration = () => {
       onSuccess: () => {
         message.success('Payment processed successfully');
         setPaymentModal(false);
+        setSelectedCharges([]);
         paymentForm.resetFields();
-        navigate('/billing');
+        refetchCharges();
+        if (refetchBill) refetchBill();
       },
       onError: (error) => {
         message.error(error?.response?.data?.message || 'Payment processing failed');
@@ -139,13 +142,26 @@ const BillGeneration = () => {
     }
   );
 
-  const charges = chargesData?.data?.charges || [];
-  const totals = chargesData?.data?.totals || {
+  const rawCharges = chargesData?.data?.charges || [];
+  const charges = departmentFilter ? rawCharges.filter(c => c.service_type === departmentFilter) : rawCharges;
+  
+  // Calculate dynamic totals for the filtered view
+  const totals = departmentFilter ? {
+    gross_amount: charges.reduce((sum, c) => sum + parseFloat(c.amount || 0), 0),
+    discount_amount: charges.reduce((sum, c) => sum + parseFloat(c.discount_amount || 0), 0),
+    tax_amount: charges.reduce((sum, c) => sum + parseFloat(c.gst_amount || 0), 0),
+    net_amount: charges.reduce((sum, c) => sum + parseFloat(c.net_amount || 0), 0),
+    paid_amount: charges.reduce((sum, c) => sum + parseFloat(c.paid_amount || 0), 0),
+    balance_amount: charges.reduce((sum, c) => sum + parseFloat(c.balance_amount || 0), 0)
+  } : (chargesData?.data?.totals || {
     gross_amount: 0,
     discount_amount: 0,
     tax_amount: 0,
-    net_amount: 0
-  };
+    net_amount: 0,
+    paid_amount: 0,
+    balance_amount: 0
+  });
+
   const episode = episodeData?.data || {};
   const patient = episode.patient || {};
   const chargeMasters = chargeMastersData?.data || [];
@@ -181,7 +197,7 @@ const BillGeneration = () => {
         generated_by: user.id,
         hospital_id: user.hospital_id
       });
-      navigate('/billing');
+      if (refetchBill) refetchBill();
     } catch (error) {
     }
   };
@@ -192,26 +208,38 @@ const BillGeneration = () => {
       return;
     }
     try {
-      // First generate the bill
-      const billResponse = await generateBillMutation.mutateAsync({
-        episode_id: episodeId,
-        discount_amount: 0,
-        generated_by: user.id,
-        hospital_id: user.hospital_id
-      });
+      // Generate bill if one doesn't exist yet
+      let billId = existingBill?.bill_id;
+      if (!billExists) {
+        const billResponse = await generateBillMutation.mutateAsync({
+          episode_id: episodeId,
+          discount_amount: 0,
+          generated_by: user.id,
+          hospital_id: user.hospital_id
+        });
+        billId = billResponse.data.bill_id;
+      }
 
-      const billId = billResponse.data.bill_id;
+      // Map selected charges to allocations
+      const allocations = selectedCharges.map(chargeId => {
+        const charge = charges.find(c => c.charge_id === chargeId);
+        return {
+          charge_id: chargeId,
+          amount: parseFloat(charge.balance_amount)
+        };
+      });
 
       // Then process payment
       await processPaymentMutation.mutateAsync({
-        bill_id: billId,
+        bill_id: billId || null,
         payment_type: 'Bill Payment',
         amount_paid: values.amount_paid,
         payment_mode: values.payment_mode,
         transaction_ref: values.transaction_ref || null,
         bank_name: values.bank_name || null,
         received_by: user.id,
-        hospital_id: user.hospital_id
+        hospital_id: user.hospital_id,
+        allocations: allocations.length > 0 ? allocations : undefined
       });
     } catch (error) {
     }
@@ -425,6 +453,28 @@ const BillGeneration = () => {
       render: (val) => <div style={{ fontWeight: 600 }}>{formatCurrency(val)}</div> 
     },
     {
+      title: 'Paid',
+      dataIndex: 'paid_amount',
+      key: 'paid_amount',
+      render: (val) => <span style={{ color: '#10b981' }}>{formatCurrency(val || 0)}</span>
+    },
+    {
+      title: 'Balance',
+      dataIndex: 'balance_amount',
+      key: 'balance_amount',
+      render: (val) => <strong style={{ color: parseFloat(val) > 0 ? '#ef4444' : '#10b981' }}>{formatCurrency(val || 0)}</strong>
+    },
+    {
+      title: 'Status',
+      dataIndex: 'payment_status',
+      key: 'payment_status',
+      render: (status) => (
+        <Tag color={status === 'Paid' ? 'green' : status === 'Partial' ? 'orange' : 'red'}>
+          {status || 'Unpaid'}
+        </Tag>
+      )
+    },
+    {
       title: 'Actions',
       key: 'actions',
       width: 110,
@@ -477,16 +527,47 @@ const BillGeneration = () => {
           <Space>
             <span>{`${visitType} Bill - Episode #${episodeId}`}</span>
             {billExists && <Tag color="green">Bill Already Generated</Tag>}
+            {departmentFilter && <Tag color="blue">{departmentFilter} Department</Tag>}
           </Space>
         }
         extra={
           <Space>
-            {!billExists && (
+            {!departmentFilter && (
+              <Button onClick={() => navigate('/billing')}>Back to Billing</Button>
+            )}
+            {departmentFilter && (
+              <Button onClick={() => navigate(-1)}>Back</Button>
+            )}
+            
+            {!billExists && !departmentFilter && (
               <Button 
                 icon={<PlusOutlined />} 
                 onClick={() => setAddChargeModal(true)}
               >
                 Add Charge
+              </Button>
+            )}
+            
+            {!billExists && !departmentFilter && (
+              <Button onClick={handleGenerateBill}>
+                Generate Bill Only
+              </Button>
+            )}
+            
+            {(billExists || charges.length > 0) && (
+              <Button 
+                type="primary" 
+                icon={<DollarOutlined />}
+                onClick={() => {
+                  const amt = selectedCharges.length > 0 
+                    ? charges.filter(c => selectedCharges.includes(c.charge_id)).reduce((sum, c) => sum + parseFloat(c.balance_amount || 0), 0)
+                    : (existingBill ? existingBill.balance_amount : totals.net_amount);
+                  paymentForm.setFieldsValue({ amount_paid: amt || 0 });
+                  setPaymentModal(true);
+                }}
+                disabled={charges.length === 0}
+              >
+                Collect Payment
               </Button>
             )}
             <Button 
@@ -503,26 +584,7 @@ const BillGeneration = () => {
             >
               Print
             </Button>
-            {!billExists && (
-              <Button 
-                type="primary" 
-                icon={<DollarOutlined />} 
-                onClick={() => setPaymentModal(true)}
-                disabled={charges.length === 0}
-              >
-                Generate Bill & Collect Payment
-              </Button>
-            )}
-            {billExists && existingBill.balance_amount > 0 && (
-              <Button 
-                type="primary" 
-                icon={<DollarOutlined />} 
-                onClick={() => navigate('/billing')}
-              >
-                Go to Billing to Pay
-              </Button>
-            )}
-            {billExists && existingBill.balance_amount === 0 && (
+            {((billExists && existingBill.balance_amount === 0) || (departmentFilter && totals.balance_amount === 0)) && (
               <Tag color="success" style={{ fontSize: 14, padding: '4px 12px' }}>
                 Fully Paid
               </Tag>
@@ -596,37 +658,52 @@ const BillGeneration = () => {
           dataSource={charges} 
           pagination={false}
           rowKey="charge_id"
+          rowSelection={{
+            selectedRowKeys: selectedCharges,
+            onChange: (selectedRowKeys) => {
+              setSelectedCharges(selectedRowKeys);
+              // Recalculate modal default amount based on selected items
+              const selectedTotal = charges
+                .filter(c => selectedRowKeys.includes(c.charge_id))
+                .reduce((sum, c) => sum + parseFloat(c.balance_amount || 0), 0);
+              paymentForm.setFieldsValue({ amount_paid: selectedTotal || totals.net_amount });
+            },
+            getCheckboxProps: (record) => ({
+              disabled: record.payment_status === 'Paid' || parseFloat(record.balance_amount || 0) <= 0,
+              name: record.description,
+            }),
+          }}
           summary={() => (
             <>
               <Table.Summary.Row>
-                <Table.Summary.Cell colSpan={6} align="right">
+                <Table.Summary.Cell colSpan={7} align="right">
                   <strong>Gross Amount:</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell>
                   <strong>{formatCurrency(totals.gross_amount || 0)}</strong>
                 </Table.Summary.Cell>
-                <Table.Summary.Cell />
+                <Table.Summary.Cell colSpan={4} />
               </Table.Summary.Row>
               <Table.Summary.Row>
-                <Table.Summary.Cell colSpan={6} align="right">
+                <Table.Summary.Cell colSpan={7} align="right">
                   Discount:
                 </Table.Summary.Cell>
                 <Table.Summary.Cell>
                   {formatCurrency(totals.discount_amount || 0)}
                 </Table.Summary.Cell>
-                <Table.Summary.Cell />
+                <Table.Summary.Cell colSpan={4} />
               </Table.Summary.Row>
               <Table.Summary.Row>
-                <Table.Summary.Cell colSpan={6} align="right">
+                <Table.Summary.Cell colSpan={7} align="right">
                   Tax:
                 </Table.Summary.Cell>
                 <Table.Summary.Cell>
                   {formatCurrency(totals.tax_amount || 0)}
                 </Table.Summary.Cell>
-                <Table.Summary.Cell />
+                <Table.Summary.Cell colSpan={4} />
               </Table.Summary.Row>
               <Table.Summary.Row>
-                <Table.Summary.Cell colSpan={6} align="right">
+                <Table.Summary.Cell colSpan={7} align="right">
                   <strong style={{ fontSize: 16 }}>Net Amount:</strong>
                 </Table.Summary.Cell>
                 <Table.Summary.Cell>
@@ -634,7 +711,7 @@ const BillGeneration = () => {
                     {formatCurrency(totals.net_amount || 0)}
                   </strong>
                 </Table.Summary.Cell>
-                <Table.Summary.Cell />
+                <Table.Summary.Cell colSpan={4} />
               </Table.Summary.Row>
             </>
           )}
@@ -711,7 +788,7 @@ const BillGeneration = () => {
 
       {/* Payment Modal */}
       <SliderModal
-        title="Generate Bill & Collect Payment"
+        title={billExists ? "Collect Payment" : "Generate Bill & Collect Payment"}
         open={paymentModal}
         onCancel={() => setPaymentModal(false)}
         footer={null}
@@ -719,9 +796,13 @@ const BillGeneration = () => {
       >
         <Form form={paymentForm} layout="vertical" onFinish={handlePayment}>
           <Descriptions bordered column={1} size="small" style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Total Amount">
+            <Descriptions.Item label="Total Amount to Pay">
               <strong style={{ fontSize: 18, color: '#0a0a0a' }}>
-                {formatCurrency(totals.net_amount || 0)}
+                {formatCurrency(
+                  selectedCharges.length > 0 
+                    ? charges.filter(c => selectedCharges.includes(c.charge_id)).reduce((sum, c) => sum + parseFloat(c.balance_amount || 0), 0)
+                    : (existingBill ? existingBill.balance_amount : totals.net_amount || 0)
+                )}
               </strong>
             </Descriptions.Item>
           </Descriptions>
@@ -749,7 +830,11 @@ const BillGeneration = () => {
             <InputNumber 
               style={{ width: '100%' }} 
               min={0}
-              max={totals.net_amount}
+              max={
+                selectedCharges.length > 0 
+                  ? charges.filter(c => selectedCharges.includes(c.charge_id)).reduce((sum, c) => sum + parseFloat(c.balance_amount || 0), 0)
+                  : (existingBill ? existingBill.balance_amount : totals.net_amount)
+              }
               formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
               parser={value => value.replace(/₹\s?|(,*)/g, '')}
             />
@@ -766,18 +851,20 @@ const BillGeneration = () => {
           <Form.Item>
             <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
               <Button onClick={() => setPaymentModal(false)}>Cancel</Button>
-              <Button 
-                onClick={handleGenerateBill}
-                loading={generateBillMutation.isPending}
-              >
-                Generate Bill Only
-              </Button>
+              {!billExists && (
+                <Button 
+                  onClick={handleGenerateBill}
+                  loading={generateBillMutation.isPending}
+                >
+                  Generate Bill Only
+                </Button>
+              )}
               <Button 
                 type="primary" 
                 htmlType="submit" 
                 loading={processPaymentMutation.isPending}
               >
-                Generate Bill & Process Payment
+                {billExists ? 'Process Payment' : 'Generate Bill & Process Payment'}
               </Button>
             </Space>
           </Form.Item>

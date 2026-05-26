@@ -12,6 +12,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'hospital_id',
         as: 'hospital'
       });
+      BillCharge.hasMany(models.PaymentAllocation, {
+        foreignKey: 'charge_id',
+        as: 'allocations'
+      });
     }
   }
 
@@ -93,6 +97,21 @@ module.exports = (sequelize, DataTypes) => {
     net_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
+    },
+    payment_status: {
+      type: DataTypes.ENUM('Unpaid', 'Partial', 'Paid'),
+      allowNull: false,
+      defaultValue: 'Unpaid'
+    },
+    paid_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
+    balance_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
     },
     is_active: {
       type: DataTypes.BOOLEAN,

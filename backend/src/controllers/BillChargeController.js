@@ -58,7 +58,10 @@ class BillChargeController {
         taxable_amount,
         gst_percent: gst_pct,
         gst_amount,
-        net_amount
+        net_amount,
+        payment_status: 'Unpaid',
+        paid_amount: 0,
+        balance_amount: net_amount
       }, { transaction: t });
 
       // Verify episode is still open (Open/Closed are the only episode states)
@@ -134,7 +137,10 @@ class BillChargeController {
         taxable_amount,
         gst_percent: gst_pct,
         gst_amount,
-        net_amount
+        net_amount,
+        payment_status: 'Unpaid',
+        paid_amount: 0,
+        balance_amount: net_amount
       });
 
       const episode = await BillingEpisode.findByPk(episode_id);
@@ -180,6 +186,76 @@ class BillChargeController {
           count: charges.length
         }
       });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Get department summary grouping active charges by episode
+  static async getDepartmentSummary(req, res) {
+    try {
+      const { type } = req.query; // 'Pharmacy', 'Investigation', 'Consultation', etc.
+      const hospital_id = req.user?.hospital_id || req.hospitalId;
+
+      if (!type) {
+        return res.status(400).json({ success: false, message: 'Department type filter is required' });
+      }
+
+      // We only care about active charges for the specific department that still have a balance > 0
+      const charges = await BillCharge.findAll({
+        where: {
+          hospital_id,
+          service_type: type,
+          is_active: true,
+          balance_amount: { [require('sequelize').Op.gt]: 0 }
+        },
+        order: [['charge_date', 'ASC']]
+      });
+
+      // Group by episode_id
+      const episodeGroups = {};
+      for (const charge of charges) {
+        const epId = charge.episode_id;
+        if (!episodeGroups[epId]) {
+          episodeGroups[epId] = {
+            episode_id: epId,
+            charges: [],
+            department_net_amount: 0,
+            department_paid_amount: 0,
+            department_balance_amount: 0
+          };
+        }
+        episodeGroups[epId].charges.push(charge);
+        episodeGroups[epId].department_net_amount += parseFloat(charge.net_amount || 0);
+        episodeGroups[epId].department_paid_amount += parseFloat(charge.paid_amount || 0);
+        episodeGroups[epId].department_balance_amount += parseFloat(charge.balance_amount || 0);
+      }
+
+      // Fetch patient and episode details for each grouped episode
+      const { Patient } = require('../models');
+      const results = [];
+      for (const epId in episodeGroups) {
+        const group = episodeGroups[epId];
+        const episode = await BillingEpisode.findByPk(epId);
+        let patient = null;
+        if (episode) {
+          patient = await Patient.findByPk(episode.patient_id);
+        }
+        results.push({
+          ...group,
+          episode_type: episode?.episode_type,
+          start_date: episode?.start_date,
+          status: episode?.status,
+          patient: patient ? {
+            first_name: patient.first_name,
+            last_name: patient.last_name,
+            uhid: patient.uhid,
+            mobile_number: patient.mobile_number
+          } : null
+        });
+      }
+
+      res.json({ success: true, data: results });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -271,6 +347,11 @@ class BillChargeController {
       const gst_pct = gst_percent !== undefined ? gst_percent : existingCharge.gst_percent;
       const gst_amount = (taxable_amount * gst_pct) / 100;
       const net_amount = taxable_amount + gst_amount;
+      
+      const balance_amount = net_amount - parseFloat(existingCharge.paid_amount || 0);
+      let payment_status = 'Unpaid';
+      if (balance_amount <= 0) payment_status = 'Paid';
+      else if (parseFloat(existingCharge.paid_amount || 0) > 0) payment_status = 'Partial';
 
       const [updated] = await BillCharge.update(
         { 
@@ -284,6 +365,8 @@ class BillChargeController {
           gst_percent: gst_pct,
           gst_amount,
           net_amount,
+          balance_amount,
+          payment_status,
           is_active: is_active !== undefined ? is_active : true 
         },
         { where: { charge_id: req.params.id, hospital_id: req.hospitalId } }

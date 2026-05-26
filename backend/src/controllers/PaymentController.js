@@ -1,4 +1,4 @@
-const { Payment, Bill, Hospital, User, Patient, sequelize } = require('../models');
+const { Payment, Bill, Hospital, User, Patient, sequelize, PaymentAllocation, BillCharge } = require('../models');
 const { Op } = require('sequelize');
 const { generateSequentialNumber } = require('../utils/numberGenerator');
 const logger = require('../utils/logger');
@@ -43,7 +43,6 @@ class PaymentController {
         });
       }
 
-      // Per-hospital sequential receipt number, generated under transaction lock.
       const receipt_number = await generateSequentialNumber({
         model: Payment,
         field: 'receipt_number',
@@ -64,15 +63,70 @@ class PaymentController {
         receipt_number
       }, { transaction: t });
 
-      const newPaidAmount = parseFloat(bill.paid_amount) + amt;
-      const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
+      // Automatically allocate payment to unpaid charges for this bill's episode
+      const unpaidCharges = await BillCharge.findAll({
+        where: { 
+          episode_id: bill.episode_id, 
+          hospital_id,
+          balance_amount: { [Op.gt]: 0 },
+          is_active: true
+        },
+        order: [['charge_date', 'ASC']],
+        transaction: t,
+        lock: t.LOCK.UPDATE
+      });
+
+      let remainingPayment = amt;
+      for (const charge of unpaidCharges) {
+        if (remainingPayment <= 0) break;
+        const allocAmount = Math.min(remainingPayment, parseFloat(charge.balance_amount));
+        
+        await PaymentAllocation.create({
+          payment_id: payment.payment_id,
+          charge_id: charge.charge_id,
+          amount_allocated: allocAmount,
+          hospital_id
+        }, { transaction: t });
+
+        const newChargePaid = parseFloat(charge.paid_amount) + allocAmount;
+        const newChargeBalance = parseFloat(charge.net_amount) - newChargePaid;
+        let cStatus = 'Unpaid';
+        if (newChargeBalance <= 0) cStatus = 'Paid';
+        else if (newChargePaid > 0) cStatus = 'Partial';
+
+        await charge.update({
+          paid_amount: newChargePaid,
+          balance_amount: newChargeBalance,
+          payment_status: cStatus
+        }, { transaction: t });
+
+        remainingPayment -= allocAmount;
+      }
+
+      // Recalculate bill totals dynamically from charges
+      const episodeCharges = await BillCharge.findAll({
+        where: { episode_id: bill.episode_id, is_active: true },
+        transaction: t
+      });
+      
+      const totalGross = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.amount), 0);
+      const totalDisc = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.discount_amount), 0);
+      const totalTax = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.gst_amount || 0), 0);
+      const totalNet = totalGross - totalDisc + totalTax;
+      const totalPaid = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.paid_amount), 0);
+      const newBalanceAmount = totalNet - parseFloat(bill.advance_adjusted) - totalPaid;
 
       let payment_status = 'Unpaid';
       if (newBalanceAmount <= 0) payment_status = 'Paid';
-      else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+      else if (totalPaid > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
 
       await bill.update({
-        paid_amount: newPaidAmount,
+        gross_amount: totalGross,
+        discount_amount: totalDisc,
+        taxable_amount: totalGross - totalDisc,
+        tax_amount: totalTax,
+        net_amount: totalNet,
+        paid_amount: totalPaid,
         balance_amount: newBalanceAmount,
         payment_status
       }, { transaction: t });
@@ -107,7 +161,7 @@ class PaymentController {
   static async create(req, res) {
     const t = await sequelize.transaction();
     try {
-      const { payment_type, payment_mode, amount_paid, received_by, hospital_id, bill_id, ...otherData } = req.body;
+      const { payment_type, payment_mode, amount_paid, received_by, hospital_id, bill_id, allocations, ...otherData } = req.body;
 
       if (!payment_type || !payment_mode || !amount_paid || !received_by || !hospital_id) {
         await t.rollback();
@@ -144,10 +198,41 @@ class PaymentController {
           await t.rollback();
           return res.status(404).json({ success: false, message: 'Bill not found' });
         }
-        if (payment_type === 'Bill Payment' && amt > parseFloat(bill.balance_amount)) {
-          await t.rollback();
-          return res.status(400).json({ success: false, message: 'Payment amount cannot exceed balance amount' });
+      }
+
+      // Verify allocations if provided
+      let totalAllocated = 0;
+      let lockedCharges = [];
+      if (allocations && Array.isArray(allocations) && allocations.length > 0) {
+        for (const alloc of allocations) {
+          const allocAmount = parseFloat(alloc.amount);
+          if (allocAmount > 0) {
+            const charge = await BillCharge.findOne({
+              where: { charge_id: alloc.charge_id, hospital_id },
+              transaction: t,
+              lock: t.LOCK.UPDATE
+            });
+            if (!charge) {
+              await t.rollback();
+              return res.status(404).json({ success: false, message: `Charge ${alloc.charge_id} not found` });
+            }
+            if (allocAmount > parseFloat(charge.balance_amount)) {
+              await t.rollback();
+              return res.status(400).json({ success: false, message: `Allocated amount exceeds balance for charge ${alloc.charge_id}` });
+            }
+            totalAllocated += allocAmount;
+            lockedCharges.push({ charge, amount: allocAmount });
+          }
         }
+        
+        // Due to floating point math, check total with a small tolerance
+        if (Math.abs(totalAllocated - amt) > 0.01) {
+          await t.rollback();
+          return res.status(400).json({ success: false, message: 'Sum of allocated amounts must equal total amount paid' });
+        }
+      } else if (bill && payment_type === 'Bill Payment' && amt > parseFloat(bill.balance_amount)) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: 'Payment amount cannot exceed balance amount' });
       }
 
       const payment = await Payment.create({
@@ -161,19 +246,127 @@ class PaymentController {
         receipt_number
       }, { transaction: t });
 
+      // Process allocations
+      if (lockedCharges.length > 0) {
+        for (const { charge, amount } of lockedCharges) {
+          await PaymentAllocation.create({
+            payment_id: payment.payment_id,
+            charge_id: charge.charge_id,
+            amount_allocated: amount,
+            hospital_id
+          }, { transaction: t });
+
+          const newPaidAmount = parseFloat(charge.paid_amount) + amount;
+          const newBalanceAmount = parseFloat(charge.net_amount) - newPaidAmount;
+          let payment_status = 'Unpaid';
+          if (newBalanceAmount <= 0) payment_status = 'Paid';
+          else if (newPaidAmount > 0) payment_status = 'Partial';
+
+          await charge.update({
+            paid_amount: newPaidAmount,
+            balance_amount: newBalanceAmount,
+            payment_status
+          }, { transaction: t });
+        }
+      }
+
       if (bill && payment_type === 'Bill Payment') {
-        const newPaidAmount = parseFloat(bill.paid_amount) + amt;
-        const newBalanceAmount = parseFloat(bill.net_amount) - parseFloat(bill.advance_adjusted) - newPaidAmount;
+        // Recalculate bill totals dynamically from charges if we just modified them
+        if (lockedCharges.length > 0) {
+          const episodeCharges = await BillCharge.findAll({
+            where: { episode_id: bill.episode_id, is_active: true },
+            transaction: t
+          });
+          
+          const totalGross = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.amount), 0);
+          const totalDisc = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.discount_amount), 0);
+          const totalTax = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.gst_amount || 0), 0);
+          const totalNet = totalGross - totalDisc + totalTax;
+          const totalPaid = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.paid_amount), 0);
+          const newBalanceAmount = totalNet - parseFloat(bill.advance_adjusted) - totalPaid;
 
-        let payment_status = 'Unpaid';
-        if (newBalanceAmount <= 0) payment_status = 'Paid';
-        else if (newPaidAmount > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+          let payment_status = 'Unpaid';
+          if (newBalanceAmount <= 0) payment_status = 'Paid';
+          else if (totalPaid > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
 
-        await bill.update({
-          paid_amount: newPaidAmount,
-          balance_amount: newBalanceAmount,
-          payment_status
-        }, { transaction: t });
+          await bill.update({
+            gross_amount: totalGross,
+            discount_amount: totalDisc,
+            taxable_amount: totalGross - totalDisc,
+            tax_amount: totalTax,
+            net_amount: totalNet,
+            paid_amount: totalPaid,
+            balance_amount: newBalanceAmount,
+            payment_status
+          }, { transaction: t });
+        } else {
+          // Fallback logic if no allocations: automatically allocate to unpaid charges
+          const unpaidCharges = await BillCharge.findAll({
+            where: { 
+              episode_id: bill.episode_id, 
+              hospital_id,
+              balance_amount: { [Op.gt]: 0 },
+              is_active: true
+            },
+            order: [['charge_date', 'ASC']],
+            transaction: t,
+            lock: t.LOCK.UPDATE
+          });
+
+          let remainingPayment = amt;
+          for (const charge of unpaidCharges) {
+            if (remainingPayment <= 0) break;
+            const allocAmount = Math.min(remainingPayment, parseFloat(charge.balance_amount));
+            
+            await PaymentAllocation.create({
+              payment_id: payment.payment_id,
+              charge_id: charge.charge_id,
+              amount_allocated: allocAmount,
+              hospital_id
+            }, { transaction: t });
+
+            const newChargePaid = parseFloat(charge.paid_amount) + allocAmount;
+            const newChargeBalance = parseFloat(charge.net_amount) - newChargePaid;
+            let cStatus = 'Unpaid';
+            if (newChargeBalance <= 0) cStatus = 'Paid';
+            else if (newChargePaid > 0) cStatus = 'Partial';
+
+            await charge.update({
+              paid_amount: newChargePaid,
+              balance_amount: newChargeBalance,
+              payment_status: cStatus
+            }, { transaction: t });
+
+            remainingPayment -= allocAmount;
+          }
+
+          const episodeCharges = await BillCharge.findAll({
+            where: { episode_id: bill.episode_id, is_active: true },
+            transaction: t
+          });
+          
+          const totalGross = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.amount), 0);
+          const totalDisc = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.discount_amount), 0);
+          const totalTax = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.gst_amount || 0), 0);
+          const totalNet = totalGross - totalDisc + totalTax;
+          const totalPaid = episodeCharges.reduce((sum, chg) => sum + parseFloat(chg.paid_amount), 0);
+          const newBalanceAmount = totalNet - parseFloat(bill.advance_adjusted) - totalPaid;
+
+          let payment_status = 'Unpaid';
+          if (newBalanceAmount <= 0) payment_status = 'Paid';
+          else if (totalPaid > 0 || parseFloat(bill.advance_adjusted) > 0) payment_status = 'Partial';
+
+          await bill.update({
+            gross_amount: totalGross,
+            discount_amount: totalDisc,
+            taxable_amount: totalGross - totalDisc,
+            tax_amount: totalTax,
+            net_amount: totalNet,
+            paid_amount: totalPaid,
+            balance_amount: newBalanceAmount,
+            payment_status
+          }, { transaction: t });
+        }
       }
 
       await t.commit();

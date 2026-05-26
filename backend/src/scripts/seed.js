@@ -457,7 +457,7 @@ async function main() {
     const v6=await mkVisit(pPreethi, dPriya,  dPed, a6, 6,'Checked-in',      'New');
     // Yesterday visits
     const v7=await mkVisit(pArjun,   dAnita,  dGen, ah1,1,'Completed','Follow-up',yesterday);
-    const v8=await mkVisit(pLakshmi, dAnita,  dGen, ah2,2,'Completed','New',       yesterday);
+    const v8=await mkVisit(pLakshmi, dAnita,  dGen, ah2,2,'Checked-in','New',       yesterday);
     const v9=await mkVisit(pGeetha,  dKavitha,dGyn, ah3,3,'Completed','New',       yesterday);
     console.log(`  ✔ OPD Visits (9) + Billing Episodes`);
 
@@ -515,6 +515,7 @@ async function main() {
     console.log(`  ✔ Prescriptions (${prescriptions.length}) + Medication Histories`);
 
     // OPD Pharmacy Sales (5 dispensed prescriptions)
+    const opdSales = [];
     for (const [idx,medCode,pat] of [[0,'M001',pArjun],[1,'M013',pArjun],[2,'M008',pMeera],[3,'M010',pRohan],[6,'M006',pLakshmi]]) {
       const m=getMed(medCode), bat=getBatch(medCode), presc=prescriptions[idx];
       const net=presc.quantity*m.selling_rate;
@@ -522,6 +523,7 @@ async function main() {
       await PharmacySaleDetail.create({ sale_id:sale.sale_id, medicine_id:m.medicine_id, batch_id:bat?.batch_id, medicine_name:m.medicine_name, quantity:presc.quantity, rate:m.selling_rate, amount:net, gst_percentage:0, hospital_id:H, is_active:true },{ transaction:t });
       // Mark the prescription as Dispensed so it won't reappear on the dispense screen.
       await presc.update({ dispense_status:'Dispensed' }, { transaction:t });
+      opdSales.push(sale);
     }
     console.log(`  ✔ OPD Pharmacy Sales (5)`);
 
@@ -580,10 +582,12 @@ async function main() {
     }
 
     // IPD Pharmacy dispense (ward-wise for 3 active admissions)
+    const ipdSales = {};
     for (const ipdInfo of [ipd1,ipd2,ipd3]) {
       const m=getMed('M001'), bat=getBatch('M001'), net=15*m.selling_rate;
       const sale=await PharmacySale.create({ patient_id:ipdInfo.adm.patient_id, uhid:ipdInfo.adm.uhid, visit_type:'IPD', visit_id:ipdInfo.adm.admission_id, sale_date:now, total_amount:net, net_amount:net, payment_mode:'Ward Issue', dispensed_by:userMap.Pharmacist.id, hospital_id:H, is_active:true },{ transaction:t });
       await PharmacySaleDetail.create({ sale_id:sale.sale_id, medicine_id:m.medicine_id, batch_id:bat?.batch_id, medicine_name:m.medicine_name, quantity:15, rate:m.selling_rate, amount:net, gst_percentage:0, hospital_id:H, is_active:true },{ transaction:t });
+      ipdSales[ipdInfo.adm.admission_id] = sale;
     }
 
     // Progress Notes + Nursing Checklists for active admissions
@@ -623,7 +627,8 @@ async function main() {
 
     // Order 3 — Sample Collected (Mohammed IPD — LFT+KFT)
     const lo3=await LabOrder.create({ patient_id:pMohammed.patient_id, uhid:pMohammed.uhid, visit_type:'IPD', visit_id:ipd1.adm.admission_id, ordered_by:dRajesh.id, order_date:now, status:'Sample Collected', hospital_id:H, is_active:true },{ transaction:t });
-    await LabOrderDetail.bulkCreate([{ order_id:lo3.order_id, test_id:getLab('LAB-LFT').test_id, test_code:'LAB-LFT', test_name:'LFT', sample_type:'Blood', status:'Pending', charge:600, hospital_id:H, is_active:true },{ order_id:lo3.order_id, test_id:getLab('LAB-KFT').test_id, test_code:'LAB-KFT', test_name:'KFT', sample_type:'Blood', status:'Pending', charge:550, hospital_id:H, is_active:true }],{ transaction:t });
+    const lo3d1 = await LabOrderDetail.create({ order_id:lo3.order_id, test_id:getLab('LAB-LFT').test_id, test_code:'LAB-LFT', test_name:'LFT', sample_type:'Blood', status:'Pending', charge:600, hospital_id:H, is_active:true },{ transaction:t });
+    const lo3d2 = await LabOrderDetail.create({ order_id:lo3.order_id, test_id:getLab('LAB-KFT').test_id, test_code:'LAB-KFT', test_name:'KFT', sample_type:'Blood', status:'Pending', charge:550, hospital_id:H, is_active:true },{ transaction:t });
     await LabSample.create({ order_id:lo3.order_id, barcode:`BC-${lo3.order_id}-01`, sample_type:'Blood', collected_by:userMap.LabTech.id, collection_date:now, received_in_lab_at:now, condition_on_receipt:'Acceptable', hospital_id:H, is_active:true },{ transaction:t });
 
     // Order 4 — Ordered (Sita IPD — HbA1c)
@@ -644,10 +649,11 @@ async function main() {
     await RadiologyImaging.create({ rad_order_id:ro2.rad_order_id, imaging_date:dt(-1,11), technologist_id:empMap.Radiologist.employee_id, technical_notes:'Pelvic USG with full bladder.', hospital_id:H, is_active:true },{ transaction:t });
     await RadiologyReports.create({ rad_order_id:ro2.rad_order_id, findings:'Uterus bulky with intramural fibroid 3.2x2.8cm. Ovaries normal.', impression:'Uterine Fibroid 3.2cm. Recommend GYN review.', reported_by:dRajesh.id, reported_at:dt(-1,13), status:'Approved', hospital_id:H, is_active:true },{ transaction:t });
 
-    await RadiologyOrders.create({ patient_id:pMohammed.patient_id, uhid:pMohammed.uhid, visit_type:'IPD', visit_id:ipd1.adm.admission_id, rad_test_id:getRad('RAD-CT-CH').rad_test_id, test_name:'CT Chest', modality:'CT', clinical_info:'Post-STEMI, r/o pulmonary oedema', ordered_by:dRajesh.id, order_date:now, scheduled_date:tomorrow, scheduled_time:'09:00:00', status:'Scheduled', hospital_id:H, is_active:true },{ transaction:t });
+    const ro_ipd1 = await RadiologyOrders.create({ patient_id:pMohammed.patient_id, uhid:pMohammed.uhid, visit_type:'IPD', visit_id:ipd1.adm.admission_id, rad_test_id:getRad('RAD-CT-CH').rad_test_id, test_name:'CT Chest', modality:'CT', clinical_info:'Post-STEMI, r/o pulmonary oedema', ordered_by:dRajesh.id, order_date:now, scheduled_date:tomorrow, scheduled_time:'09:00:00', status:'Scheduled', hospital_id:H, is_active:true },{ transaction:t });
     await RadiologyOrders.create({ patient_id:pSuresh.patient_id,  uhid:pSuresh.uhid,  visit_type:'IPD', visit_id:ipd3.adm.admission_id, rad_test_id:getRad('RAD-CT-HD').rad_test_id, test_name:'CT Head Plain', modality:'CT', clinical_info:'Headache, r/o stroke', ordered_by:dArjun.id, order_date:now, status:'Ordered', hospital_id:H, is_active:true },{ transaction:t });
     await RadiologyOrders.create({ patient_id:pGanesh.patient_id,  uhid:pGanesh.uhid,  visit_type:'IPD', visit_id:ipd4.adm.admission_id, rad_test_id:getRad('RAD-XR-KN').rad_test_id, test_name:'X-Ray Knee', modality:'X-Ray', clinical_info:'Pre-op TKR', ordered_by:dSanjay.id, order_date:now, scheduled_date:today, status:'Scheduled', hospital_id:H, is_active:true },{ transaction:t });
     await RadiologyOrders.create({ patient_id:pAnanya.patient_id,  uhid:pAnanya.uhid,  visit_type:'OPD', visit_id:v1.visit.visit_id, rad_test_id:getRad('RAD-MRI-BR').rad_test_id, test_name:'MRI Brain', modality:'MRI', clinical_info:'Headache, visual disturbance', ordered_by:dArjun.id, order_date:dt(-3), status:'Ordered', hospital_id:H, is_active:true },{ transaction:t });
+    const ro_v8 = await RadiologyOrders.create({ patient_id:pLakshmi.patient_id,  uhid:pLakshmi.uhid,  visit_type:'OPD', visit_id:v8.visit.visit_id, rad_test_id:getRad('RAD-USG-AB').rad_test_id, test_name:'USG Neck', modality:'USG', clinical_info:'Thyroid Evaluation', ordered_by:dAnita.id, order_date:now, scheduled_date:today, status:'Scheduled', hospital_id:H, is_active:true },{ transaction:t });
     console.log(`  ✔ Radiology Orders (6) + Imaging (2) + Reports (2)`);
 
     // ── 16. OT MANAGEMENT ────────────────────────────────────────────
@@ -686,8 +692,34 @@ async function main() {
       const ch=getCharge(svcCode);
       const rate=overrideRate||ch.charge_amount, amt=rate*qty;
       const gst=Math.round(amt*ch.gst_percentage/100);
-      return BillCharge.create({ episode_id:epId, hospital_id:H, charge_date:now, service_type:ch.service_type, service_id:ch.charge_id, description:ch.service_name, quantity:qty, rate, amount:amt, discount_percent:0, discount_amount:0, taxable_amount:amt, gst_percent:ch.gst_percentage, gst_amount:gst, net_amount:amt+gst, is_active:true },{ transaction:t });
+      return BillCharge.create({ episode_id:epId, hospital_id:H, charge_date:now, service_type:ch.service_type, service_id:ch.charge_id, description:ch.service_name, quantity:qty, rate, amount:amt, discount_percent:0, discount_amount:0, taxable_amount:amt, gst_percent:ch.gst_percentage, gst_amount:gst, net_amount:amt+gst, payment_status:'Unpaid', paid_amount:0, balance_amount:amt+gst, is_active:true },{ transaction:t });
     };
+
+    // --- Golden OPD Patient (Lakshmi - v8) ---
+    // 1. Consultation Charge
+    await BillCharge.create({ episode_id:v8.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Consultation', service_id:consults[4].consult.consultation_id, description:'General OPD Consultation', quantity:1, rate:500, amount:500, discount_percent:0, discount_amount:0, taxable_amount:500, gst_percent:0, gst_amount:0, net_amount:500, payment_status:'Unpaid', paid_amount:0, balance_amount:500, is_active:true },{ transaction:t });
+    // 2. Lab Charge (TSH)
+    await BillCharge.create({ episode_id:v8.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Investigation', service_id:lo2d.detail_id, description:'TSH', quantity:1, rate:450, amount:450, discount_percent:0, discount_amount:0, taxable_amount:450, gst_percent:0, gst_amount:0, net_amount:450, payment_status:'Unpaid', paid_amount:0, balance_amount:450, is_active:true },{ transaction:t });
+    // 3. Radiology Charge (USG Neck)
+    await BillCharge.create({ episode_id:v8.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Investigation', service_id:ro_v8.rad_order_id, description:'USG Neck', quantity:1, rate:1200, amount:1200, discount_percent:0, discount_amount:0, taxable_amount:1200, gst_percent:0, gst_amount:0, net_amount:1200, payment_status:'Unpaid', paid_amount:0, balance_amount:1200, is_active:true },{ transaction:t });
+    // 4. Pharmacy Sale
+    await BillCharge.create({ episode_id:v8.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Pharmacy', service_id:opdSales[4].sale_id, description:'Pharmacy Medicines', quantity:1, rate:4500, amount:4500, discount_percent:0, discount_amount:0, taxable_amount:4500, gst_percent:0, gst_amount:0, net_amount:4500, payment_status:'Unpaid', paid_amount:0, balance_amount:4500, is_active:true },{ transaction:t });
+
+    // --- Golden IPD Patient (Mohammed - ipd1) ---
+    // 1. Room Charge
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Room', service_id:null, description:'ICU Bed Charges', quantity:3, rate:5000, amount:15000, discount_percent:0, discount_amount:0, taxable_amount:15000, gst_percent:0, gst_amount:0, net_amount:15000, payment_status:'Unpaid', paid_amount:0, balance_amount:15000, is_active:true },{ transaction:t });
+    // 2. Consultation Charge (Doctor rounds)
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Consultation', service_id:null, description:'Cardiology IPD Rounds', quantity:2, rate:800, amount:1600, discount_percent:0, discount_amount:0, taxable_amount:1600, gst_percent:0, gst_amount:0, net_amount:1600, payment_status:'Unpaid', paid_amount:0, balance_amount:1600, is_active:true },{ transaction:t });
+    // 3. Lab Charges (LFT & KFT)
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Investigation', service_id:lo3d1.detail_id, description:'LFT', quantity:1, rate:600, amount:600, discount_percent:0, discount_amount:0, taxable_amount:600, gst_percent:0, gst_amount:0, net_amount:600, payment_status:'Unpaid', paid_amount:0, balance_amount:600, is_active:true },{ transaction:t });
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Investigation', service_id:lo3d2.detail_id, description:'KFT', quantity:1, rate:550, amount:550, discount_percent:0, discount_amount:0, taxable_amount:550, gst_percent:0, gst_amount:0, net_amount:550, payment_status:'Unpaid', paid_amount:0, balance_amount:550, is_active:true },{ transaction:t });
+    // 4. Radiology Charge (CT Chest)
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Investigation', service_id:ro_ipd1.rad_order_id, description:'CT Chest', quantity:1, rate:3500, amount:3500, discount_percent:0, discount_amount:0, taxable_amount:3500, gst_percent:0, gst_amount:0, net_amount:3500, payment_status:'Unpaid', paid_amount:0, balance_amount:3500, is_active:true },{ transaction:t });
+    // 5. Pharmacy Sale (Ward Issue)
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Pharmacy', service_id:ipdSales[ipd1.adm.admission_id].sale_id, description:'Ward Issue Medicines', quantity:1, rate:ipdSales[ipd1.adm.admission_id].net_amount, amount:ipdSales[ipd1.adm.admission_id].net_amount, discount_percent:0, discount_amount:0, taxable_amount:ipdSales[ipd1.adm.admission_id].net_amount, gst_percent:0, gst_amount:0, net_amount:ipdSales[ipd1.adm.admission_id].net_amount, payment_status:'Unpaid', paid_amount:0, balance_amount:ipdSales[ipd1.adm.admission_id].net_amount, is_active:true },{ transaction:t });
+    // 6. Procedure (Angiogram)
+    await BillCharge.create({ episode_id:ipd1.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Procedure', service_id:null, description:'Coronary Angiogram', quantity:1, rate:12000, amount:12000, discount_percent:0, discount_amount:0, taxable_amount:12000, gst_percent:0, gst_amount:0, net_amount:12000, payment_status:'Unpaid', paid_amount:0, balance_amount:12000, is_active:true },{ transaction:t });
+
 
     // Bill 1 — Arjun OPD (Paid)
     await addCharge(v1.ep.episode_id, 'C-CONS-GEN', 1);
@@ -696,7 +728,7 @@ async function main() {
 
     // Bill 2 — Meera OPD (Paid — consultation + lab)
     await addCharge(v2.ep.episode_id, 'C-CONS-GEN', 1);
-    await BillCharge.create({ episode_id:v2.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Lab', service_id:null, description:'CBC + Lipid Profile', quantity:1, rate:1150, amount:1150, discount_percent:0, discount_amount:0, taxable_amount:1150, gst_percent:0, gst_amount:0, net_amount:1150, is_active:true },{ transaction:t });
+    await BillCharge.create({ episode_id:v2.ep.episode_id, hospital_id:H, charge_date:now, service_type:'Lab', service_id:null, description:'CBC + Lipid Profile', quantity:1, rate:1150, amount:1150, discount_percent:0, discount_amount:0, taxable_amount:1150, gst_percent:0, gst_amount:0, net_amount:1150, payment_status:'Unpaid', paid_amount:0, balance_amount:1150, is_active:true },{ transaction:t });
     const b2=await Bill.create({ bill_number:'BILL-000002', episode_id:v2.ep.episode_id, patient_id:pMeera.patient_id, hospital_id:H, uhid:pMeera.uhid, bill_type:'OPD', bill_date:now, gross_amount:1650, discount_amount:0, taxable_amount:1650, tax_amount:0, net_amount:1650, advance_adjusted:0, paid_amount:1650, balance_amount:0, payment_status:'Paid', generated_by:userMap.Receptionist.id, is_active:true },{ transaction:t });
     await Payment.create({ bill_id:b2.bill_id, hospital_id:H, payment_date:now, payment_type:'Bill Payment', payment_mode:'UPI', amount_paid:1650, received_by:userMap.Receptionist.id, receipt_number:'RCP-000002', transaction_reference:'UPI-TXN-886612', is_active:true },{ transaction:t });
 
@@ -722,7 +754,7 @@ async function main() {
     await Payment.create({ bill_id:b4.bill_id, hospital_id:H, payment_date:now, payment_type:'Bill Payment', payment_mode:'Card', amount_paid:b4net-10000, received_by:userMap.Accountant.id, receipt_number:'RCP-000004', transaction_reference:'CARD-TXN-5512', is_active:true },{ transaction:t });
 
     // Bill 5 — Vikram IPD (Appendicectomy, Paid)
-    await BillCharge.create({ episode_id:ipd7.ep.episode_id, hospital_id:H, charge_date:d(-9), service_type:'Procedure', service_id:null, description:'Laparoscopic Appendicectomy', quantity:1, rate:7000, amount:7000, discount_percent:0, discount_amount:0, taxable_amount:7000, gst_percent:0, gst_amount:0, net_amount:7000, is_active:true },{ transaction:t });
+    await BillCharge.create({ episode_id:ipd7.ep.episode_id, hospital_id:H, charge_date:d(-9), service_type:'Procedure', service_id:null, description:'Laparoscopic Appendicectomy', quantity:1, rate:7000, amount:7000, discount_percent:0, discount_amount:0, taxable_amount:7000, gst_percent:0, gst_amount:0, net_amount:7000, payment_status:'Unpaid', paid_amount:0, balance_amount:7000, is_active:true },{ transaction:t });
     await addCharge(ipd7.ep.episode_id, 'C-ROOM-GEN', 9);
     await addCharge(ipd7.ep.episode_id, 'C-CONS-GEN', 1);
     const b5net=7000+9*1200+500;
@@ -884,7 +916,7 @@ async function main() {
     // against this seed transaction.)
 
     // OPD bill + payment for tenant #2
-    await BillCharge.create({ episode_id:ep2.episode_id, hospital_id:H2, charge_date:now, service_type:'Consultation', service_id:null, description:'General OPD Consultation', quantity:1, rate:400, amount:400, discount_percent:0, discount_amount:0, taxable_amount:400, gst_percent:0, gst_amount:0, net_amount:400, is_active:true }, { transaction:t });
+    await BillCharge.create({ episode_id:ep2.episode_id, hospital_id:H2, charge_date:now, service_type:'Consultation', service_id:null, description:'General OPD Consultation', quantity:1, rate:400, amount:400, discount_percent:0, discount_amount:0, taxable_amount:400, gst_percent:0, gst_amount:0, net_amount:400, payment_status:'Unpaid', paid_amount:0, balance_amount:400, is_active:true }, { transaction:t });
     const bill2 = await Bill.create({ bill_number:'CCH-BILL-000001', episode_id:ep2.episode_id, patient_id:p2Aravind.patient_id, hospital_id:H2, uhid:p2Aravind.uhid, bill_type:'OPD', bill_date:now, gross_amount:400, discount_amount:0, taxable_amount:400, tax_amount:0, net_amount:400, advance_adjusted:0, paid_amount:400, balance_amount:0, payment_status:'Paid', generated_by:u2.Receptionist.id, is_active:true }, { transaction:t });
     await Payment.create({ bill_id:bill2.bill_id, hospital_id:H2, payment_date:now, payment_type:'Bill Payment', payment_mode:'Cash', amount_paid:400, received_by:u2.Receptionist.id, receipt_number:'CCH-RCP-000001', is_active:true }, { transaction:t });
 

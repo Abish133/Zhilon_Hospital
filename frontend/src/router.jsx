@@ -97,6 +97,7 @@ import IpdPatientDetails from './pages/IpdPatientDetails';
 import IpdMedicationsList from './pages/ipd/IpdMedicationsList';
 import IpdPharmacy from './pages/pharmacy/IpdPharmacy';
 import NotFoundPage from './pages/error/NotFoundPage';
+import DepartmentBilling from './pages/billing/DepartmentBilling';
 
 const router = createBrowserRouter([
   {
@@ -437,6 +438,30 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.ACCOUNTANT, ROLES.RECEPTIONIST, ROLES.ADMIN]}>
             <Billing />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/pharmacy/billing',
+        element: (
+          <ProtectedRoute roles={[ROLES.PHARMACIST, ROLES.ACCOUNTANT, ROLES.ADMIN]}>
+            <DepartmentBilling departmentType="Pharmacy" serviceTypeMap="Pharmacy" />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/lab/billing',
+        element: (
+          <ProtectedRoute roles={[ROLES.LAB_TECH, ROLES.ACCOUNTANT, ROLES.ADMIN]}>
+            <DepartmentBilling departmentType="Laboratory" serviceTypeMap="Investigation" />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/opd/billing',
+        element: (
+          <ProtectedRoute roles={[ROLES.RECEPTIONIST, ROLES.ACCOUNTANT, ROLES.ADMIN]}>
+            <DepartmentBilling departmentType="OPD" serviceTypeMap="Consultation" />
           </ProtectedRoute>
         )
       },
