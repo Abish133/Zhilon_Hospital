@@ -73,22 +73,37 @@ const DepartmentBilling = ({ departmentType, serviceTypeMap }) => {
       render: (a) => <span style={{ color: '#10b981' }}>{formatCurrency(a)}</span> 
     },
     {
+      title: 'Status',
+      key: 'status',
+      render: (_, record) => {
+        const balance = record.department_balance_amount || 0;
+        const paid = record.department_paid_amount || 0;
+        if (balance <= 0 && paid > 0) return <Tag color="green">Paid</Tag>;
+        if (balance <= 0 && paid === 0) return <Tag color="green">Paid</Tag>;
+        if (paid > 0) return <Tag color="orange">Partially Paid</Tag>;
+        return <Tag color="red">Pending</Tag>;
+      }
+    },
+    {
       title: 'Actions', 
       key: 'actions', 
       fixed: 'right', 
       width: 150,
-      render: (_, record) => (
-        <Space size={4}>
-          <Button 
-            icon={<DollarOutlined />} 
-            size="small" 
-            type="primary" 
-            onClick={() => navigate(`/billing/generate/${record.episode_id}?department=${serviceTypeMap}`)}
-          >
-            Collect Payment
-          </Button>
-        </Space>
-      )
+      render: (_, record) => {
+        const isPaid = (record.department_balance_amount || 0) <= 0 && (record.department_paid_amount || 0) > 0;
+        return (
+          <Space size={4}>
+            <Button 
+              icon={<DollarOutlined />} 
+              size="small" 
+              type={isPaid ? "default" : "primary"} 
+              onClick={() => navigate(`/billing/generate/${record.episode_id}?department=${serviceTypeMap}`)}
+            >
+              {isPaid ? 'View / Receipt' : 'Collect Payment'}
+            </Button>
+          </Space>
+        );
+      }
     }
   ];
 

@@ -554,7 +554,7 @@ const BillGeneration = () => {
               </Button>
             )}
             
-            {(billExists || charges.length > 0) && (
+            {!((billExists && existingBill.balance_amount === 0) || (departmentFilter && totals.balance_amount === 0)) && (billExists || charges.length > 0) && (
               <Button 
                 type="primary" 
                 icon={<DollarOutlined />}

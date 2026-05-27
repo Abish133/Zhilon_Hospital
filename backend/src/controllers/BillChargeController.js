@@ -201,13 +201,11 @@ class BillChargeController {
         return res.status(400).json({ success: false, message: 'Department type filter is required' });
       }
 
-      // We only care about active charges for the specific department that still have a balance > 0
       const charges = await BillCharge.findAll({
         where: {
           hospital_id,
           service_type: type,
-          is_active: true,
-          balance_amount: { [require('sequelize').Op.gt]: 0 }
+          is_active: true
         },
         order: [['charge_date', 'ASC']]
       });
