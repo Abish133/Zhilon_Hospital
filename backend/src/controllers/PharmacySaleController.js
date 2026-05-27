@@ -300,6 +300,117 @@ class PharmacySaleController {
       res.status(500).json({ success: false, message: error.message });
     }
   }
+
+  static async returnIpdMedicine(req, res) {
+    const transaction = await PharmacySale.sequelize.transaction();
+    try {
+      const { sale_id, sale_detail_id, quantity_returned } = req.body;
+      const hospital_id = req.hospitalId || req.body.hospital_id;
+
+      if (!sale_id || !sale_detail_id || !quantity_returned || quantity_returned <= 0) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Invalid return parameters' });
+      }
+
+      const sale = await PharmacySale.findOne({
+        where: { sale_id, hospital_id },
+        include: [{ model: PharmacySaleDetail, as: 'details' }],
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (!sale) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Sale not found' });
+      }
+
+      if (sale.visit_type !== 'IPD') {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Return is only supported for IPD sales via this endpoint' });
+      }
+
+      const detail = sale.details.find(d => d.sale_detail_id === sale_detail_id);
+      if (!detail) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Sale detail not found' });
+      }
+
+      if (quantity_returned > detail.quantity) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'Return quantity exceeds dispensed quantity' });
+      }
+
+      // Update batch stock
+      const batch = await MedicineBatch.findByPk(detail.batch_id, {
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+      if (batch) {
+        batch.available_quantity = (batch.available_quantity || 0) + quantity_returned;
+        await batch.save({ transaction });
+      }
+
+      // Calculate value to deduct
+      const returnedAmount = parseFloat(detail.rate) * quantity_returned;
+      const returnedTax = +(returnedAmount * parseFloat(detail.gst_percentage || 0) / 100).toFixed(2);
+      
+      // Update detail
+      detail.quantity -= quantity_returned;
+      detail.amount = +(parseFloat(detail.amount) - returnedAmount).toFixed(2);
+      if (detail.quantity === 0) {
+        await detail.destroy({ transaction });
+      } else {
+        await detail.save({ transaction });
+      }
+
+      // Update sale header
+      sale.total_amount = +(parseFloat(sale.total_amount) - returnedAmount).toFixed(2);
+      sale.tax_amount = +(parseFloat(sale.tax_amount) - returnedTax).toFixed(2);
+      sale.net_amount = +(sale.total_amount + sale.tax_amount).toFixed(2);
+      
+      if (sale.net_amount <= 0 && sale.total_amount <= 0) {
+         sale.total_amount = 0;
+         sale.tax_amount = 0;
+         sale.net_amount = 0;
+      }
+      await sale.save({ transaction });
+
+      // Update linked BillCharge
+      const billCharge = await BillCharge.findOne({
+        where: { service_type: 'Pharmacy', service_id: sale.sale_id },
+        transaction,
+        lock: transaction.LOCK.UPDATE
+      });
+
+      if (billCharge) {
+        const newChargeTotal = +(parseFloat(billCharge.amount) - returnedAmount).toFixed(2);
+        const newChargeTax = +(parseFloat(billCharge.gst_amount) - returnedTax).toFixed(2);
+        const newChargeNet = +(newChargeTotal + newChargeTax).toFixed(2);
+
+        if (newChargeNet <= 0) {
+           await billCharge.destroy({ transaction });
+        } else {
+           billCharge.amount = newChargeTotal;
+           billCharge.taxable_amount = newChargeTotal;
+           billCharge.gst_amount = newChargeTax;
+           billCharge.net_amount = newChargeNet;
+           billCharge.balance_amount = Math.max(0, newChargeNet - parseFloat(billCharge.paid_amount || 0));
+           
+           if (billCharge.balance_amount === 0 && billCharge.paid_amount > 0) {
+             billCharge.payment_status = 'Paid';
+           }
+           billCharge.gst_percent = newChargeTotal > 0 ? +((newChargeTax / newChargeTotal) * 100).toFixed(2) : 0;
+           await billCharge.save({ transaction });
+        }
+      }
+
+      await transaction.commit();
+      res.json({ success: true, message: 'Medication returned successfully', data: sale });
+    } catch (error) {
+      try { await transaction.rollback(); } catch (e) { /* ignore */ }
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
 }
 
 module.exports = PharmacySaleController;

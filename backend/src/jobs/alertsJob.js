@@ -45,6 +45,39 @@ async function runAlertsJob() {
         }
       }
 
+      // 1.5 Check Low Stock Medicines
+      const lowStockMeds = await Medicine.findAll({
+        where: {
+          hospital_id,
+          isActive: true,
+          available_quantity: { [Op.lte]: sequelize.col('reorder_level') }
+        }
+      });
+
+      for (const med of lowStockMeds) {
+        const existing = await Notification.findOne({
+          where: {
+            hospital_id,
+            type: 'low_stock_medicine',
+            is_read: false,
+            metadata: { medicine_id: med.medicine_id }
+          }
+        });
+
+        if (!existing) {
+          await Notification.create({
+            hospital_id,
+            type: 'low_stock_medicine',
+            severity: 'warning',
+            title: 'Pharmacy: Low Stock Alert',
+            message: `${med.medicine_name} is running low. Current stock: ${med.available_quantity}, Reorder level: ${med.reorder_level}.`,
+            link: `/pharmacy`,
+            metadata: { medicine_id: med.medicine_id }
+          });
+          results.notifications_created++;
+        }
+      }
+
       // 2. Check Expiring Medicine Batches
       const expiringBatches = await MedicineBatch.findAll({
         where: {

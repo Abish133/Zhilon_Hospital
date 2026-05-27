@@ -10,6 +10,11 @@ class PharmacySaleService extends BaseService {
     const response = await apiClient.post('/pharmacy/sales/dispense', data);
     return response;
   }
+
+  async returnIpd(data) {
+    const response = await apiClient.post('/pharmacy/sales/return-ipd', data);
+    return response;
+  }
 }
 
 export default new PharmacySaleService();

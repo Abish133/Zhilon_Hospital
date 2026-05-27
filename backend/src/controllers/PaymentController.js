@@ -1,4 +1,4 @@
-const { Payment, Bill, Hospital, User, Patient, sequelize, PaymentAllocation, BillCharge } = require('../models');
+const { Payment, Bill, Hospital, User, Patient, sequelize, PaymentAllocation, BillCharge, PharmacySale } = require('../models');
 const { Op } = require('sequelize');
 const { generateSequentialNumber } = require('../utils/numberGenerator');
 const logger = require('../utils/logger');
@@ -99,6 +99,13 @@ class PaymentController {
           balance_amount: newChargeBalance,
           payment_status: cStatus
         }, { transaction: t });
+
+        if (charge.service_type === 'Pharmacy' && charge.service_id) {
+          await PharmacySale.update(
+            { payment_mode: cStatus },
+            { where: { sale_id: charge.service_id, hospital_id }, transaction: t }
+          );
+        }
 
         remainingPayment -= allocAmount;
       }
@@ -267,6 +274,13 @@ class PaymentController {
             balance_amount: newBalanceAmount,
             payment_status
           }, { transaction: t });
+
+          if (charge.service_type === 'Pharmacy' && charge.service_id) {
+            await PharmacySale.update(
+              { payment_mode: payment_status },
+              { where: { sale_id: charge.service_id, hospital_id }, transaction: t }
+            );
+          }
         }
       }
 
@@ -336,6 +350,13 @@ class PaymentController {
               balance_amount: newChargeBalance,
               payment_status: cStatus
             }, { transaction: t });
+
+            if (charge.service_type === 'Pharmacy' && charge.service_id) {
+              await PharmacySale.update(
+                { payment_mode: cStatus },
+                { where: { sale_id: charge.service_id, hospital_id }, transaction: t }
+              );
+            }
 
             remainingPayment -= allocAmount;
           }

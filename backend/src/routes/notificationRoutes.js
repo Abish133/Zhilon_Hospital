@@ -23,12 +23,20 @@ const buildNotifications = async (hospitalId) => {
   const cutoff30 = new Date();
   cutoff30.setDate(cutoff30.getDate() + 30);
 
-  const [lowStock, expiring, expired, longStayAdmissions] = await Promise.all([
+  const [lowStock, lowStockMeds, expiring, expired, longStayAdmissions] = await Promise.all([
     InventoryItem.findAll({
       where: {
         ...baseWhere,
         is_active: true,
         current_stock: { [Op.lte]: sequelize.col('reorder_level') }
+      },
+      limit: 50
+    }),
+    Medicine.findAll({
+      where: {
+        ...baseWhere,
+        isActive: true,
+        available_quantity: { [Op.lte]: sequelize.col('reorder_level') }
       },
       limit: 50
     }),
@@ -75,6 +83,16 @@ const buildNotifications = async (hospitalId) => {
     title: 'Low stock',
     message: `${i.item_name} is at ${i.current_stock} (reorder level ${i.reorder_level})`,
     link: `/inventory/items/${i.item_id}`,
+    created_at: new Date()
+  }));
+
+  lowStockMeds.forEach(m => items.push({
+    id: `low-stock-med-${m.medicine_id}`,
+    type: 'low_stock_medicine',
+    severity: 'warning',
+    title: 'Pharmacy Low Stock',
+    message: `${m.medicine_name} is at ${m.available_quantity} (reorder level ${m.reorder_level})`,
+    link: `/pharmacy`,
     created_at: new Date()
   }));
 

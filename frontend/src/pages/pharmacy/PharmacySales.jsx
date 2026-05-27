@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Button, message, Descriptions } from 'antd';
+import { Card, Table, Tag, Button, message, Descriptions, Modal, Form, InputNumber } from 'antd';
 import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined } from '@ant-design/icons';
 import { pharmacySaleService, pharmacySaleDetailService } from '@services';
@@ -20,6 +20,9 @@ const PharmacySales = () => {
   const [detailsModal, setDetailsModal] = useState(false);
   const [selectedSale, setSelectedSale] = useState(null);
   const [saleDetails, setSaleDetails] = useState([]);
+  const [returnModal, setReturnModal] = useState(false);
+  const [returnItem, setReturnItem] = useState(null);
+  const [returnQuantity, setReturnQuantity] = useState(1);
 
   useEffect(() => {
     fetchSales();
@@ -59,6 +62,33 @@ const PharmacySales = () => {
     } catch (error) {
       message.error('Failed to fetch sale details');
       setSaleDetails([]);
+    }
+  };
+
+  const handleOpenReturn = (item) => {
+    setReturnItem(item);
+    setReturnQuantity(1);
+    setReturnModal(true);
+  };
+
+  const handleReturnSubmit = async () => {
+    try {
+      setLoading(true);
+      await pharmacySaleService.returnIpd({
+        sale_id: selectedSale.sale_id,
+        sale_detail_id: returnItem.sale_detail_id,
+        quantity_returned: returnQuantity
+      });
+      message.success('Item returned successfully');
+      setReturnModal(false);
+      setReturnItem(null);
+      // refresh details
+      handleViewDetails(selectedSale);
+      fetchSales();
+    } catch (error) {
+      message.error(error?.response?.data?.message || error.message || 'Failed to return item');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -153,7 +183,17 @@ const PharmacySales = () => {
     { title: 'Quantity', dataIndex: 'quantity', key: 'quantity' },
     { title: 'Rate', dataIndex: 'rate', key: 'rate', render: (rate) => safeCurrency(rate) },
     { title: 'Amount', dataIndex: 'amount', key: 'amount', render: (amount) => safeCurrency(amount) },
-    { title: 'GST %', dataIndex: 'gst_percentage', key: 'gst' }
+    { title: 'GST %', dataIndex: 'gst_percentage', key: 'gst' },
+    { 
+      title: 'Action', 
+      key: 'action', 
+      render: (_, record) => {
+        if (selectedSale?.visit_type === 'IPD' && record.quantity > 0) {
+           return <Button size="small" type="primary" danger onClick={() => handleOpenReturn(record)}>Return</Button>
+        }
+        return null;
+      }
+    }
   ];
 
   return (
@@ -224,6 +264,32 @@ const PharmacySales = () => {
           </>
         )}
       </SliderModal>
+
+      <Modal
+        title="Return Item"
+        open={returnModal}
+        onCancel={() => setReturnModal(false)}
+        onOk={handleReturnSubmit}
+        confirmLoading={loading}
+      >
+        {returnItem && (
+          <div>
+            <p><strong>Medicine:</strong> {returnItem.medicine_name}</p>
+            <p><strong>Max Quantity Returnable:</strong> {returnItem.quantity}</p>
+            <Form layout="vertical">
+              <Form.Item label="Quantity to Return" required>
+                <InputNumber 
+                  min={1} 
+                  max={returnItem.quantity} 
+                  value={returnQuantity} 
+                  onChange={setReturnQuantity}
+                  style={{ width: '100%' }}
+                />
+              </Form.Item>
+            </Form>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

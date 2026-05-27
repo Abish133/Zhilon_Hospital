@@ -499,12 +499,12 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
           </Col>
         </Row>
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item name="hsn_code" label="HSN Code">
               <Input placeholder="HSN code" />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item name="gst_percentage" label="GST Percentage">
               <InputNumber
                 min={0}
@@ -515,13 +515,18 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
               />
             </Form.Item>
           </Col>
-          <Col span={8}>
+          <Col span={6}>
             <Form.Item name="schedule" label="Schedule">
               <Select
                 placeholder="Select schedule"
                 options={DRUG_SCHEDULES}
                 allowClear
               />
+            </Form.Item>
+          </Col>
+          <Col span={6}>
+            <Form.Item name="reorder_level" label="Reorder Level" initialValue={100}>
+              <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" />
             </Form.Item>
           </Col>
         </Row>

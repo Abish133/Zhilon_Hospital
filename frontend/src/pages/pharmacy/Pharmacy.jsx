@@ -29,7 +29,7 @@ const Pharmacy = () => {
  
   const medicines = Array.isArray(data) ? data : (data?.data || []);
   const categories = categoriesData?.data || [];
-  const lowStockCount = medicines.filter(m => (m.available_quantity || 0) < 100).length;
+  const lowStockCount = medicines.filter(m => (m.available_quantity || 0) <= (m.reorder_level !== undefined && m.reorder_level !== null ? m.reorder_level : 100)).length;
   const totalValue = medicines.reduce((sum, m) => sum + ((m.available_quantity || 0) * (m.selling_rate || 0)), 0);
  
   const columns = [
