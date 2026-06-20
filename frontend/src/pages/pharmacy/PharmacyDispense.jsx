@@ -19,6 +19,7 @@ const PharmacyDispense = () => {
   const [batches, setBatches] = useState([]);
   const [dispensedItems, setDispensedItems] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [paymentMode, setPaymentMode] = useState('Cash');
 
   useEffect(() => {
     loadInitialData();
@@ -248,6 +249,10 @@ const PharmacyDispense = () => {
         dispensedItems.map(item => item.prescription_id).filter(Boolean)
       )];
 
+      // Walk-in = a counter sale with no prescription/admission link. Only then do
+      // we collect (and send) a payment mode; OPD/IPD sales are billed via episodes.
+      const isWalkIn = !selectedPrescription && prescriptionIds.length === 0;
+
       const dispenseData = {
         uhid: patient.uhid,
         prescription_id: selectedPrescription?.prescription_id || null,
@@ -257,7 +262,8 @@ const PharmacyDispense = () => {
           quantity: item.quantity
         })),
         dispensed_by: user?.id,
-        hospital_id: user.hospital_id
+        hospital_id: user.hospital_id,
+        ...(isWalkIn ? { payment_mode: paymentMode } : {})
       };
 
       await pharmacySaleService.dispense(dispenseData);
@@ -427,6 +433,26 @@ const PharmacyDispense = () => {
                 </>
               )}
             />
+
+            {!selectedPrescription && (
+              <div style={{ marginTop: 16 }}>
+                <Space>
+                  <span style={{ fontWeight: 500 }}>Payment Mode (walk-in counter sale):</span>
+                  <Select
+                    value={paymentMode}
+                    onChange={setPaymentMode}
+                    style={{ width: 170 }}
+                    options={[
+                      { label: 'Cash', value: 'Cash' },
+                      { label: 'Card', value: 'Card' },
+                      { label: 'UPI', value: 'UPI' },
+                      { label: 'Net Banking', value: 'Net Banking' },
+                      { label: 'Pending', value: 'Pending' }
+                    ]}
+                  />
+                </Space>
+              </div>
+            )}
 
             <div style={{ marginTop: 24 }}>
               <Button

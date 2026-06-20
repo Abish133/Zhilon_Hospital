@@ -2,17 +2,21 @@ import { Card, Descriptions, Tabs, Table, Tag, Space, Avatar, Spin, Row, Col, St
 import {
   UserOutlined, PhoneOutlined, MailOutlined, HomeOutlined, CalendarOutlined,
   MedicineBoxOutlined, ExperimentOutlined, CameraOutlined, ScissorOutlined,
-  DollarOutlined, FileTextOutlined, HeartOutlined, BankOutlined, EyeOutlined
+  DollarOutlined, FileTextOutlined, HeartOutlined, BankOutlined, EyeOutlined,
+  IdcardOutlined
 } from '@ant-design/icons';
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useApiQuery } from '@hooks/useApi';
 import { calculateAge, formatDate, formatDateTime, formatCurrency } from '@utils/helpers';
 import PatientService from '@services/PatientService';
+import { hospitalService } from '@/services';
+import { useAuthStore } from '@/store';
 import MedicalHistory from '@components/common/MedicalHistory';
 import ClinicalHistory from '@components/common/ClinicalHistory';
 import MedicationHistory from '@components/common/MedicationHistory';
 import DocumentUpload from '@components/common/DocumentUpload';
+import PatientCardModal from '@components/common/PatientCardModal';
 import DayDrillDownDrawer from '@components/common/DayDrillDownDrawer';
 
 const { Text, Title } = Typography;
@@ -101,15 +105,24 @@ const eventsForDate = (timeline, dateKey) => {
 
 const PatientDetail = () => {
   const { uhid } = useParams();
+  const { user } = useAuthStore();
   const { data, isLoading } = useApiQuery(
     ['patient-timeline', uhid],
     () => PatientService.getTimeline(uhid)
+  );
+
+  // Hospital branding (name + logo) printed on the patient card.
+  const { data: hospitalData } = useApiQuery(
+    ['hospital', user?.hospital_id],
+    () => hospitalService.getById(user.hospital_id),
+    { enabled: !!user?.hospital_id }
   );
 
   // Hooks must run on every render, so declare drawer state before the
   // early-return for the loading state.
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drillDate, setDrillDate] = useState(null);
+  const [cardOpen, setCardOpen] = useState(false);
 
   if (isLoading) {
     return <div style={{ textAlign: 'center', padding: 60 }}><Spin size="large" /></div>;
@@ -350,20 +363,25 @@ const PatientDetail = () => {
     <div>
       {/* Header */}
       <Card style={{ borderRadius: 16 }}>
-        <Space size="large" align="start">
-          <Avatar size={80} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 100%)' }} />
-          <div style={{ flex: 1 }}>
-            <Title level={3} style={{ margin: 0 }}>{patient.first_name} {patient.last_name}</Title>
-            <Space style={{ marginTop: 8 }} wrap>
-              <Tag color="blue">{patient.uhid}</Tag>
-              <Tag>{calculateAge(patient.date_of_birth)}Y / {patient.gender}</Tag>
-              {patient.blood_group && <Tag color="red">{patient.blood_group}</Tag>}
-              <Tag icon={<PhoneOutlined />}>{patient.mobile_number}</Tag>
-              {patient.email && <Tag icon={<MailOutlined />}>{patient.email}</Tag>}
-              {patient.city && <Tag icon={<HomeOutlined />}>{patient.city}</Tag>}
-            </Space>
-          </div>
-        </Space>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
+          <Space size="large" align="start">
+            <Avatar size={80} icon={<UserOutlined />} style={{ background: 'linear-gradient(135deg, #0a0a0a 0%, #0a0a0a 100%)' }} />
+            <div style={{ flex: 1 }}>
+              <Title level={3} style={{ margin: 0 }}>{patient.first_name} {patient.last_name}</Title>
+              <Space style={{ marginTop: 8 }} wrap>
+                <Tag color="blue">{patient.uhid}</Tag>
+                <Tag>{calculateAge(patient.date_of_birth)}Y / {patient.gender}</Tag>
+                {patient.blood_group && <Tag color="red">{patient.blood_group}</Tag>}
+                <Tag icon={<PhoneOutlined />}>{patient.mobile_number}</Tag>
+                {patient.email && <Tag icon={<MailOutlined />}>{patient.email}</Tag>}
+                {patient.city && <Tag icon={<HomeOutlined />}>{patient.city}</Tag>}
+              </Space>
+            </div>
+          </Space>
+          <Button icon={<IdcardOutlined />} onClick={() => setCardOpen(true)} style={{ borderRadius: 10 }}>
+            Patient Card
+          </Button>
+        </div>
       </Card>
 
       {/* Stats summary */}
@@ -652,6 +670,13 @@ const PatientDetail = () => {
         title="Patient Day Drill-Down"
         subtitle={`${patient.first_name || ''} ${patient.last_name || ''} (${patient.uhid || uhid})`.trim()}
         events={dayEvents}
+      />
+
+      <PatientCardModal
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        patient={patient}
+        hospital={hospitalData?.data}
       />
     </div>
   );

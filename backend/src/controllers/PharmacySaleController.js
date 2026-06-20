@@ -5,7 +5,7 @@ class PharmacySaleController {
   static async dispenseMedicine(req, res) {
     const transaction = await PharmacySale.sequelize.transaction();
     try {
-      const { uhid, prescription_id, prescription_ids, admission_id, medicines, dispensed_by, hospital_id } = req.body;
+      const { uhid, prescription_id, prescription_ids, admission_id, medicines, dispensed_by, hospital_id, payment_mode } = req.body;
 
       if (!uhid || !medicines || !Array.isArray(medicines) || medicines.length === 0 || !hospital_id) {
         await transaction.rollback();
@@ -109,7 +109,10 @@ class PharmacySaleController {
         discount_amount: 0,
         tax_amount: totalTax,
         net_amount: netAmount,
-        payment_mode: 'Pending',
+        // Walk-in counter sales settle at the counter, so the cashier passes the
+        // payment mode (Cash/Card/UPI…). OPD/IPD sales are collected by the billing
+        // module, so they intentionally stay 'Pending' here.
+        payment_mode: (visit_type === 'Walk-in' && payment_mode) ? payment_mode : 'Pending',
         dispensed_by,
         hospital_id
       }, { transaction });

@@ -334,9 +334,13 @@ Navigation menu defined in [AppLayout.jsx](frontend/src/components/layout/AppLay
 
 ### ⚠️ Remaining (by design / future work)
 
-5. **No low-stock / reorder automation** — low stock is a UI calc with a hard-coded
-   threshold (`< 100`) in [Pharmacy.jsx:32](frontend/src/pages/pharmacy/Pharmacy.jsx#L32);
-   no per-medicine reorder level or alerting.
+5. **Low-stock / reorder automation — IMPLEMENTED.** Each medicine has a configurable
+   `reorder_level` (default 100), editable in the Add/Edit Medicine form. The pharmacy
+   dashboard low-stock count uses it
+   ([Pharmacy.jsx:32](frontend/src/pages/pharmacy/Pharmacy.jsx#L32)), and the nightly
+   alerts job raises notifications when `available_quantity <= reorder_level`
+   ([alertsJob.js](backend/src/jobs/alertsJob.js)). *(An earlier version of this note
+   claimed a hard-coded `< 100` threshold with no reorder level — that was outdated.)*
 
 6. **`createSale` / `createSaleDetail` bypass the engine** — the raw CRUD
    `POST /api/pharmacy-sales` does no stock/billing logic; `createSaleDetail` decrements

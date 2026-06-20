@@ -1,7 +1,7 @@
 import { Card, Form, Input, InputNumber, Button, Space, message, Descriptions, Divider, Select, DatePicker, Row, Col, Alert, Modal } from 'antd';
 import { PrinterOutlined } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { ipdAdmissionService, ipdDischargeSummaryService, ipdDischargeNursingSummaryService, doctorService, employeeService } from '@services';
 import { useAuthStore } from '@store';
 import { useApiMutation } from '@hooks/useApi';
@@ -21,6 +21,9 @@ const IPDDischarge = () => {
   const [nurses, setNurses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [outstandingBill, setOutstandingBill] = useState(null);
+  // Remember the last submitted payload so we can re-send it with force_discharge
+  // when the backend blocks on an outstanding balance (HTTP 409).
+  const lastSubmitRef = useRef(null);
 
   const dischargeMutation = useApiMutation(
     (data) => ipdDischargeSummaryService.create(data),
@@ -33,7 +36,26 @@ const IPDDischarge = () => {
         setDischargeData(response?.data || null);
       },
       onError: (error) => {
-        message.error(error?.response?.data?.message || 'Failed to discharge patient');
+        // The API client rejects with the backend JSON body, so the outstanding
+        // balance fields are on `error` directly (not `error.response.data`).
+        const outstanding = Number(error?.outstanding || 0);
+        const isBalanceBlock = outstanding > 0 || /outstanding balance/i.test(error?.message || '');
+        if (isBalanceBlock && lastSubmitRef.current && !lastSubmitRef.current.force_discharge) {
+          Modal.confirm({
+            title: 'Outstanding balance',
+            content: `${error?.message || 'This admission has an unpaid balance.'} Discharge anyway?`,
+            okText: 'Discharge anyway',
+            okButtonProps: { danger: true },
+            cancelText: 'Go back',
+            onOk: () => {
+              const forced = { ...lastSubmitRef.current, force_discharge: true };
+              lastSubmitRef.current = forced;
+              dischargeMutation.mutate(forced);
+            }
+          });
+          return;
+        }
+        message.error(error?.message || 'Failed to discharge patient');
       }
     }
   );
@@ -119,6 +141,7 @@ const IPDDischarge = () => {
         }
       }
 
+      lastSubmitRef.current = dischargeSummaryData;
       dischargeMutation.mutate(dischargeSummaryData);
     } catch (error) {
       message.error('Failed to discharge patient');

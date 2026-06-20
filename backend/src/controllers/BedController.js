@@ -41,25 +41,35 @@ class BedController {
 
   static async getAllBeds(req, res) {
     try {
-      const beds = await Bed.findAll({
-        where: { 
-          is_active: true,
-          hospital_id: req.hospitalId
-        }
+      // Honour optional filters so callers like `GET /beds?status=Available&ward_id=3`
+      // get the subset they ask for. Absent params keep the previous "all active
+      // beds" behaviour, so existing callers (which filter client-side) still work.
+      const where = {
+        is_active: true,
+        hospital_id: req.hospitalId
+      };
+      if (req.query.status) where.status = req.query.status;
+      if (req.query.ward_id) where.ward_id = req.query.ward_id;
+
+      const beds = await Bed.findAll({ where });
+
+      // Batch-load hospital + wards once instead of one query per bed (no N+1).
+      const hospital = await Hospital.findByPk(req.hospitalId);
+      const hospitalLite = hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null;
+      const wardIds = [...new Set(beds.map(b => b.ward_id).filter(Boolean))];
+      const wards = wardIds.length ? await Ward.findAll({ where: { ward_id: wardIds } }) : [];
+      const wardById = {};
+      wards.forEach(w => { wardById[w.ward_id] = w; });
+
+      const bedsWithDetails = beds.map((bed) => {
+        const ward = wardById[bed.ward_id];
+        return {
+          ...bed.toJSON(),
+          hospital: hospitalLite,
+          ward: ward ? { ward_id: ward.ward_id, ward_name: ward.ward_name, ward_type: ward.ward_type } : null
+        };
       });
-      
-      const bedsWithDetails = await Promise.all(
-        beds.map(async (bed) => {
-          const hospital = await Hospital.findByPk(bed.hospital_id);
-          const ward = await Ward.findByPk(bed.ward_id);
-          return {
-            ...bed.toJSON(),
-            hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null,
-            ward: ward ? { ward_id: ward.ward_id, ward_name: ward.ward_name, ward_type: ward.ward_type } : null
-          };
-        })
-      );
-      
+
       res.json({ success: true, data: bedsWithDetails });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
@@ -150,16 +160,17 @@ class BedController {
 
   static async deleteBed(req, res) {
     try {
-      const deleted = await Bed.destroy({
-        where: { 
-          bed_id: req.params.id,
-          hospital_id: req.hospitalId
-        }
-      });
-      if (!deleted) {
+      // Soft-delete: a bed can be referenced by historical IPD admissions via FK,
+      // so a hard DELETE would 500. Deactivating hides it from the active list
+      // (getAllBeds filters is_active: true) while preserving referential integrity.
+      const [updated] = await Bed.update(
+        { is_active: false },
+        { where: { bed_id: req.params.id, hospital_id: req.hospitalId } }
+      );
+      if (!updated) {
         return res.status(404).json({ success: false, message: 'Bed not found' });
       }
-      res.json({ success: true, message: 'Bed permanently deleted' });
+      res.json({ success: true, message: 'Bed deleted successfully' });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

@@ -96,7 +96,7 @@ class IpdDischargeSummaryController {
           await t.rollback();
           return res.status(409).json({
             success: false,
-            message: `Outstanding balance of ₹${outstanding.toFixed(2)}. Settle bill or pass force_discharge=true.`,
+            message: `Outstanding balance of ₹${outstanding.toFixed(2)}. Please collect payment, or use "Discharge anyway" to override.`,
             outstanding,
             totalCharges,
             totalPaid,

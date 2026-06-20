@@ -32,6 +32,9 @@ class OpdConsultationController {
       // this episode and still has unused consult credits, this consultation is covered:
       // we mark it on the consultation row and SKIP auto-billing for the consult fee.
       let coveringPackageChargeId = null;
+      // Tracks whether a consultation fee actually got billed, so the UI can warn
+      // when neither a package nor a Charge Master entry covered the consult.
+      let consultationChargeAdded = false;
       const openEpisode = await BillingEpisode.findOne({
         where: { opd_visit_id: visit_id, status: 'Open' },
         transaction: t
@@ -112,10 +115,20 @@ class OpdConsultationController {
           whereClause.department_id = doctor.department_id;
         }
 
-        const consultationCharge = await ChargeMaster.findOne({
+        let consultationCharge = await ChargeMaster.findOne({
           where: whereClause,
           transaction: t
         });
+
+        // Fallback: if no department-specific consultation charge is configured,
+        // use any active hospital-level 'Consultation' charge so the consult fee
+        // isn't silently dropped to zero. (Configure per-department rates to override.)
+        if (!consultationCharge && whereClause.department_id) {
+          consultationCharge = await ChargeMaster.findOne({
+            where: { service_type: 'Consultation', hospital_id, is_active: true },
+            transaction: t
+          });
+        }
 
         if (consultationCharge) {
           const rate = parseFloat(consultationCharge.charge_amount);
@@ -143,6 +156,7 @@ class OpdConsultationController {
             gst_amount: gstAmount,
             net_amount: netAmount
           }, { transaction: t });
+          consultationChargeAdded = true;
         }
 
         const labOrders = await LabOrder.findAll({
@@ -241,7 +255,8 @@ class OpdConsultationController {
           doctor: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
           patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name } : null,
        visit: visit ? { visit_id: visit.visit_id, visit_date: visit.visit_date, token_number: visit.token_number } : null,
-          covered_by_package: !!coveringPackageChargeId
+          covered_by_package: !!coveringPackageChargeId,
+          consultation_charge_added: consultationChargeAdded
         }
       });
     } catch (error) {

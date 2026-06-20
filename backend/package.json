@@ -15,7 +15,7 @@
     "seed": "node src/scripts/seed.js",
     "reset:db": "node src/scripts/resetDatabase.js",
     "db:reset-and-seed": "node src/scripts/migrateAndSeed.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test"
   },
   "keywords": [],
   "author": "",

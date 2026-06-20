@@ -305,6 +305,7 @@ Every following step starts from a patient's **row** here. Each admitted patient
 - **(Optional) Nursing Discharge Summary** at the bottom — **fill both nurses together** (Primary Nurse **and** Last Shift Nurse), Patient Condition, Vitals at Discharge (BP/Pulse/Temp), Wound/Catheter/IV Line status, Nursing Remarks.
   - ℹ️ The nursing summary is optional; it's only saved when **both** nurses are chosen, and it never blocks the discharge.
 - Click **Complete Discharge**.
+- ⚠️ **Outstanding balance guard:** if the admission still has an unpaid balance, the discharge is **blocked** and the screen shows an **“Outstanding balance — Discharge anyway?”** prompt. Choose **Discharge anyway** to override (e.g. LAMA / medico-legal / death), or collect payment first and retry.
 - **Auto / side-effects:** the **bed is freed (Available)**, the **IPD billing episode is closed**, and the admission status becomes **Discharged**.
 - **Verify:** bed shows **Available** in `/beds/management`; the admission shows **Discharged** in `/ipd`; you'll see a **Print Discharge Summary** button and (if there's a balance) a link to clear the bill.
 

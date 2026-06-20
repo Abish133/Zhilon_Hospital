@@ -3,6 +3,39 @@
 
 ---
 
+## 🛠️ Maintenance Pass — June 2026
+
+Code-verified fixes (not doc-driven). See `USER_MANUAL.md` §13 for the full review.
+
+- **Billing — consultation fee fallback:** `OpdConsultationController` now falls back to a
+  hospital-level `Consultation` charge when no department-specific one exists, so the fee
+  isn't silently dropped to ₹0.
+- **Billing — "unbilled charge" warnings:** the consultation screen now warns when the
+  consult fee wasn't billed (new `consultation_charge_added` flag) and lists any **unpriced
+  lab/radiology tests** that were ordered but not billed. Saving still succeeds.
+- **IPD discharge — override:** the discharge screen now surfaces the backend's outstanding-
+  balance block (HTTP 409) and offers a **"Discharge anyway"** confirm that re-submits with
+  `force_discharge`. The 409 message was reworded for end users.
+- **Beds API:** `GET /api/beds` now honours `status` / `ward_id` filters (backward-compatible),
+  batch-loads wards/hospital (removes an N+1), and `deleteBed` is now a **soft delete**
+  (avoids FK 500s).
+- **Pharmacy UI:** the Add/Edit Medicine form moved from a fullscreen drawer to the reusable
+  **half-width `SliderModal`**, with the per-medicine **Reorder Level** field surfaced.
+- **Pharmacy — walk-in payment capture:** the dispense screen now collects a **Payment Mode**
+  for walk-in (counter) sales and the dispense engine persists it, so counter revenue is no
+  longer stuck at `Pending`. OPD/IPD sales remain billing-module-owned.
+- **🔴 Security fix (found by new tests) — "Admin-only" gates were open to all staff:**
+  `authorize([])` (hospital writes, audit log, admin jobs) fell through and allowed every
+  authenticated role. `authorize` now denies all non-Admins when the allow-list is empty.
+- **Tests:** added a zero-dependency **`node:test`** suite (`npm test`, 20 tests) covering the
+  RBAC primitives and the per-module permission matrix. This surfaced the security fix above.
+- **Patients / Billing UI:** added a printable **Patient ID Card** (print + PDF) and a neat
+  **half-width Bill Details drawer** for the billing "View" action.
+- **Docs:** corrected `PHARMACY_MODULE.md` (reorder level IS implemented) and `IPD_Flow.md`
+  (discharge has an outstanding-balance guard).
+
+---
+
 ## 🔴 Critical Bugs Fixed
 
 ### BUG-001 — Raw axios Without Auth Token

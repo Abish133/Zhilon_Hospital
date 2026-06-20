@@ -24,10 +24,16 @@ const authorize = (...allowedRoles) => {
       return res.status(403).json({ success: false, message: 'User has no role assigned' });
     }
     if (role === 'Admin') return next();
-    if (allowed.length && !allowed.includes(role)) {
+    // An empty `allowed` list means "Admin-only" (Admin already returned above).
+    // Previously this was guarded by `allowed.length &&`, which made authorize([])
+    // fall through to next() and silently allow EVERY authenticated role — so the
+    // "Admin-only" gates (hospital writes, audit log, admin jobs) were open to all.
+    if (!allowed.includes(role)) {
       return res.status(403).json({
         success: false,
-        message: `Access denied. Required role(s): ${allowed.join(', ')}`
+        message: allowed.length
+          ? `Access denied. Required role(s): ${allowed.join(', ')}`
+          : 'Access denied. Administrator only.'
       });
     }
     next();

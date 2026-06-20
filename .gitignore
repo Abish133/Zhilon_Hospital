@@ -66,3 +66,12 @@ Desktop.ini
 # Git
 .git/
 .gitattributes
+
+# Office temp / lock files
+~$*
+
+# Generated presentation artifacts (kept locally, not versioned)
+*.pptx
+
+# Build scratch
+.ppt_build/

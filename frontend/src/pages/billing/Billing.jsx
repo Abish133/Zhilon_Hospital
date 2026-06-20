@@ -3,7 +3,8 @@ import { Space, Button, Tag, Card, Row, Col, Statistic, message, Select, Input, 
 import SliderModal from '@components/common/SliderModal';
 import { EyeOutlined, DollarOutlined, CheckCircleOutlined, ClockCircleOutlined, PlusOutlined, FileTextOutlined, PrinterOutlined, FilePdfOutlined } from '@ant-design/icons';
 import DataTable from '@components/common/DataTable';
-import { PaymentModal, ViewDetailsModal } from '@components/common/ActionModals';
+import { PaymentModal } from '@components/common/ActionModals';
+import BillDetailsDrawer from '@components/common/BillDetailsDrawer';
 import { useApiQuery, useApiMutation } from '@hooks/useApi';
 import { formatDate, formatCurrency } from '@utils/helpers';
 import { PAYMENT_STATUS } from '@utils/constants';
@@ -176,7 +177,13 @@ const Billing = () => {
       </Card>
 
       <PaymentModal open={paymentModalOpen} onCancel={() => setPaymentModalOpen(false)} bill={selectedBill} onSuccess={() => { setPaymentModalOpen(false); refetch(); }} loading={processPaymentMutation.isPending} />
-      <ViewDetailsModal open={viewModalOpen} onCancel={() => setViewModalOpen(false)} record={selectedBill} type="Bill" />
+      <BillDetailsDrawer
+        open={viewModalOpen}
+        onClose={() => setViewModalOpen(false)}
+        bill={selectedBill}
+        onPrint={handlePrintBill}
+        onDownload={handleDownloadBillPDF}
+      />
       <SliderModal title="Generate New Bill - Select Visit / Episode" open={unbilledModalOpen} onCancel={() => setUnbilledModalOpen(false)} footer={null} width={900}>
         <DataTable columns={unbilledColumns} dataSource={unbilledEpisodes} loading={unbilledLoading} rowKey="episode_id" pagination={{ pageSize: 10 }} />
       </SliderModal>

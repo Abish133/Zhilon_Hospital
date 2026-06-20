@@ -384,6 +384,7 @@ import { dummyData } from '@/data/dummyData';
 import { useApiMutation, useApiQuery } from '@hooks/useApi';
 import MedicineService from '@services/MedicineService';
 import MedicineCategoryService from '@services/MedicineCategoryService';
+import SliderModal from '@components/common/SliderModal';
 import { DOSAGE_FORMS, DRUG_SCHEDULES } from '@utils/constants';
  
 export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) => {
@@ -432,23 +433,15 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
   };
  
   return (
-    <Drawer
+    <SliderModal
       open={open}
-      onClose={onCancel}
+      onCancel={onCancel}
       title={initialData ? 'Edit Medicine' : 'Add Medicine'}
-      width="100vw"
-      footer={
-        <div style={{ textAlign: 'right' }}>
-          <Space>
-            <Button onClick={onCancel}>Cancel</Button>
-            <Button type="primary" onClick={handleSubmit} loading={mutation.isPending}>
-              Save
-            </Button>
-          </Space>
-        </div>
-      }
+      width="50%"
+      onOk={handleSubmit}
+      okText="Save"
+      confirmLoading={mutation.isPending}
     >
-      <div style={{ maxWidth: 1200, margin: '0 auto' }}>
         <Form form={form} layout="vertical">
         <Row gutter={16}>
           <Col span={12}>
@@ -499,12 +492,12 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
           </Col>
         </Row>
         <Row gutter={16}>
-          <Col span={6}>
+          <Col span={12}>
             <Form.Item name="hsn_code" label="HSN Code">
               <Input placeholder="HSN code" />
             </Form.Item>
           </Col>
-          <Col span={6}>
+          <Col span={12}>
             <Form.Item name="gst_percentage" label="GST Percentage">
               <InputNumber
                 min={0}
@@ -515,7 +508,9 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
               />
             </Form.Item>
           </Col>
-          <Col span={6}>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
             <Form.Item name="schedule" label="Schedule">
               <Select
                 placeholder="Select schedule"
@@ -524,9 +519,14 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
               />
             </Form.Item>
           </Col>
-          <Col span={6}>
-            <Form.Item name="reorder_level" label="Reorder Level" initialValue={100}>
-              <InputNumber min={0} style={{ width: '100%' }} placeholder="Threshold" />
+          <Col span={12}>
+            <Form.Item
+              name="reorder_level"
+              label="Reorder Level"
+              initialValue={100}
+              tooltip="Low-stock alerts trigger when available quantity falls to or below this number."
+            >
+              <InputNumber min={0} style={{ width: '100%' }} placeholder="e.g. 100" />
             </Form.Item>
           </Col>
         </Row>
@@ -544,8 +544,7 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
           </Col>
         </Row>
       </Form>
-      </div>
-    </Drawer>
+    </SliderModal>
   );
 };
  

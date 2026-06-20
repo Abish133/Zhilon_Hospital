@@ -112,6 +112,12 @@ const OPDConsultation = () => {
     try {
       const doctorId = user?.doctor_id || visit?.doctor_id;
 
+      // Collect billing warnings to surface after save. A missing Charge Master
+      // entry or an unpriced test doesn't fail the save, but the user must know
+      // the item wasn't billed so they can fix the masters.
+      let consultChargeMissing = false;
+      const unpricedTests = [];
+
       // 1. Save / Update Consultation
       let consultationId;
       if (existingConsultation) {
@@ -144,6 +150,10 @@ const OPDConsultation = () => {
         });
         if (!consultRes.success) throw new Error('Failed to save consultation');
         consultationId = consultRes.data.consultation_id;
+        // No package credit AND no Charge Master match => consult fee not billed.
+        if (consultRes.data?.consultation_charge_added === false && !consultRes.data?.covered_by_package) {
+          consultChargeMissing = true;
+        }
       }
 
       // 2. Save Prescriptions (skip incomplete rows — e.g. when parking early)
@@ -185,6 +195,7 @@ const OPDConsultation = () => {
           const orderId = labOrderRes.data.order_id;
           for (const testId of values.lab_tests) {
             const test = labTests.find(t => t.test_id === testId);
+            if (!test?.charge || Number(test.charge) <= 0) unpricedTests.push(test?.test_name || `Lab test #${testId}`);
             await labOrderDetailService.create({
               order_id: orderId,
               test_id: testId,
@@ -203,6 +214,7 @@ const OPDConsultation = () => {
       if (values.radiology_tests?.length > 0) {
         for (const radTestId of values.radiology_tests) {
           const test = radiologyTests.find(t => t.rad_test_id === radTestId);
+          if (!test?.charge || Number(test.charge) <= 0) unpricedTests.push(test?.test_name || `Scan #${radTestId}`);
           await radiologyOrderService.create({
             patient_id: visit.patient_id,
             uhid: visit.uhid,
@@ -224,6 +236,15 @@ const OPDConsultation = () => {
       // the doctor can resume via "Continue Consult" after investigation results
       // come back; otherwise the visit is Completed exactly as before.
       await opdVisitService.update(visitId, { status: keepOpen ? 'In-consultation' : 'Completed' });
+
+      // Surface anything that was saved clinically but NOT billed, so masters can
+      // be fixed. These never block the save.
+      if (consultChargeMissing) {
+        message.warning('Consultation saved, but no consultation fee was billed — add a "Consultation" charge in Charge Master (Admin → Charges).', 6);
+      }
+      if (unpricedTests.length) {
+        message.warning(`No price configured for: ${unpricedTests.join(', ')} — these were ordered but not billed. Set their charge in the Test Master.`, 6);
+      }
 
       if (keepOpen) {
         message.success('Consultation saved and investigations ordered. Visit kept open — use "Continue Consult" once results are back.');

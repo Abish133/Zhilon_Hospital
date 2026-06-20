@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Space, Button, Tag, Card, Typography, Popconfirm, message } from 'antd';
-import { EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, CheckCircleOutlined, StopOutlined, FileTextOutlined, IdcardOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import DataTable from '@components/common/DataTable';
 import SearchBar from '@components/common/SearchBar';
+import PatientCardModal from '@components/common/PatientCardModal';
 import PatientForm from './PatientForm';
 import PatientService from '@services/PatientService';
+import { hospitalService } from '@/services';
+import { useAuthStore } from '@/store';
 import { useApiQuery } from '@hooks/useApi';
 import { formatDate, calculateAge } from '@utils/helpers';
  
@@ -13,14 +16,30 @@ const { Title, Text } = Typography;
  
 const PatientList = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [cardPatient, setCardPatient] = useState(null);
+  const [cardOpen, setCardOpen] = useState(false);
  
   const { data, isLoading, refetch } = useApiQuery(
     ['patients', searchQuery],
     () => searchQuery ? PatientService.search(searchQuery) : PatientService.getAll()
   );
+
+  // Hospital branding (name + logo) printed on the patient card.
+  const { data: hospitalData } = useApiQuery(
+    ['hospital', user?.hospital_id],
+    () => hospitalService.getById(user.hospital_id),
+    { enabled: !!user?.hospital_id }
+  );
+  const hospital = hospitalData?.data;
+
+  const openCard = (patient) => {
+    setCardPatient(patient);
+    setCardOpen(true);
+  };
  
   const columns = [
     {
@@ -89,9 +108,16 @@ const PatientList = () => {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 200,
+      width: 250,
       render: (_, record) => (
         <Space>
+          <Button
+            icon={<IdcardOutlined />}
+            size="middle"
+            onClick={() => openCard(record)}
+            style={{ borderRadius: 10 }}
+            title="Patient Card"
+          />
           <Button
             icon={<FileTextOutlined />}
             size="middle"
@@ -154,9 +180,16 @@ const PatientList = () => {
     setSelectedPatient(null);
   };
  
-  const handleSuccess = () => {
+  const handleSuccess = (response) => {
+    // A new registration (no patient was selected for editing) returns the
+    // created patient — pop the card straight away so it can be printed/handed over.
+    const wasNew = !selectedPatient;
+    const newPatient = response?.data;
     refetch();
     handleModalClose();
+    if (wasNew && newPatient?.uhid) {
+      openCard(newPatient);
+    }
   };
 
   const handleDelete = async (patient) => {
@@ -217,6 +250,13 @@ const PatientList = () => {
         onCancel={handleModalClose}
         onSuccess={handleSuccess}
         initialData={selectedPatient}
+      />
+
+      <PatientCardModal
+        open={cardOpen}
+        onClose={() => setCardOpen(false)}
+        patient={cardPatient}
+        hospital={hospital}
       />
     </div>
   );
