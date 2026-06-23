@@ -1,4 +1,5 @@
 const { OpdVisit, OpdAppointment, Patient, Doctor, Department, Hospital, BillingEpisode, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
 class OpdVisitController {
   static async createVisit(req, res) {
@@ -99,7 +100,48 @@ class OpdVisitController {
 
   static async getAllVisits(req, res) {
     try {
-      const visits = await OpdVisit.findAll({ where: { is_active: true, hospital_id: req.hospitalId }
+      const { visit_date, doctor_id, status, patient_id, uhid, token_number, date_from, date_to, search } = req.query;
+      const where = { is_active: true, hospital_id: req.hospitalId };
+      if (doctor_id) where.doctor_id = parseInt(doctor_id);
+      if (status) where.status = status;
+      if (patient_id) where.patient_id = parseInt(patient_id);
+      if (uhid) where.uhid = uhid;
+      if (token_number) where.token_number = parseInt(token_number);
+
+      // Date: exact date or a from/to range
+      if (visit_date) {
+        where.visit_date = visit_date;
+      } else if (date_from && date_to) {
+        where.visit_date = { [Op.between]: [date_from, date_to] };
+      } else if (date_from) {
+        where.visit_date = { [Op.gte]: date_from };
+      } else if (date_to) {
+        where.visit_date = { [Op.lte]: date_to };
+      }
+
+      // Free-text patient search: resolve matching patients first, then scope
+      // visits to those ids (visits store patient_id, not the name).
+      if (search) {
+        const like = { [Op.like]: `%${search}%` };
+        const matched = await Patient.findAll({
+          where: {
+            hospital_id: req.hospitalId,
+            [Op.or]: [
+              { first_name: like },
+              { last_name: like },
+              { uhid: like },
+              { mobile_number: like },
+              ...(/^\d+$/.test(search) ? [{ patient_id: parseInt(search) }] : [])
+            ]
+          },
+          attributes: ['patient_id']
+        });
+        where.patient_id = { [Op.in]: matched.map(p => p.patient_id) };
+      }
+
+      const visits = await OpdVisit.findAll({
+        where,
+        order: [['visit_date', 'DESC'], ['token_number', 'ASC']]
       });
 
       // Billing episodes are a separate table linked by opd_visit_id; batch-load

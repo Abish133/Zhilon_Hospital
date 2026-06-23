@@ -14,6 +14,7 @@ import OPDVisits from '@pages/opd/OPDVisits';
 import OPDDashboard from '@pages/opd/OPDDashboard';
 import OPDPrescriptions from '@pages/opd/OPDPrescriptions';
 import OPDQueue from '@pages/opd/OPDQueue';
+import OPDTodayBoard from '@pages/opd/OPDTodayBoard';
 import IPDAdmissions from '@pages/ipd/IPDAdmissions';
 import IPDAdmissionForm from '@pages/ipd/IPDAdmissionForm';
 import IPDDailyCare from '@pages/ipd/IPDDailyCare';
@@ -189,6 +190,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTIONIST, ROLES.ADMIN]}>
             <OPDQueue />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/opd/board',
+        element: (
+          <ProtectedRoute roles={[ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTIONIST, ROLES.ADMIN]}>
+            <OPDTodayBoard />
           </ProtectedRoute>
         )
       },

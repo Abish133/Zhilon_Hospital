@@ -44,7 +44,14 @@ const readPatient = (p = {}) => {
 const readHospital = (h = {}) => ({
   name: h.hospitalName || h.name || 'Hospital',
   contact: [h.phone, h.hospitalEmail || h.email].filter(Boolean).join('  •  '),
-  logo: toLogoUrl(h.logo_url)
+  logo: toLogoUrl(h.logo_url),
+  address: h.address || '—',
+  phone: h.phone || '—',
+  email: h.hospitalEmail || h.email || '—',
+  website: h.website || '',
+  license: h.licenseNumber || h.license_number || '',
+  registration: h.registration_number || '',
+  gst: h.gst_number || ''
 });
 
 // Decorative barcode-style bars derived from the UHID so every card looks unique.
@@ -61,14 +68,14 @@ const barSpans = (seedRaw) => {
 };
 
 const CARD_STYLES = `
-.bhpc-card{width:540px;border-radius:18px;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#fff;box-shadow:0 14px 44px rgba(15,23,42,.20);border:1px solid #e2e8f0;}
+.bhpc-card{width:540px;height:348px;display:flex;flex-direction:column;border-radius:18px;overflow:hidden;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif;background:#fff;box-shadow:0 14px 44px rgba(15,23,42,.20);border:1px solid #e2e8f0;}
 .bhpc-head{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#4c1d95 100%);padding:18px 22px 20px;display:flex;align-items:center;gap:14px;position:relative;}
 .bhpc-head::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#8b5cf6,#6366f1,#22d3ee);}
 .bhpc-logo{width:48px;height:48px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#4c1d95;font-size:18px;overflow:hidden;flex:none;}
 .bhpc-logo img{width:100%;height:100%;object-fit:contain;}
 .bhpc-hname{color:#fff;font-size:19px;font-weight:800;letter-spacing:.4px;line-height:1.15;}
 .bhpc-hsub{color:#c7d2fe;font-size:10px;letter-spacing:3px;font-weight:700;margin-top:4px;text-transform:uppercase;}
-.bhpc-body{display:flex;gap:18px;padding:20px 22px 16px;}
+.bhpc-body{display:flex;gap:18px;padding:20px 22px 16px;flex:1;}
 .bhpc-avatar{width:86px;height:86px;border-radius:16px;background:linear-gradient(135deg,#ede9fe,#e0e7ff);color:#4c1d95;display:flex;align-items:center;justify-content:center;font-size:30px;font-weight:800;flex:none;border:2px solid #ddd6fe;}
 .bhpc-info{flex:1;min-width:0;}
 .bhpc-name{font-size:22px;font-weight:800;color:#0f172a;line-height:1.1;}
@@ -85,14 +92,30 @@ const CARD_STYLES = `
 .bhpc-barcode{display:flex;align-items:flex-end;gap:1.5px;height:36px;justify-content:flex-end;}
 .bhpc-barcode i{display:block;background:#0f172a;}
 .bhpc-bccode{text-align:right;font-family:'Courier New',monospace;font-size:9px;letter-spacing:2px;color:#475569;margin-top:5px;}
+/* ── back side ── */
+.bhpc-bhead{background:linear-gradient(135deg,#0f172a 0%,#1e293b 55%,#4c1d95 100%);padding:14px 22px;display:flex;align-items:center;gap:12px;position:relative;}
+.bhpc-bhead::after{content:'';position:absolute;left:0;right:0;bottom:0;height:4px;background:linear-gradient(90deg,#22d3ee,#6366f1,#8b5cf6);}
+.bhpc-blogo{width:38px;height:38px;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;color:#4c1d95;font-size:14px;overflow:hidden;flex:none;}
+.bhpc-blogo img{width:100%;height:100%;object-fit:contain;}
+.bhpc-hname2{color:#fff;font-size:16px;font-weight:800;letter-spacing:.3px;line-height:1.1;}
+.bhpc-hsub2{color:#c7d2fe;font-size:9px;letter-spacing:2.5px;font-weight:700;margin-top:3px;text-transform:uppercase;}
+.bhpc-bbody{padding:16px 22px 6px;flex:1;}
+.bhpc-btitle{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:800;color:#7c3aed;margin-bottom:8px;}
+.bhpc-bsec{margin-bottom:14px;}
+.bhpc-brow{display:flex;gap:8px;font-size:12px;line-height:1.6;color:#0f172a;}
+.bhpc-brow b{flex:none;width:74px;color:#94a3b8;font-weight:700;font-size:10px;text-transform:uppercase;letter-spacing:.5px;padding-top:1px;}
+.bhpc-brow span{flex:1;font-weight:600;}
+.bhpc-blist{margin:0;padding-left:16px;color:#334155;font-size:11px;line-height:1.65;}
+.bhpc-blist li{margin-bottom:2px;}
+.bhpc-bfoot{display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border-top:1px solid #e2e8f0;padding:10px 22px;font-size:9.5px;color:#64748b;}
+.bhpc-bfoot b{color:#334155;}
+.bhpc-stack{display:flex;flex-direction:column;gap:8px;align-items:center;}
+.bhpc-tag{font-size:10px;letter-spacing:2px;color:#94a3b8;font-weight:800;text-transform:uppercase;align-self:center;}
+@media print{.bhpc-tag{display:none;}}
 `;
 
-// Returns "<style>… </style><div class='bhpc-card'>…</div>" so the same markup
-// drives both the in-app modal preview and the print window.
-export const getPatientCardInnerHTML = (patient, hospital) => {
-  const p = readPatient(patient);
-  const h = readHospital(hospital);
-  return `<style>${CARD_STYLES}</style>
+// Front-side markup (no <style>; the wrapper injects it once).
+const frontFragment = (p, h) => `
   <div class="bhpc-card">
     <div class="bhpc-head">
       <div class="bhpc-logo">${h.logo ? `<img src="${esc(h.logo)}" alt="logo"/>` : esc(p.initials)}</div>
@@ -128,6 +151,55 @@ export const getPatientCardInnerHTML = (patient, hospital) => {
       </div>
     </div>
   </div>`;
+
+// Back-side markup — hospital details, contact and usage instructions.
+const backFragment = (p, h) => `
+  <div class="bhpc-card">
+    <div class="bhpc-bhead">
+      <div class="bhpc-blogo">${h.logo ? `<img src="${esc(h.logo)}" alt="logo"/>` : esc(p.initials)}</div>
+      <div>
+        <div class="bhpc-hname2">${esc(h.name)}</div>
+        <div class="bhpc-hsub2">Hospital Information</div>
+      </div>
+    </div>
+    <div class="bhpc-bbody">
+      <div class="bhpc-bsec">
+        <div class="bhpc-btitle">Hospital Details</div>
+        <div class="bhpc-brow"><b>Address</b><span>${esc(h.address)}</span></div>
+        <div class="bhpc-brow"><b>Phone</b><span>${esc(h.phone)}</span></div>
+        <div class="bhpc-brow"><b>Email</b><span>${esc(h.email)}</span></div>
+        ${h.website ? `<div class="bhpc-brow"><b>Website</b><span>${esc(h.website)}</span></div>` : ''}
+        ${h.license ? `<div class="bhpc-brow"><b>License</b><span>${esc(h.license)}</span></div>` : ''}
+        ${h.gst ? `<div class="bhpc-brow"><b>GST</b><span>${esc(h.gst)}</span></div>` : ''}
+      </div>
+      <div class="bhpc-bsec">
+        <div class="bhpc-btitle">Important</div>
+        <ul class="bhpc-blist">
+          <li>Please present this card on every visit.</li>
+          <li>This card is non-transferable and remains hospital property.</li>
+          <li>Report loss to the reception immediately.</li>
+          <li>In an emergency, call the hospital number above.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="bhpc-bfoot">
+      <span><b>Holder:</b> ${esc(p.fullName)} &nbsp;·&nbsp; <b>UHID:</b> ${esc(p.uhid)}</span>
+      <span>If found, please return to ${esc(h.name)}.</span>
+    </div>
+  </div>`;
+
+// Returns "<style>…</style><div class='bhpc-stack'>FRONT + BACK</div>" so the same
+// markup drives both the in-app modal preview and the print window (double-sided).
+export const getPatientCardInnerHTML = (patient, hospital) => {
+  const p = readPatient(patient);
+  const h = readHospital(hospital);
+  return `<style>${CARD_STYLES}</style>
+  <div class="bhpc-stack">
+    <span class="bhpc-tag">Front</span>
+    ${frontFragment(p, h)}
+    <span class="bhpc-tag">Back</span>
+    ${backFragment(p, h)}
+  </div>`;
 };
 
 // Open a print window containing just the card, centred on the page.
@@ -142,7 +214,12 @@ export const printPatientCard = (patient, hospital) => {
       @page{size:auto;margin:14mm;}
       html,body{margin:0;padding:0;background:#fff;}
       body{display:flex;align-items:center;justify-content:center;min-height:100vh;}
-      @media print{body{min-height:auto;}}
+      @media print{
+        body{min-height:auto;}
+        .bhpc-stack{gap:0;}
+        .bhpc-card{page-break-after:always;}
+        .bhpc-card:last-of-type{page-break-after:auto;}
+      }
     </style></head><body>${inner}</body></html>`);
   win.document.close();
   win.focus();
@@ -286,6 +363,104 @@ export const downloadPatientCardPDF = async (patient, hospital) => {
   doc.setFontSize(6);
   doc.setTextColor(71, 85, 105);
   doc.text(p.uhid, W - 6, H - 2.5, { align: 'right' });
+
+  // ── PAGE 2: BACK (hospital details + instructions) ──────────────────────
+  doc.addPage([130, 82], 'landscape');
+
+  doc.setFillColor(255, 255, 255);
+  doc.rect(0, 0, W, H, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.setLineWidth(0.3);
+  doc.rect(0.5, 0.5, W - 1, H - 1);
+
+  // Header band + accent
+  doc.setFillColor(15, 23, 42);
+  doc.rect(0, 0, W, 16, 'F');
+  doc.setFillColor(34, 211, 238);
+  doc.rect(0, 16, W, 1.2, 'F');
+
+  let backLogoOk = false;
+  if (h.logo) {
+    const bimg = await loadImageData(h.logo);
+    if (bimg) {
+      try { doc.addImage(bimg.data, 'PNG', 6, 3.5, 9, 9); backLogoOk = true; } catch { backLogoOk = false; }
+    }
+  }
+  if (!backLogoOk) {
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(6, 3.5, 9, 9, 1.4, 1.4, 'F');
+    doc.setTextColor(76, 29, 149);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(p.initials, 10.5, 9.6, { align: 'center' });
+  }
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text(doc.splitTextToSize(h.name, W - 26)[0], 18, 8);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6);
+  doc.setTextColor(199, 210, 254);
+  doc.text('HOSPITAL INFORMATION', 18, 12.5);
+
+  // Hospital details
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(124, 58, 237);
+  doc.text('HOSPITAL DETAILS', 6, 23);
+
+  let y = 28;
+  const detailRow = (label, value) => {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(5.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(label.toUpperCase(), 6, y);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    doc.setTextColor(15, 23, 42);
+    const lines = doc.splitTextToSize(String(value || '—'), W - 32);
+    doc.text(lines, 26, y);
+    y += Math.max(5, lines.length * 3.2 + 1.8);
+  };
+  detailRow('Address', h.address);
+  detailRow('Phone', h.phone);
+  detailRow('Email', h.email);
+  if (h.website) detailRow('Website', h.website);
+  if (h.license) detailRow('License', h.license);
+  if (h.gst) detailRow('GST', h.gst);
+
+  // Instructions
+  y += 1.5;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(7);
+  doc.setTextColor(124, 58, 237);
+  doc.text('IMPORTANT', 6, y);
+  y += 4.5;
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(6.5);
+  doc.setTextColor(51, 65, 85);
+  [
+    'Please present this card on every visit.',
+    'This card is non-transferable and remains hospital property.',
+    'Report loss to the reception immediately.',
+    'In an emergency, call the hospital number above.'
+  ].forEach((line) => {
+    doc.text(`•  ${line}`, 6, y);
+    y += 3.6;
+  });
+
+  // Footer
+  doc.setFillColor(248, 250, 252);
+  doc.rect(0, H - 11, W, 11, 'F');
+  doc.setDrawColor(226, 232, 240);
+  doc.line(0, H - 11, W, H - 11);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(6.5);
+  doc.setTextColor(51, 65, 85);
+  doc.text(`Holder: ${p.fullName}   ·   UHID: ${p.uhid}`, 6, H - 6.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(doc.splitTextToSize(`If found, please return to ${h.name}.`, W - 12)[0], 6, H - 3);
 
   const safeName = p.fullName.replace(/\s+/g, '_');
   doc.save(`PatientCard_${p.uhid}_${safeName}.pdf`);

@@ -1,23 +1,45 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Tag, Space, Button, message, Spin } from 'antd';
-import { CalendarOutlined, CheckCircleOutlined, CloseCircleOutlined, MedicineBoxOutlined } from '@ant-design/icons';
+import { Card, Table, Tag, Space, Button, message, Spin, DatePicker, Input, Select } from 'antd';
+import { CalendarOutlined, CheckCircleOutlined, CloseCircleOutlined, MedicineBoxOutlined, ClearOutlined } from '@ant-design/icons';
 import { opdAppointmentService } from '@/services';
 import { useNavigate } from 'react-router-dom';
+import OpdFlowHeader from '@components/opd/OpdFlowHeader';
 import dayjs from 'dayjs';
+
+const { RangePicker } = DatePicker;
+
+const APPT_STATUSES = ['Booked', 'Checked-in', 'Consulted', 'Completed', 'Cancelled', 'No-show'];
+
+const defaultFilters = () => ({
+  search: '',
+  appointmentId: '',
+  range: [dayjs(), dayjs()],
+  status: undefined
+});
 
 const OPDAppointments = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState(defaultFilters());
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const response = await opdAppointmentService.getAll();
+      const [from, to] = filters.range || [];
+      const params = {};
+      if (from) params.date_from = from.format('YYYY-MM-DD');
+      if (to) params.date_to = to.format('YYYY-MM-DD');
+      if (filters.search) params.search = filters.search.trim();
+      if (filters.appointmentId) params.appointment_id = filters.appointmentId;
+      if (filters.status) params.status = filters.status;
+
+      const response = await opdAppointmentService.getAll(params);
       if (response.success) {
         setAppointments(response.data || []);
       }
@@ -27,6 +49,9 @@ const OPDAppointments = () => {
       setLoading(false);
     }
   };
+
+  const updateFilter = (patch) => setFilters(prev => ({ ...prev, ...patch }));
+  const resetFilters = () => setFilters(defaultFilters());
 
   const handleStatusChange = async (appointmentId, newStatus) => {
     try {
@@ -195,6 +220,8 @@ const OPDAppointments = () => {
   ];
 
   return (
+    <div>
+    <OpdFlowHeader current="appointment" />
     <Card
       title={
         <Space>
@@ -203,8 +230,8 @@ const OPDAppointments = () => {
         </Space>
       }
       extra={
-        <Button 
-          type="primary" 
+        <Button
+          type="primary"
           icon={<CalendarOutlined />}
           onClick={() => navigate('/appointments/book')}
         >
@@ -212,6 +239,37 @@ const OPDAppointments = () => {
         </Button>
       }
     >
+      <Space wrap style={{ marginBottom: 16 }}>
+        <Input.Search
+          placeholder="Search patient name / UHID / mobile"
+          allowClear
+          style={{ width: 260 }}
+          defaultValue={filters.search}
+          onSearch={(val) => updateFilter({ search: val })}
+        />
+        <Input
+          placeholder="Appointment ID"
+          allowClear
+          style={{ width: 150 }}
+          value={filters.appointmentId}
+          onChange={(e) => updateFilter({ appointmentId: e.target.value.replace(/\D/g, '') })}
+        />
+        <RangePicker
+          value={filters.range}
+          onChange={(range) => updateFilter({ range: range || [] })}
+          format="DD MMM YYYY"
+          allowEmpty={[true, true]}
+        />
+        <Select
+          placeholder="Status"
+          allowClear
+          style={{ width: 150 }}
+          value={filters.status}
+          onChange={(status) => updateFilter({ status })}
+          options={APPT_STATUSES.map(s => ({ label: s, value: s }))}
+        />
+        <Button icon={<ClearOutlined />} onClick={resetFilters}>Reset</Button>
+      </Space>
       <Spin spinning={loading}>
         <Table
           columns={columns}
@@ -221,6 +279,7 @@ const OPDAppointments = () => {
         />
       </Spin>
     </Card>
+    </div>
   );
 };
 

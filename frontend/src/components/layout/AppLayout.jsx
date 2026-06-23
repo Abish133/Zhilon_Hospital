@@ -51,6 +51,7 @@ const AppLayout = () => {
       roles: [ROLES.RECEPTIONIST, ROLES.DOCTOR, ROLES.NURSE, ROLES.ADMIN],
       children: [
         { key: '/opd', label: 'Dashboard' },
+        { key: '/opd/board', label: "Today's Board" },
         { key: '/opd/appointments', label: 'Appointments' },
         { key: '/opd/visits', label: 'Visits', roles: [ROLES.RECEPTIONIST, ROLES.NURSE] },
         { key: '/opd/queue', label: 'Queue' },

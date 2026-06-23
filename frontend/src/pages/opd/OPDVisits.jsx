@@ -1,11 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Card, Table, Button, Form, Input, DatePicker, Select, message, Space, Tag, Row, Col, Statistic } from 'antd';
 import SliderModal from '@components/common/SliderModal';
-import { PlusOutlined, UserAddOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { PlusOutlined, UserAddOutlined, ClockCircleOutlined, ClearOutlined } from '@ant-design/icons';
 import { opdVisitService, patientService, opdAppointmentService, doctorService, departmentService } from '@/services';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@store';
+import OpdFlowHeader from '@components/opd/OpdFlowHeader';
 import dayjs from 'dayjs';
+
+const { RangePicker } = DatePicker;
+
+const VISIT_STATUSES = ['Checked-in', 'In-consultation', 'Completed'];
+
+const defaultFilters = () => ({
+  search: '',
+  token: '',
+  range: [dayjs(), dayjs()],
+  status: undefined
+});
 
 const OPDVisits = () => {
   const navigate = useNavigate();
@@ -17,12 +29,17 @@ const OPDVisits = () => {
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
+  const [filters, setFilters] = useState(defaultFilters());
   const [form] = Form.useForm();
 
   useEffect(() => {
     fetchVisits();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
+
+  useEffect(() => {
     fetchPatients();
-    fetchAppointments(); 
+    fetchAppointments();
     fetchDoctors();
     fetchDepartments();
   }, []);
@@ -30,7 +47,15 @@ const OPDVisits = () => {
   const fetchVisits = async () => {
     setLoading(true);
     try {
-      const response = await opdVisitService.getAll();
+      const [from, to] = filters.range || [];
+      const params = { hospital_id: user?.hospital_id };
+      if (from) params.date_from = from.format('YYYY-MM-DD');
+      if (to) params.date_to = to.format('YYYY-MM-DD');
+      if (filters.search) params.search = filters.search.trim();
+      if (filters.token) params.token_number = filters.token;
+      if (filters.status) params.status = filters.status;
+
+      const response = await opdVisitService.getAll(params);
       if (response.success) {
         setVisits(response.data || []);
       }
@@ -40,6 +65,9 @@ const OPDVisits = () => {
       setLoading(false);
     }
   };
+
+  const updateFilter = (patch) => setFilters(prev => ({ ...prev, ...patch }));
+  const resetFilters = () => setFilters(defaultFilters());
 
   const fetchPatients = async () => {
     try {
@@ -116,11 +144,10 @@ const OPDVisits = () => {
   };
 
   const getTodayStats = () => {
-    const today = dayjs().format('YYYY-MM-DD');
-    const todayVisits = visits.filter(v => v.visit_date === today);
+    // `visits` is already scoped to the selected date by the API.
     return {
-      total: todayVisits.length,
-      waiting: todayVisits.length
+      total: visits.length,
+      waiting: visits.filter(v => v.status === 'Checked-in').length
     };
   };
 
@@ -222,14 +249,23 @@ const OPDVisits = () => {
   ];
 
   const stats = getTodayStats();
+  const [rangeFrom, rangeTo] = filters.range || [];
+  const isSingleDay = rangeFrom && rangeTo && rangeFrom.isSame(rangeTo, 'day');
+  const isToday = isSingleDay && rangeFrom.isSame(dayjs(), 'day');
+  const visitsLabel = isToday
+    ? "Today's Visits"
+    : isSingleDay
+      ? `Visits on ${rangeFrom.format('DD MMM')}`
+      : 'Visits in range';
 
   return (
     <div>
+      <OpdFlowHeader current="visit" />
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={8}>
           <Card>
             <Statistic
-              title="Today's Visits"
+              title={visitsLabel}
               value={stats.total}
               prefix={<UserAddOutlined />}
               valueStyle={{ color: '#3f8600' }}
@@ -260,6 +296,37 @@ const OPDVisits = () => {
           </Button>
         }
       >
+        <Space wrap style={{ marginBottom: 16 }}>
+          <Input.Search
+            placeholder="Search patient name / UHID / mobile"
+            allowClear
+            style={{ width: 260 }}
+            defaultValue={filters.search}
+            onSearch={(val) => updateFilter({ search: val })}
+          />
+          <Input
+            placeholder="Token #"
+            allowClear
+            style={{ width: 110 }}
+            value={filters.token}
+            onChange={(e) => updateFilter({ token: e.target.value.replace(/\D/g, '') })}
+          />
+          <RangePicker
+            value={filters.range}
+            onChange={(range) => updateFilter({ range: range || [] })}
+            format="DD MMM YYYY"
+            allowEmpty={[true, true]}
+          />
+          <Select
+            placeholder="Status"
+            allowClear
+            style={{ width: 160 }}
+            value={filters.status}
+            onChange={(status) => updateFilter({ status })}
+            options={VISIT_STATUSES.map(s => ({ label: s, value: s }))}
+          />
+          <Button icon={<ClearOutlined />} onClick={resetFilters}>Reset</Button>
+        </Space>
         <Table
           columns={columns}
           dataSource={visits}

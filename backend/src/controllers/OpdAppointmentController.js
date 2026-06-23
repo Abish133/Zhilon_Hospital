@@ -132,14 +132,25 @@ class OpdAppointmentController {
 
   static async getAllAppointments(req, res) {
     try {
-      const { uhid, patient_id, doctor_id, status, appointment_date } = req.query;
+      const { uhid, patient_id, doctor_id, status, appointment_date, appointment_id, date_from, date_to, search } = req.query;
       const hospital_id = req.user?.hospital_id;
       const where = { is_active: true };
       if (hospital_id) where.hospital_id = hospital_id;
       if (patient_id) where.patient_id = parseInt(patient_id);
       if (doctor_id) where.doctor_id = parseInt(doctor_id);
       if (status) where.status = status;
-      if (appointment_date) where.appointment_date = appointment_date;
+      if (appointment_id) where.appointment_id = parseInt(appointment_id);
+
+      // Date: support an exact date or a from/to range
+      if (appointment_date) {
+        where.appointment_date = appointment_date;
+      } else if (date_from && date_to) {
+        where.appointment_date = { [Op.between]: [date_from, date_to] };
+      } else if (date_from) {
+        where.appointment_date = { [Op.gte]: date_from };
+      } else if (date_to) {
+        where.appointment_date = { [Op.lte]: date_to };
+      }
 
       const include = [
         { model: Patient, as: 'patient', attributes: ['patient_id', 'first_name', 'last_name', 'uhid', 'mobile_number'] },
@@ -147,9 +158,22 @@ class OpdAppointmentController {
         { model: Department, as: 'department', attributes: ['id', 'department_name'], required: false }
       ];
 
-      // If uhid is provided, filter by patient's uhid
-      if (uhid) {
-        include[0].where = { uhid };
+      // Patient-level filtering: exact uhid, or a free-text search across
+      // name / uhid / mobile / numeric patient_id.
+      const patientWhere = {};
+      if (uhid) patientWhere.uhid = uhid;
+      if (search) {
+        const like = { [Op.like]: `%${search}%` };
+        patientWhere[Op.or] = [
+          { first_name: like },
+          { last_name: like },
+          { uhid: like },
+          { mobile_number: like },
+          ...(/^\d+$/.test(search) ? [{ patient_id: parseInt(search) }] : [])
+        ];
+      }
+      if (Object.keys(patientWhere).length > 0 || Object.getOwnPropertySymbols(patientWhere).length > 0) {
+        include[0].where = patientWhere;
         include[0].required = true;
       }
 

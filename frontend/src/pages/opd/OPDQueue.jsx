@@ -4,6 +4,7 @@ import { ClockCircleOutlined, UserOutlined, CheckCircleOutlined, MedicineBoxOutl
 import { opdVisitService, doctorService } from '@/services';
 import { useAuthStore } from '@store';
 import { useNavigate } from 'react-router-dom';
+import OpdFlowHeader from '@components/opd/OpdFlowHeader';
 import dayjs from 'dayjs';
 
 const OPDQueue = () => {
@@ -180,6 +181,7 @@ const OPDQueue = () => {
 
   return (
     <div>
+      <OpdFlowHeader current="queue" />
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={6}>
           <Card>

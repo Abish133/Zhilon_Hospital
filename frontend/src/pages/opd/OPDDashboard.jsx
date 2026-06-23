@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Card, Row, Col, Statistic, Table, Tag, Button, Space, Tabs } from 'antd';
-import { UserOutlined, ClockCircleOutlined, CheckCircleOutlined, CalendarOutlined, MedicineBoxOutlined } from '@ant-design/icons';
+import { UserOutlined, ClockCircleOutlined, CheckCircleOutlined, CalendarOutlined, MedicineBoxOutlined, TeamOutlined } from '@ant-design/icons';
 import { opdVisitService, opdAppointmentService, opdConsultationService } from '@/services';
 import { useNavigate } from 'react-router-dom';
 import dayjs from 'dayjs';
@@ -213,13 +213,21 @@ const OPDDashboard = () => {
             }
           ]}
           tabBarExtraContent={
-            <Button 
-              type="primary" 
-              icon={<CalendarOutlined />}
-              onClick={() => navigate('/appointments/book')}
-            >
-              Book Appointment
-            </Button>
+            <Space>
+              <Button
+                icon={<TeamOutlined />}
+                onClick={() => navigate('/opd/board')}
+              >
+                Today's Board
+              </Button>
+              <Button
+                type="primary"
+                icon={<CalendarOutlined />}
+                onClick={() => navigate('/appointments/book')}
+              >
+                Book Appointment
+              </Button>
+            </Space>
           }
         />
       </Card>
