@@ -82,11 +82,24 @@ class LabOrderController {
       const doctor = labOrder.ordered_by ? await Doctor.findByPk(labOrder.ordered_by) : null;
       const hospital = await Hospital.findByPk(labOrder.hospital_id);
 
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         data: {
           ...labOrder.toJSON(),
-          patient: patient ? { patient_id: patient.patient_id, first_name: patient.first_name, last_name: patient.last_name, uhid: patient.uhid } : null,
+          // Return the demographic fields the report needs (age/gender/contact/blood
+          // group), not just the name — otherwise the report can't display them.
+          patient: patient ? {
+            patient_id: patient.patient_id,
+            first_name: patient.first_name,
+            last_name: patient.last_name,
+            uhid: patient.uhid,
+            date_of_birth: patient.date_of_birth,
+            age: patient.age,
+            gender: patient.gender,
+            blood_group: patient.blood_group,
+            mobile_number: patient.mobile_number,
+            email: patient.email
+          } : null,
           orderedBy: doctor ? { id: doctor.id, name: doctor.name, specialization: doctor.specialization } : null,
           hospital: hospital ? { id: hospital.id, hospitalName: hospital.hospitalName } : null
         }
