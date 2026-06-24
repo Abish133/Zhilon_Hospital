@@ -3,22 +3,26 @@ const { Hospital } = require('../models');
 class HospitalController {
   static async registerHospital(req, res) {
     try {
-      const { hospitalName, licenseNumber, address, phone, hospitalEmail, hospitalType } = req.body;
-      
+      const { hospitalName, licenseNumber, address, phone, hospitalEmail, hospitalType, pharmacy_mode } = req.body;
+
       if (!hospitalName || !licenseNumber || !address || !phone || !hospitalEmail) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'All fields are required' 
+        return res.status(400).json({
+          success: false,
+          message: 'All fields are required'
         });
       }
 
-      const hospital = await Hospital.create({ 
-        hospitalName, 
-        licenseNumber, 
-        address, 
-        phone, 
-        hospitalEmail, 
-        hospitalType: hospitalType || 'general'
+      // Pharmacy model is fixed at registration (read-only afterwards).
+      const pharmacyMode = pharmacy_mode === 'self_purchase' ? 'self_purchase' : 'in_house';
+
+      const hospital = await Hospital.create({
+        hospitalName,
+        licenseNumber,
+        address,
+        phone,
+        hospitalEmail,
+        hospitalType: hospitalType || 'general',
+        pharmacy_mode: pharmacyMode
       });
 
       res.status(201).json({ 
@@ -75,7 +79,8 @@ class HospitalController {
         return res.status(403).json({ success: false, message: 'Access denied to update this hospital' });
       }
       
-      const { isActive, ...updateData } = req.body;
+      // pharmacy_mode is locked after registration — never accept it on update.
+      const { isActive, pharmacy_mode, ...updateData } = req.body;
       const where = { id: req.params.id };
       
       if (isActive === 0 || isActive === false) {

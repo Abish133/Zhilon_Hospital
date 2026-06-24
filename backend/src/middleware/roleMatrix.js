@@ -107,6 +107,8 @@ const gates = {
   // Sensitive financial / restricted
   payroll:         { read: authorize(['HR', 'Accountant']), write: authorize(['HR']) },
   salaryStructure: { read: authorize(['HR', 'Accountant']), write: authorize(['HR']) },
+  leaveBalance:    { read: authorize(READ_ALL_STAFF), write: authorize(['HR']) },
+  expense:         { read: authorize(['HR', 'Accountant']), write: authorize(['HR', 'Accountant']) },
 
   // Reports
   reports:         { read: authorize(READ_FINANCIAL), write: authorize(['HR', 'Accountant']) },

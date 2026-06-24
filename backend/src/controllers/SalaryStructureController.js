@@ -117,8 +117,12 @@ class SalaryStructureController {
         medical_allowance,
         transport_allowance,
         other_allowances,
+        bonus,
+        gratuity,
         pf_percentage,
         pt_amount,
+        esi_percentage,
+        lwf_amount,
         tds_percentage,
         other_deductions,
         effective_from,
@@ -170,8 +174,12 @@ class SalaryStructureController {
         medical_allowance: parseFloat(medical_allowance) || 0,
         transport_allowance: parseFloat(transport_allowance) || 0,
         other_allowances: parseFloat(other_allowances) || 0,
+        bonus: parseFloat(bonus) || 0,
+        gratuity: parseFloat(gratuity) || 0,
         pf_percentage: parseFloat(pf_percentage) || 0,
         pt_amount: parseFloat(pt_amount) || 0,
+        esi_percentage: parseFloat(esi_percentage) || 0,
+        lwf_amount: parseFloat(lwf_amount) || 0,
         tds_percentage: parseFloat(tds_percentage) || 0,
         other_deductions: parseFloat(other_deductions) || 0,
         effective_from,
@@ -220,8 +228,12 @@ class SalaryStructureController {
         medical_allowance,
         transport_allowance,
         other_allowances,
+        bonus,
+        gratuity,
         pf_percentage,
         pt_amount,
+        esi_percentage,
+        lwf_amount,
         tds_percentage,
         other_deductions,
         effective_from,
@@ -253,8 +265,12 @@ class SalaryStructureController {
       if (medical_allowance !== undefined) updateData.medical_allowance = parseFloat(medical_allowance);
       if (transport_allowance !== undefined) updateData.transport_allowance = parseFloat(transport_allowance);
       if (other_allowances !== undefined) updateData.other_allowances = parseFloat(other_allowances);
+      if (bonus !== undefined) updateData.bonus = parseFloat(bonus);
+      if (gratuity !== undefined) updateData.gratuity = parseFloat(gratuity);
       if (pf_percentage !== undefined) updateData.pf_percentage = parseFloat(pf_percentage);
       if (pt_amount !== undefined) updateData.pt_amount = parseFloat(pt_amount);
+      if (esi_percentage !== undefined) updateData.esi_percentage = parseFloat(esi_percentage);
+      if (lwf_amount !== undefined) updateData.lwf_amount = parseFloat(lwf_amount);
       if (tds_percentage !== undefined) updateData.tds_percentage = parseFloat(tds_percentage);
       if (other_deductions !== undefined) updateData.other_deductions = parseFloat(other_deductions);
       if (effective_from) updateData.effective_from = effective_from;

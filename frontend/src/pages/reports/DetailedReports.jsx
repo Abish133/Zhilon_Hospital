@@ -4,12 +4,18 @@ import { FileExcelOutlined, FileTextOutlined } from '@ant-design/icons';
 import PageHeader from '@components/common/PageHeader';
 import { useApiQuery } from '@hooks/useApi';
 import { reportService } from '@services/index';
+import { useAuthStore } from '@store';
 import dayjs from 'dayjs';
 
 const { RangePicker } = DatePicker;
 const { TabPane } = Tabs;
 
+// Friendly "no data" message shared by every report table.
+const emptyLocale = { emptyText: 'No data available for the selected range' };
+
 const DetailedReports = () => {
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [activeTab, setActiveTab] = useState('opd');
   const [filters, setFilters] = useState({
     from: dayjs().subtract(30, 'days').format('YYYY-MM-DD'),
@@ -160,19 +166,21 @@ const DetailedReports = () => {
         <Tabs activeKey={activeTab} onChange={setActiveTab}>
           <TabPane tab="OPD Footfall" key="opd">
             <FilterBar />
-            <Table columns={opdColumns} dataSource={opdData?.data || []} loading={opdLoading} />
+            <Table columns={opdColumns} dataSource={opdData?.data || []} loading={opdLoading} locale={emptyLocale} />
           </TabPane>
           <TabPane tab="IPD Occupancy" key="ipd">
             <FilterBar />
-            <Table columns={ipdColumns} dataSource={ipdData?.data || []} loading={ipdLoading} />
+            <Table columns={ipdColumns} dataSource={ipdData?.data || []} loading={ipdLoading} locale={emptyLocale} />
           </TabPane>
-          <TabPane tab="Revenue" key="revenue">
-            <FilterBar />
-            <Table columns={revenueColumns} dataSource={revenueData?.data || []} loading={revenueLoading} />
-          </TabPane>
+          {isAdmin && (
+            <TabPane tab="Revenue" key="revenue">
+              <FilterBar />
+              <Table columns={revenueColumns} dataSource={revenueData?.data || []} loading={revenueLoading} locale={emptyLocale} />
+            </TabPane>
+          )}
           <TabPane tab="Doctor Performance" key="doctor">
             <FilterBar />
-            <Table columns={doctorColumns} dataSource={doctorData?.data || []} loading={doctorLoading} />
+            <Table columns={doctorColumns} dataSource={doctorData?.data || []} loading={doctorLoading} locale={emptyLocale} />
           </TabPane>
           <TabPane tab="Stock Expiry" key="stock">
             <Space style={{ marginBottom: 16 }}>
@@ -180,11 +188,11 @@ const DetailedReports = () => {
                 Export Excel
               </Button>
             </Space>
-            <Table columns={stockColumns} dataSource={stockData?.data || []} loading={stockLoading} />
+            <Table columns={stockColumns} dataSource={stockData?.data || []} loading={stockLoading} locale={emptyLocale} />
           </TabPane>
           <TabPane tab="Outstanding Payments" key="payments">
             <FilterBar />
-            <Table columns={paymentsColumns} dataSource={paymentsData?.data || []} loading={paymentsLoading} />
+            <Table columns={paymentsColumns} dataSource={paymentsData?.data || []} loading={paymentsLoading} locale={emptyLocale} />
           </TabPane>
         </Tabs>
       </Card>

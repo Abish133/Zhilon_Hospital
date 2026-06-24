@@ -198,6 +198,7 @@ app.use('/api/maintenance-history', guard('maintenance'), maintenanceHistoryRout
 app.use('/api/billing-episodes', guard('billing'), billingEpisodeRoutes);
 app.use('/api/bill-charges', guard('billing'), billChargeRoutes);
 app.use('/api/bills', guard('billing'), billRoutes);
+app.use('/api/counter-billing', guard('billing'), require('./routes/counterBillingRoutes'));
 app.use('/api/payments', guard('payment'), paymentRoutes);
 app.use('/api/payment-advances', guard('payment'), paymentAdvanceRoutes);
 app.use('/api/refunds', guard('refund'), refundRoutes);
@@ -224,6 +225,8 @@ app.use('/api/payroll', guard('payroll'), payrollRoutes);
 app.use('/api/audit-logs', guard('auditLog'), auditLogRoutes);
 app.use('/api/insurance-claims', guard('insurance'), insuranceClaimRoutes);
 app.use('/api/leave-requests', guard('leaveRequest'), leaveRequestRoutes);
+app.use('/api/leave-balances', guard('leaveBalance'), require('./routes/leaveBalanceRoutes'));
+app.use('/api/expenses', guard('expense'), require('./routes/expenseRoutes'));
 app.use('/api/reports-advanced', guard('reportsAdvanced'), enhancedReportRoutes);
 app.use('/api/ipd', guard('ipdMedication'), ipdMedicationRoutes);
 app.use('/api/admin/jobs', guard('adminJobs'), adminJobsRoutes);

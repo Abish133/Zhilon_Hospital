@@ -89,6 +89,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 0
     },
+    // Employer gratuity provision for the month (recorded; not part of net pay).
+    gratuity: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
     net_salary: {
       type: DataTypes.DECIMAL(12, 2),
       allowNull: false,

@@ -4,19 +4,23 @@ import { useState, useEffect } from 'react';
 import { formatCurrency } from '@utils/helpers';
 import { generateReportPDF } from '@utils/pdfGenerator';
 import ReportService from '@services/ReportService';
+import { useAuthStore } from '@store';
 
 const { RangePicker } = DatePicker;
 
 const Reports = () => {
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [reportType, setReportType] = useState('opd');
   const [loading, setLoading] = useState(false);
   const [reportData, setReportData] = useState(null);
   const [dateRange, setDateRange] = useState(null);
 
+  // Revenue is admin-only.
   const reportTypes = [
     { label: 'OPD Statistics', value: 'opd' },
     { label: 'IPD Occupancy', value: 'ipd' },
-    { label: 'Revenue Report', value: 'revenue' },
+    ...(isAdmin ? [{ label: 'Revenue Report', value: 'revenue' }] : []),
     { label: 'Doctor Performance', value: 'doctor' },
     { label: 'Stock Expiry', value: 'expiry' },
     { label: 'Outstanding Payments', value: 'outstanding' },
@@ -64,11 +68,17 @@ const Reports = () => {
           response = null;
       }
 
-      if (response?.data?.success) {
-        setReportData(response.data.data);
-        message.success('Report generated successfully');
+      // apiClient unwraps the body, so `response` is { success, data }.
+      const body = (response && response.data && response.data.success !== undefined) ? response.data : response;
+      if (body?.success) {
+        const d = body.data;
+        const rows = Array.isArray(d) ? d : (d && typeof d === 'object' ? [d] : []);
+        setReportData(rows);
+        if (rows.length === 0) message.info('No data available for the selected range');
+        else message.success('Report generated successfully');
       } else {
-        message.error('Failed to generate report');
+        setReportData([]);
+        message.error(body?.message || 'Failed to generate report');
       }
     } catch (error) {
       message.error(error.message || 'Error generating report');

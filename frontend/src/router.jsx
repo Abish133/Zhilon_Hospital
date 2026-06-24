@@ -34,6 +34,7 @@ import LabReport from '@pages/lab/LabReport';
 
 import Billing from '@pages/billing/Billing';
 import BillGeneration from '@pages/billing/BillGeneration';
+import CounterBilling from '@pages/billing/CounterBilling';
 import AdvancePayment from '@pages/billing/AdvancePayment';
 import InsuranceClaims from '@pages/billing/InsuranceClaims';
 import RefundManagement from '@pages/billing/RefundManagement';
@@ -93,6 +94,8 @@ import RosterManagement from './pages/hr/RosterManagement';
 import PayrollGeneration from './pages/hr/PayrollGeneration';
 import LeaveRequests from './pages/hr/LeaveRequests';
 import SalaryStructure from './pages/hr/SalaryStructure';
+import LeaveBalances from './pages/hr/LeaveBalances';
+import Expenses from './pages/hr/Expenses';
 import AdvancedReports from './pages/reports/AdvancedReports';
 import IpdPatientDetails from './pages/IpdPatientDetails';
 import IpdMedicationsList from './pages/ipd/IpdMedicationsList';
@@ -483,6 +486,14 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: '/billing/counter',
+        element: (
+          <ProtectedRoute roles={[ROLES.ACCOUNTANT, ROLES.RECEPTIONIST, ROLES.ADMIN]}>
+            <CounterBilling />
+          </ProtectedRoute>
+        )
+      },
+      {
         path: '/billing/advance',
         element: (
           <ProtectedRoute roles={[ROLES.ACCOUNTANT, ROLES.RECEPTIONIST, ROLES.ADMIN]}>
@@ -850,6 +861,22 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
             <SalaryStructure />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/hr/leave-balances',
+        element: (
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR]}>
+            <LeaveBalances />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/hr/expenses',
+        element: (
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT]}>
+            <Expenses />
           </ProtectedRoute>
         )
       },

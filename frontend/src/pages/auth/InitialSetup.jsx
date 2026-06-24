@@ -25,7 +25,8 @@ const InitialSetup = () => {
           address: values.address,
           phone: values.phone,
           hospitalEmail: values.email,
-          hospitalType: values.hospitalType
+          hospitalType: values.hospitalType,
+          pharmacy_mode: values.pharmacy_mode || 'in_house'
         })
       });
       const result = await res.json();
@@ -172,6 +173,19 @@ const InitialSetup = () => {
                 </Form.Item>
                 <Form.Item name="address" label="Address" rules={[{ required: true, message: 'Required' }]}>
                   <Input.TextArea rows={2} placeholder="Street, city, state" />
+                </Form.Item>
+                <Form.Item
+                  name="pharmacy_mode"
+                  label="Pharmacy model"
+                  initialValue="in_house"
+                  rules={[{ required: true, message: 'Required' }]}
+                  tooltip="This decides how pharmacy & OT-consumable charges are handled. It is set once and cannot be changed later."
+                  extra="Choose carefully — this is locked after registration."
+                >
+                  <Select size="large" options={[
+                    { label: 'In-House Pharmacy — medicines billed to the hospital bill', value: 'in_house' },
+                    { label: 'Self-Purchase Pharmacy — patient buys at the pharmacy counter', value: 'self_purchase' }
+                  ]} />
                 </Form.Item>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                   <Form.Item name="phone" label="Phone" rules={[{ required: true, message: 'Required' }]}>

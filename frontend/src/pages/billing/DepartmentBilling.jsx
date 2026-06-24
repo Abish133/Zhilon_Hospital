@@ -6,9 +6,12 @@ import { useApiQuery } from '@hooks/useApi';
 import { formatCurrency, formatDate } from '@utils/helpers';
 import { useNavigate } from 'react-router-dom';
 import apiClient from '@services/apiClient';
+import { useAuthStore } from '@store';
 
 const DepartmentBilling = ({ departmentType, serviceTypeMap }) => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [searchQuery, setSearchQuery] = useState('');
 
   // Use the new endpoint created for department summaries
@@ -114,34 +117,37 @@ const DepartmentBilling = ({ departmentType, serviceTypeMap }) => {
   return (
     <div>
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={8}>
+        {/* Revenue collected is admin-only. */}
+        {isAdmin && (
+          <Col xs={24} md={8}>
+            <Card>
+              <Statistic
+                title={`${departmentType} Revenue Collected`}
+                value={totalPaid}
+                formatter={(v) => formatCurrency(v)}
+                valueStyle={{ color: '#10b981' }}
+                prefix={getDepartmentIcon()}
+              />
+            </Card>
+          </Col>
+        )}
+        <Col xs={24} md={isAdmin ? 8 : 12}>
           <Card>
-            <Statistic 
-              title={`${departmentType} Revenue Collected`} 
-              value={totalPaid} 
-              formatter={(v) => formatCurrency(v)} 
-              valueStyle={{ color: '#10b981' }} 
-              prefix={getDepartmentIcon()}
-            />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic 
-              title={`${departmentType} Pending Collection`} 
-              value={totalPending} 
-              formatter={(v) => formatCurrency(v)} 
+            <Statistic
+              title={`${departmentType} Pending Collection`}
+              value={totalPending}
+              formatter={(v) => formatCurrency(v)}
               valueStyle={{ color: '#ef4444' }} 
               prefix={<DollarOutlined />}
             />
           </Card>
         </Col>
-        <Col span={8}>
+        <Col xs={24} md={isAdmin ? 8 : 12}>
           <Card>
-            <Statistic 
-              title={`Active ${departmentType} Patients`} 
-              value={filteredBills.length} 
-              valueStyle={{ color: '#f59e0b' }} 
+            <Statistic
+              title={`Active ${departmentType} Patients`}
+              value={filteredBills.length}
+              valueStyle={{ color: '#f59e0b' }}
             />
           </Card>
         </Col>

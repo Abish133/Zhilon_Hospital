@@ -66,6 +66,8 @@ class MedicineController {
           hospital_id: req.hospitalId,
           [Op.or]: [
             { medicine_name: { [Op.like]: `%${term}%` } },
+            { brand_name: { [Op.like]: `%${term}%` } },
+            { generic_name: { [Op.like]: `%${term}%` } },
             { medicine_code: { [Op.like]: `%${term}%` } },
             { manufacturer: { [Op.like]: `%${term}%` } }
           ]

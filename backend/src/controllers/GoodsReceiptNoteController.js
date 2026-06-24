@@ -16,6 +16,21 @@ class GoodsReceiptNoteController {
         });
       }
 
+      // Goods can only be received against an APPROVED (or partially received) PO —
+      // a Draft PO must be approved first.
+      const po = await PurchaseOrder.findOne({ where: { po_id, hospital_id }, transaction });
+      if (!po) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Purchase order not found' });
+      }
+      if (!['Approved', 'Partially Received'].includes(po.status)) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Purchase order ${po.po_number} must be approved before goods can be received (current status: ${po.status}).`
+        });
+      }
+
       // Auto-generate GRN number if not supplied
       if (!grn_number) {
         grn_number = await generateSequentialNumber({

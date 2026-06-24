@@ -55,12 +55,36 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       defaultValue: 0
     },
+    // Bonus — an earning paid with salary (not prorated by attendance).
+    bonus: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
+    // Gratuity — monthly employer provision (shown on payslip, NOT in net pay).
+    gratuity: {
+      type: DataTypes.DECIMAL(12, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
     pf_percentage: {
       type: DataTypes.DECIMAL(5, 2),
       allowNull: false,
       defaultValue: 0
     },
     pt_amount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
+    // ESI (Employee State Insurance) — employee contribution as a % of gross wages.
+    esi_percentage: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0
+    },
+    // LWF (Labour Welfare Fund) — flat employee deduction.
+    lwf_amount: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       defaultValue: 0

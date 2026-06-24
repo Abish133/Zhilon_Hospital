@@ -31,7 +31,7 @@ const {
   PharmacySale, PharmacySaleDetail,
   Equipment, PreventiveMaintenance, MaintenanceRequest, MaintenanceHistory, CalibrationLog,
   BillingEpisode, Bill, BillCharge, Payment, PaymentAdvance, Refund, InsuranceClaim,
-  Shift, EmployeeRoster, EmployeeAttendance, LeaveRequest,
+  Shift, EmployeeRoster, EmployeeAttendance, LeaveRequest, LeaveBalance, ExpenseEntry,
   OtRoom, OtBooking, OtPreOperative, OtIntraOperative, OtPostOperative, OtConsumablesUsed,
   Package, AuditLog
 } = db;
@@ -70,6 +70,8 @@ async function main() {
       registration_number: 'REG-TN-2025-0042',
       website: 'https://newbegin.hospital',
       numbering_prefixes: { uhid:'NBH', bill:'BILL', grn:'GRN', po:'PO' },
+      // In-House pharmacy: medicines/OT consumables are billed to the hospital bill.
+      pharmacy_mode: 'in_house',
       settings: {}, isActive: true
     }, { transaction: t });
     const H = hospital.id;
@@ -164,12 +166,43 @@ async function main() {
     }
     console.log(`  ✔ Employees (${allEmps.length}) + Users`);
 
-    // Salary structures
+    // Salary structures — now include bonus, gratuity (employer provision), ESI & LWF.
     const salRows = empDefs.filter(d=>d.code!=='E-NR2').map(def => {
       const b=def.basic;
-      return { employee_id:empMap[def.role].employee_id, basic_salary:b, hra:Math.round(b*0.4), medical_allowance:1250, transport_allowance:1600, other_allowances:Math.round(b*0.1), pf_percentage:12, pt_amount:200, tds_percentage:b>50000?10:0, other_deductions:0, effective_from:thirtyDaysAgo, hospital_id:H, is_active:true };
+      return {
+        employee_id:empMap[def.role].employee_id, basic_salary:b, hra:Math.round(b*0.4),
+        medical_allowance:1250, transport_allowance:1600, other_allowances:Math.round(b*0.1),
+        bonus:Math.round(b*0.0833),                 // ~1 month bonus / 12
+        gratuity:Math.round(b*0.0481),              // 4.81% of basic (employer provision)
+        pf_percentage:12, pt_amount:200,
+        esi_percentage: b <= 21000 ? 0.75 : 0,      // ESI applies to wages <= 21k
+        lwf_amount:20,
+        tds_percentage:b>50000?10:0, other_deductions:0,
+        effective_from:thirtyDaysAgo, hospital_id:H, is_active:true
+      };
     });
     await SalaryStructure.bulkCreate(salRows, { transaction: t });
+
+    // Annual leave balances for every employee (current year), a couple with usage.
+    const curYear = new Date().getFullYear();
+    const lbRows = allEmps.map((e, i) => ({
+      employee_id: e.employee_id, hospital_id: H, year: curYear,
+      casual_allocated: 12, casual_used: i % 3 === 0 ? 3 : 0,
+      medical_allocated: 12, medical_used: i % 4 === 0 ? 2 : 0,
+      earned_allocated: 15, earned_used: i % 2 === 0 ? 5 : 1,
+      is_active: true
+    }));
+    await LeaveBalance.bulkCreate(lbRows, { transaction: t });
+
+    // Expense ledger — payroll posts here automatically; seed a few operating expenses.
+    let expSeq = 1;
+    const expNo = () => `EXP-${curYear}-${String(expSeq++).padStart(6,'0')}`;
+    await ExpenseEntry.bulkCreate([
+      { hospital_id:H, expense_number:expNo(), expense_date:d(-5),  category:'Utilities',   description:'Electricity bill', amount:48500, payment_mode:'Bank Transfer', status:'Paid', created_by:userMap.Accountant.id, is_active:true },
+      { hospital_id:H, expense_number:expNo(), expense_date:d(-3),  category:'Maintenance', description:'AC servicing (OT)', amount:12000, payment_mode:'Cash', status:'Paid', created_by:userMap.Accountant.id, is_active:true },
+      { hospital_id:H, expense_number:expNo(), expense_date:d(-10), category:'Rent',        description:'Pharmacy annexe rent', amount:60000, payment_mode:'Bank Transfer', status:'Paid', created_by:userMap.Accountant.id, is_active:true },
+    ], { transaction: t });
+    console.log(`  ✔ Leave Balances (${lbRows.length}) + Expense ledger (3)`);
 
     // 2 months payroll
     const payrollRows = [];
@@ -267,25 +300,26 @@ async function main() {
     ], { transaction: t });
     const [cAnal,cAnti,cAntac,cCard,cDiab,cAntiH] = medCats;
 
+    // India: each medicine carries a brand (trade) name + generic (molecule/salt) name + strength.
     const medDefs = [
-      { code:'M001',name:'Paracetamol 500mg',     cat:cAnal,  form:'Tablet',   mfr:'GSK',    mrp:20,  pur:12,sell:18 },
-      { code:'M002',name:'Ibuprofen 400mg',       cat:cAnal,  form:'Tablet',   mfr:'Cipla',  mrp:35,  pur:20,sell:30 },
-      { code:'M003',name:'Amoxicillin 500mg',     cat:cAnti,  form:'Capsule',  mfr:'Cipla',  mrp:120, pur:80,sell:110},
-      { code:'M004',name:'Azithromycin 500mg',    cat:cAnti,  form:'Tablet',   mfr:'Sun',    mrp:90,  pur:60,sell:85 },
-      { code:'M005',name:'Cefixime 200mg',        cat:cAnti,  form:'Tablet',   mfr:'Lupin',  mrp:110, pur:75,sell:100},
-      { code:'M006',name:'Pantoprazole 40mg',     cat:cAntac, form:'Tablet',   mfr:'Sun',    mrp:80,  pur:55,sell:75 },
-      { code:'M007',name:'Ranitidine 150mg',      cat:cAntac, form:'Tablet',   mfr:'GSK',    mrp:30,  pur:18,sell:28 },
-      { code:'M008',name:'Telmisartan 40mg',      cat:cCard,  form:'Tablet',   mfr:'Lupin',  mrp:90,  pur:60,sell:85 },
-      { code:'M009',name:'Amlodipine 5mg',        cat:cCard,  form:'Tablet',   mfr:'Pfizer', mrp:40,  pur:25,sell:38 },
-      { code:'M010',name:'Atorvastatin 10mg',     cat:cCard,  form:'Tablet',   mfr:'Ranbaxy',mrp:60,  pur:40,sell:55 },
-      { code:'M011',name:'Metformin 500mg',       cat:cDiab,  form:'Tablet',   mfr:'USV',    mrp:25,  pur:15,sell:22 },
-      { code:'M012',name:'Glimepiride 2mg',       cat:cDiab,  form:'Tablet',   mfr:'Sanofi', mrp:70,  pur:48,sell:65 },
-      { code:'M013',name:'Cetirizine 10mg',       cat:cAntiH, form:'Tablet',   mfr:'GSK',    mrp:15,  pur:8, sell:13 },
-      { code:'M014',name:'Montelukast 10mg',      cat:cAntiH, form:'Tablet',   mfr:'MSD',    mrp:90,  pur:62,sell:85 },
-      { code:'M015',name:'Inj Normal Saline 500ml',cat:cAnal, form:'Injection',mfr:'Baxter', mrp:80,  pur:55,sell:75 },
-      { code:'M016',name:'Inj Tramadol 50mg',     cat:cAnal,  form:'Injection',mfr:'Pfizer', mrp:45,  pur:30,sell:42 },
+      { code:'M001',name:'Paracetamol 500mg',     brand:'Calpol 500',  gen:'Paracetamol',          str:'500mg', cat:cAnal,  form:'Tablet',   mfr:'GSK',    mrp:20,  pur:12,sell:18 },
+      { code:'M002',name:'Ibuprofen 400mg',       brand:'Brufen 400',  gen:'Ibuprofen',            str:'400mg', cat:cAnal,  form:'Tablet',   mfr:'Cipla',  mrp:35,  pur:20,sell:30 },
+      { code:'M003',name:'Amoxicillin 500mg',     brand:'Mox 500',     gen:'Amoxicillin',          str:'500mg', cat:cAnti,  form:'Capsule',  mfr:'Cipla',  mrp:120, pur:80,sell:110},
+      { code:'M004',name:'Azithromycin 500mg',    brand:'Azithral 500',gen:'Azithromycin',         str:'500mg', cat:cAnti,  form:'Tablet',   mfr:'Sun',    mrp:90,  pur:60,sell:85 },
+      { code:'M005',name:'Cefixime 200mg',        brand:'Taxim-O 200', gen:'Cefixime',             str:'200mg', cat:cAnti,  form:'Tablet',   mfr:'Lupin',  mrp:110, pur:75,sell:100},
+      { code:'M006',name:'Pantoprazole 40mg',     brand:'Pan 40',      gen:'Pantoprazole',         str:'40mg',  cat:cAntac, form:'Tablet',   mfr:'Sun',    mrp:80,  pur:55,sell:75 },
+      { code:'M007',name:'Ranitidine 150mg',      brand:'Aciloc 150',  gen:'Ranitidine',           str:'150mg', cat:cAntac, form:'Tablet',   mfr:'GSK',    mrp:30,  pur:18,sell:28 },
+      { code:'M008',name:'Telmisartan 40mg',      brand:'Telma 40',    gen:'Telmisartan',          str:'40mg',  cat:cCard,  form:'Tablet',   mfr:'Lupin',  mrp:90,  pur:60,sell:85 },
+      { code:'M009',name:'Amlodipine 5mg',        brand:'Amlong 5',    gen:'Amlodipine',           str:'5mg',   cat:cCard,  form:'Tablet',   mfr:'Pfizer', mrp:40,  pur:25,sell:38 },
+      { code:'M010',name:'Atorvastatin 10mg',     brand:'Atorva 10',   gen:'Atorvastatin',         str:'10mg',  cat:cCard,  form:'Tablet',   mfr:'Ranbaxy',mrp:60,  pur:40,sell:55 },
+      { code:'M011',name:'Metformin 500mg',       brand:'Glycomet 500',gen:'Metformin',            str:'500mg', cat:cDiab,  form:'Tablet',   mfr:'USV',    mrp:25,  pur:15,sell:22 },
+      { code:'M012',name:'Glimepiride 2mg',       brand:'Amaryl 2',    gen:'Glimepiride',          str:'2mg',   cat:cDiab,  form:'Tablet',   mfr:'Sanofi', mrp:70,  pur:48,sell:65 },
+      { code:'M013',name:'Cetirizine 10mg',       brand:'Cetzine 10',  gen:'Cetirizine',           str:'10mg',  cat:cAntiH, form:'Tablet',   mfr:'GSK',    mrp:15,  pur:8, sell:13 },
+      { code:'M014',name:'Montelukast 10mg',      brand:'Montair 10',  gen:'Montelukast',          str:'10mg',  cat:cAntiH, form:'Tablet',   mfr:'MSD',    mrp:90,  pur:62,sell:85 },
+      { code:'M015',name:'Inj Normal Saline 500ml',brand:'NS 500',     gen:'Sodium Chloride 0.9%', str:'500ml', cat:cAnal, form:'Injection',mfr:'Baxter', mrp:80,  pur:55,sell:75 },
+      { code:'M016',name:'Inj Tramadol 50mg',     brand:'Tramazac 50', gen:'Tramadol',             str:'50mg',  cat:cAnal,  form:'Injection',mfr:'Pfizer', mrp:45,  pur:30,sell:42 },
     ];
-    const medicines = await Medicine.bulkCreate(medDefs.map(m=>({ medicine_code:m.code, medicine_name:m.name, category_id:m.cat.category_id, dosage_form:m.form, manufacturer:m.mfr, hospital_id:H, isActive:true })), { transaction:t });
+    const medicines = await Medicine.bulkCreate(medDefs.map(m=>({ medicine_code:m.code, medicine_name:m.name, brand_name:m.brand, generic_name:m.gen, strength:m.str, category_id:m.cat.category_id, dosage_form:m.form, manufacturer:m.mfr, hospital_id:H, isActive:true })), { transaction:t });
     const getMed = code => medicines.find(m=>m.medicine_code===code);
 
     const expL=new Date(); expL.setFullYear(expL.getFullYear()+2);
@@ -764,10 +798,19 @@ async function main() {
     // Insurance claim (Vikram)
     await InsuranceClaim.create({ bill_id:b5.bill_id, patient_id:pVikram.patient_id, insurance_provider:'Star Health Insurance', policy_number:'STAR-VIK-001', member_id:'N/A', claim_amount:b5net, deductible:1000, copay:10, approved_amount:null, paid_amount:0, status:'submitted', claim_date:now, submission_date:now, submitted_by:userMap.Accountant.id, hospital_id:H },{ transaction:t });
 
+    // Two OUTSTANDING bills so "pending / outstanding payments" figures are populated.
+    // BILL-000006 — fully Unpaid OPD bill (Lakshmi, v8 episode).
+    const b6net = 500 + 450 + 1200 + 4500; // consult + TSH + USG + pharmacy
+    await Bill.create({ bill_number:'BILL-000006', episode_id:v8.ep.episode_id, patient_id:pLakshmi.patient_id, hospital_id:H, uhid:pLakshmi.uhid, bill_type:'OPD', bill_date:now, gross_amount:b6net, discount_amount:0, taxable_amount:b6net, tax_amount:0, net_amount:b6net, advance_adjusted:0, paid_amount:0, balance_amount:b6net, payment_status:'Unpaid', generated_by:userMap.Receptionist.id, is_active:true },{ transaction:t });
+    // BILL-000007 — Partial IPD bill (Mohammed, ipd1 active admission), large balance.
+    const b7net = 15000 + 1600 + 600 + 550 + 3500 + 12000; // ICU + rounds + LFT + KFT + CT + angiogram
+    const b7 = await Bill.create({ bill_number:'BILL-000007', episode_id:ipd1.ep.episode_id, patient_id:pMohammed.patient_id, hospital_id:H, uhid:pMohammed.uhid, bill_type:'IPD', bill_date:now, gross_amount:b7net, discount_amount:0, taxable_amount:b7net, tax_amount:0, net_amount:b7net, advance_adjusted:5000, paid_amount:8000, balance_amount:b7net-5000-8000, payment_status:'Partial', generated_by:userMap.Accountant.id, is_active:true },{ transaction:t });
+    await Payment.create({ bill_id:b7.bill_id, hospital_id:H, payment_date:now, payment_type:'Bill Payment', payment_mode:'Card', amount_paid:8000, received_by:userMap.Accountant.id, receipt_number:'RCP-000007', transaction_reference:'CARD-TXN-7790', is_active:true },{ transaction:t });
+
     // Refunds
     await Refund.create({ bill_id:b1.bill_id, patient_id:pArjun.patient_id, hospital_id:H, refund_date:now, refund_amount:50,  refund_reason:'Overpaid at counter',         refund_mode:'Cash', approved_by:userMap.Accountant.id, processed_by:userMap.Receptionist.id, is_active:true },{ transaction:t });
     await Refund.create({ bill_id:b2.bill_id, patient_id:pMeera.patient_id, hospital_id:H, refund_date:now, refund_amount:200, refund_reason:'Urine routine test cancelled', refund_mode:'UPI',  approved_by:userMap.Accountant.id, processed_by:userMap.Receptionist.id, is_active:true },{ transaction:t });
-    console.log(`  ✔ Bills (5) + Payments (5) + Advances (3) + Refunds (2) + Insurance Claim (1)`);
+    console.log(`  ✔ Bills (7: 5 paid + 2 outstanding) + Payments (6) + Advances (3) + Refunds (2) + Insurance Claim (1)`);
 
     // ── 18. PACKAGES ─────────────────────────────────────────────────
     await Package.bulkCreate([
@@ -809,6 +852,9 @@ async function main() {
       registration_number: 'REG-KA-2025-0099',
       website: 'https://citycare.hospital',
       numbering_prefixes: { uhid:'CCH', bill:'BILL', grn:'GRN', po:'PO' },
+      // Self-Purchase pharmacy: patient buys & pays at the counter; medicines/OT
+      // consumables are NOT added to the hospital bill (test the alternate flow here).
+      pharmacy_mode: 'self_purchase',
       settings: {}, isActive: true
     }, { transaction: t });
     const H2 = hosp2.id;
@@ -867,6 +913,8 @@ async function main() {
       { fn:'Divya',   ln:'Menon',  g:'F', age:33, dob:'1992-08-19', mob:'9876500002', bg:'A+' },
       { fn:'Faisal',  ln:'Khan',   g:'M', age:58, dob:'1967-12-01', mob:'9876500003', bg:'B+' },
       { fn:'Nandini', ln:'Hegde',  g:'F', age:27, dob:'1998-05-23', mob:'9876500004', bg:'AB+' },
+      { fn:'Karthik', ln:'Iyer',   g:'M', age:45, dob:'1980-03-15', mob:'9876500005', bg:'O+' },
+      { fn:'Sunita',  ln:'Pillai', g:'F', age:52, dob:'1973-06-09', mob:'9876500006', bg:'B+' },
     ];
     const pats2 = [];
     for (let i=0; i<pat2Defs.length; i++) {
@@ -879,7 +927,7 @@ async function main() {
         insurance_status:false, hospital_id:H2, isActive:true
       }, { transaction: t }));
     }
-    const [p2Aravind, p2Divya, p2Faisal, p2Nandini] = pats2;
+    const [p2Aravind, p2Divya, p2Faisal, p2Nandini, p2Karthik, p2Sunita] = pats2;
 
     // Medicines + batches for tenant #2
     const medCat2 = await MedicineCategory.bulkCreate([
@@ -927,7 +975,52 @@ async function main() {
     const adm2 = await IpdAdmission.create({ patient_id:p2Faisal.patient_id, uhid:p2Faisal.uhid, admitting_doctor_id:d2Shalini.id, department_id:d2Car.id, ward_id:ward2.ward_id, bed_id:admBed2.bed_id, room_number:admBed2.room_number, bed_number:admBed2.bed_number, admission_date:dt(-1,10), admission_reason:'Unstable angina, observation', provisional_diagnosis:'Unstable Angina', admission_type:'Emergency', advance_paid:5000, status:'Admitted', admitted_by:u2.Admin.id, hospital_id:H2, is_active:true }, { transaction:t });
     await admBed2.update({ status:'Occupied' }, { transaction:t });
     await BillingEpisode.create({ patient_id:p2Faisal.patient_id, hospital_id:H2, uhid:p2Faisal.uhid, episode_type:'IPD', admission_id:adm2.admission_id, start_date:dt(-1,10), status:'Open', is_active:true }, { transaction:t });
-    console.log(`  ✔ City Care Hospital #${H2} — 4 depts, 2 doctors, 5 staff/users, 4 patients, OPD chain, dispense, bill, 1 IPD admission`);
+
+    // ── Tenant #2 — FULL multi-stage workflow data (OPD + IPD) ───────────
+    // OPD stage 1 — BOOKED (scheduled, patient not arrived yet)
+    await OpdAppointment.create({ patient_id:p2Divya.patient_id, doctor_id:d2Vivek.id, department_id:d2Gen.id, appointment_date:today, appointment_time:'10:30:00', visit_type:'New', status:'Booked', hospital_id:H2, is_active:true }, { transaction:t });
+
+    // OPD stage 2 — CHECKED-IN (arrived, vitals taken, waiting for the doctor)
+    const apptN = await OpdAppointment.create({ patient_id:p2Nandini.patient_id, doctor_id:d2Vivek.id, department_id:d2Gen.id, appointment_date:today, appointment_time:'09:45:00', visit_type:'New', status:'Checked-in', hospital_id:H2, is_active:true }, { transaction:t });
+    const visitN = await OpdVisit.create({ appointment_id:apptN.appointment_id, patient_id:p2Nandini.patient_id, uhid:p2Nandini.uhid, doctor_id:d2Vivek.id, department_id:d2Gen.id, visit_date:today, token_number:2, visit_type:'New', status:'Checked-in', checked_in_at:dt(0,9.5), hospital_id:H2, is_active:true }, { transaction:t });
+    await BillingEpisode.create({ patient_id:p2Nandini.patient_id, hospital_id:H2, uhid:p2Nandini.uhid, episode_type:'OPD', opd_visit_id:visitN.visit_id, start_date:new Date(today), status:'Open', is_active:true }, { transaction:t });
+    await OpdVital.create({ visit_id:visitN.visit_id, bp_systolic:118, bp_diastolic:76, pulse_rate:72, temperature:98.4, respiratory_rate:15, spo2:99, weight:60, height:162, bmi:22.9, hospital_id:H2, recorded_at:now, is_active:true }, { transaction:t });
+
+    // OPD stage 3 — IN-CONSULTATION (doctor seeing the patient now)
+    const apptK = await OpdAppointment.create({ patient_id:p2Karthik.patient_id, doctor_id:d2Shalini.id, department_id:d2Car.id, appointment_date:today, appointment_time:'10:00:00', visit_type:'New', status:'Checked-in', hospital_id:H2, is_active:true }, { transaction:t });
+    const visitK = await OpdVisit.create({ appointment_id:apptK.appointment_id, patient_id:p2Karthik.patient_id, uhid:p2Karthik.uhid, doctor_id:d2Shalini.id, department_id:d2Car.id, visit_date:today, token_number:3, visit_type:'New', status:'In-consultation', checked_in_at:dt(0,9.75), consultation_start:now, hospital_id:H2, is_active:true }, { transaction:t });
+    await BillingEpisode.create({ patient_id:p2Karthik.patient_id, hospital_id:H2, uhid:p2Karthik.uhid, episode_type:'OPD', opd_visit_id:visitK.visit_id, start_date:new Date(today), status:'Open', is_active:true }, { transaction:t });
+    await OpdVital.create({ visit_id:visitK.visit_id, bp_systolic:148, bp_diastolic:94, pulse_rate:88, temperature:98.7, respiratory_rate:18, spo2:97, weight:82, height:172, bmi:27.7, hospital_id:H2, recorded_at:now, is_active:true }, { transaction:t });
+    await OpdConsultation.create({ visit_id:visitK.visit_id, patient_id:p2Karthik.patient_id, doctor_id:d2Shalini.id, chief_complaints:'Chest tightness on exertion x 1 week', clinical_notes:'Evaluating for stable angina.', examination_findings:'S1S2 normal, no murmurs.', diagnosis_code:'I20.9', diagnosis_description:'Angina pectoris, unspecified', treatment_plan:'ECG + Echo; start anti-anginals', follow_up_date:inWeek, follow_up_instructions:'Return with reports', consultation_date:now, hospital_id:H2, is_active:true }, { transaction:t });
+
+    // IPD — enrich the ACTIVE admission (Faisal): nurse assignment, vitals, meds (+MAR), notes, checklist
+    await IpdNurseAssignment.create({ admission_id:adm2.admission_id, patient_id:p2Faisal.patient_id, nurse_id:e2.Nurse.employee_id, ward_id:ward2.ward_id, shift:'Morning', assigned_from:now, is_primary_nurse:true, status:'Active', hospital_id:H2, is_active:true }, { transaction:t });
+    for (let ri=0; ri<2; ri++) {
+      await IpdVital.create({ admission_id:adm2.admission_id, patient_id:p2Faisal.patient_id, recorded_by:u2.Nurse.id, recorded_date:d(-ri), recorded_time:['08:00:00','20:00:00'][ri], systolic_bp:138-ri*4, diastolic_bp:88-ri*2, pulse_rate:84, temperature:98.6, respiratory_rate:18, spo2:97, blood_sugar:128, consciousness_level:'Alert', pain_scale:3, intake_ml:500, output_ml:400, notes:'Stable, on cardiac monitor' }, { transaction:t });
+    }
+    const ipdMed2 = await IpdMedication.create({ admission_id:adm2.admission_id, prescribed_by:u2.Doctor.id, medicine_id:getMed2('CM03').medicine_id, medicine_name:'Atenolol 50mg', dosage:'1 tab', frequency:'OD', route:'Oral', duration_days:5, start_date:now, instructions:'Monitor HR/BP', status:'Active' }, { transaction:t });
+    await IpdMedicationAdministration.create({ medication_id:ipdMed2.medication_id, admission_id:adm2.admission_id, administered_by:u2.Nurse.id, scheduled_time:now, administered_time:now, dosage_given:'1 tab', status:'Administered', notes:'No adverse reaction' }, { transaction:t });
+    await IpdProgressNote.bulkCreate([
+      { admission_id:adm2.admission_id, patient_id:p2Faisal.patient_id, progress_date:today, progress_time:'09:00:00', note_type:'Doctor', doctor_notes:'Chest pain free overnight. Continue anti-anginals. Plan stress test.', recorded_by:u2.Doctor.id, recorded_at:now, hospital_id:H2, is_active:true },
+      { admission_id:adm2.admission_id, patient_id:p2Faisal.patient_id, progress_date:today, progress_time:'14:00:00', note_type:'Nurse', nursing_notes:'Comfortable, ambulating in room. IV intact.', recorded_by:u2.Nurse.id, recorded_at:dt(0,14), hospital_id:H2, is_active:true },
+    ], { transaction:t });
+    await NursingChecklist.create({ admission_id:adm2.admission_id, hospital_id:H2, nurse_id:u2.Nurse.id, shift:'Morning', check_date:today, items:{ bedside_safety:true, iv_line_check:true, catheter_care:false, wound_dressing:false, pain_assessment:true, nutrition_intake:true, medication_given:true, vital_signs_recorded:true }, notes:'Cardiac monitoring ongoing.', is_active:true }, { transaction:t });
+    // IPD self-purchase dispense (patient pays at the counter — NO hospital bill charge)
+    const ipdNet2 = 5*getMed2('CM03').selling_rate;
+    const ipdSale2 = await PharmacySale.create({ patient_id:p2Faisal.patient_id, uhid:p2Faisal.uhid, visit_type:'IPD', visit_id:adm2.admission_id, sale_date:now, total_amount:ipdNet2, net_amount:ipdNet2, payment_mode:'Cash', dispensed_by:u2.Pharmacist.id, hospital_id:H2, is_active:true }, { transaction:t });
+    await PharmacySaleDetail.create({ sale_id:ipdSale2.sale_id, medicine_id:getMed2('CM03').medicine_id, batch_id:getBatch2('CM03')?.batch_id, medicine_name:'Atenolol 50mg', quantity:5, rate:getMed2('CM03').selling_rate, amount:ipdNet2, gst_percentage:0, hospital_id:H2, is_active:true }, { transaction:t });
+
+    // IPD stage — DISCHARGED (admission closed, summary written, episode closed, bill paid)
+    const dischBed2 = beds2[1];
+    const adm2b = await IpdAdmission.create({ patient_id:p2Sunita.patient_id, uhid:p2Sunita.uhid, admitting_doctor_id:d2Vivek.id, department_id:d2Gen.id, ward_id:ward2.ward_id, bed_id:dischBed2.bed_id, room_number:dischBed2.room_number, bed_number:dischBed2.bed_number, admission_date:dt(-3,9), discharge_date:dt(-1,11), admission_reason:'Acute gastroenteritis with dehydration', provisional_diagnosis:'Acute Gastroenteritis', admission_type:'Emergency', advance_paid:3000, status:'Discharged', admitted_by:u2.Admin.id, hospital_id:H2, is_active:true }, { transaction:t });
+    const ep2b = await BillingEpisode.create({ patient_id:p2Sunita.patient_id, hospital_id:H2, uhid:p2Sunita.uhid, episode_type:'IPD', admission_id:adm2b.admission_id, start_date:dt(-3,9), status:'Closed', is_active:true }, { transaction:t });
+    await IpdProgressNote.create({ admission_id:adm2b.admission_id, patient_id:p2Sunita.patient_id, progress_date:d(-2), progress_time:'10:00:00', note_type:'Doctor', doctor_notes:'Rehydrated, tolerating orals. Fit for discharge tomorrow.', recorded_by:u2.Doctor.id, recorded_at:dt(-2,10), hospital_id:H2, is_active:true }, { transaction:t });
+    await IpdDischargeSummary.create({ admission_id:adm2b.admission_id, patient_id:p2Sunita.patient_id, discharge_date:dt(-1,11), discharge_type:'Normal', final_diagnosis:'Acute Gastroenteritis with mild dehydration', procedures_performed:'IV fluid resuscitation', clinical_summary:'Admitted with vomiting and loose stools. Rehydrated with IV fluids; symptoms resolved.', discharge_medications:'ORS sachets; Ofloxacin+Ornidazole BD x 3d; Probiotics OD x 5d', follow_up_instructions:'GP review if symptoms recur', follow_up_date:inWeek, diet_advice:'Bland diet, plenty of fluids', activity_restrictions:'Rest for 2 days', discharged_by:d2Vivek.id, discharge_summary_by:u2.Doctor.id, hospital_id:H2, is_active:true }, { transaction:t });
+    await BillCharge.create({ episode_id:ep2b.episode_id, hospital_id:H2, charge_date:dt(-1,11), service_type:'Room', service_id:null, description:'General Ward (2 days)', quantity:2, rate:1500, amount:3000, discount_percent:0, discount_amount:0, taxable_amount:3000, gst_percent:0, gst_amount:0, net_amount:3000, payment_status:'Paid', paid_amount:3000, balance_amount:0, is_active:true }, { transaction:t });
+    const bill2b = await Bill.create({ bill_number:'CCH-BILL-000002', episode_id:ep2b.episode_id, patient_id:p2Sunita.patient_id, hospital_id:H2, uhid:p2Sunita.uhid, bill_type:'IPD', bill_date:dt(-1,11), gross_amount:3000, discount_amount:0, taxable_amount:3000, tax_amount:0, net_amount:3000, advance_adjusted:3000, paid_amount:3000, balance_amount:0, payment_status:'Paid', generated_by:u2.Receptionist.id, is_active:true }, { transaction:t });
+    await Payment.create({ bill_id:bill2b.bill_id, hospital_id:H2, payment_date:dt(-1,11), payment_type:'Bill Payment', payment_mode:'Cash', amount_paid:3000, received_by:u2.Receptionist.id, receipt_number:'CCH-RCP-000002', is_active:true }, { transaction:t });
+
+    console.log(`  ✔ City Care Hospital #${H2} — full OPD stages (booked · checked-in · in-consult · completed) + IPD (active w/ vitals·meds·notes·checklist + discharged) + self-purchase dispense`);
 
     await t.commit();
 

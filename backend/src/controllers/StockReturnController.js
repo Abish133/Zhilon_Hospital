@@ -1,38 +1,58 @@
-const { StockReturn, Department, User, Hospital, InventoryItem } = require('../models');
+const { StockReturn, StockIssue, Department, User, Hospital, InventoryItem } = require('../models');
 
 class StockReturnController {
   static async createStockReturn(req, res) {
     const transaction = await StockReturn.sequelize.transaction();
     try {
       const { return_date, department_id, item_id, quantity, reason, returned_by, hospital_id } = req.body;
-      
+
       if (!return_date || !department_id || !item_id || !quantity || !returned_by || !hospital_id) {
-        return res.status(400).json({ 
-          success: false, 
-          message: 'return_date, department_id, item_id, quantity, returned_by, and hospital_id are required' 
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'return_date, department_id, item_id, quantity, returned_by, and hospital_id are required'
         });
       }
 
-      // Check inventory item exists
-      const item = await InventoryItem.findByPk(item_id);
+      const qty = Number(quantity);
+      if (!(qty > 0)) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'quantity must be greater than 0' });
+      }
+
+      // Lock the inventory item for an atomic stock update
+      const item = await InventoryItem.findByPk(item_id, { transaction, lock: transaction.LOCK.UPDATE });
       if (!item) {
         await transaction.rollback();
         return res.status(404).json({ success: false, message: 'Inventory item not found' });
       }
 
+      // Cap the return to what was actually issued (net of prior returns) to this
+      // department, so stock can't be inflated by returning more than was taken.
+      const issued = Number(await StockIssue.sum('quantity', { where: { item_id, department_id, hospital_id, is_active: true }, transaction })) || 0;
+      const returnedSoFar = Number(await StockReturn.sum('quantity', { where: { item_id, department_id, hospital_id, is_active: true }, transaction })) || 0;
+      const netIssued = issued - returnedSoFar;
+      if (qty > netIssued) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: `Return quantity (${qty}) exceeds the net issued quantity (${netIssued}) for this item in the selected department.`
+        });
+      }
+
       // Increase inventory stock
       await item.update({
-        current_stock: item.current_stock + quantity
+        current_stock: (Number(item.current_stock) || 0) + qty
       }, { transaction });
 
-      const stockReturn = await StockReturn.create({ 
-        return_date, 
-        department_id, 
-        item_id, 
-        quantity, 
-        reason, 
-        returned_by, 
-        hospital_id 
+      const stockReturn = await StockReturn.create({
+        return_date,
+        department_id,
+        item_id,
+        quantity: qty,
+        reason,
+        returned_by,
+        hospital_id
       }, { transaction });
 
       await transaction.commit();

@@ -1,4 +1,4 @@
-import { Card, Tabs, Form, Input, Select, Switch, Button, Space, Divider, message, Modal, List, Spin, Tag, Upload } from 'antd';
+import { Card, Tabs, Form, Input, InputNumber, Select, Switch, Button, Space, Divider, message, Modal, List, Spin, Tag, Upload } from 'antd';
 import { SaveOutlined, ExclamationCircleOutlined, EditOutlined, DeleteOutlined, PlusOutlined, RightOutlined, UploadOutlined } from '@ant-design/icons';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -266,6 +266,22 @@ const Settings = () => {
                     <Form.Item label="Registration Number" name="registration_number">
                       <Input />
                     </Form.Item>
+                    <Form.Item label="Pharmacy Model" tooltip="Selected during hospital registration. This is locked and cannot be changed here.">
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 10,
+                        background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: '10px 14px'
+                      }}>
+                        <Tag color={hospital?.pharmacy_mode === 'self_purchase' ? 'purple' : 'blue'} style={{ marginInlineEnd: 0 }}>
+                          {hospital?.pharmacy_mode === 'self_purchase' ? 'Self-Purchase Pharmacy' : 'In-House Pharmacy'}
+                        </Tag>
+                        <span style={{ fontSize: 12, color: '#64748b' }}>
+                          {hospital?.pharmacy_mode === 'self_purchase'
+                            ? 'Patient buys & pays at the pharmacy counter — not added to the hospital bill.'
+                            : 'Medicines & OT consumables are billed to the patient’s hospital bill.'}
+                        </span>
+                        <Tag style={{ marginInlineStart: 'auto', marginInlineEnd: 0 }}>Read-only</Tag>
+                      </div>
+                    </Form.Item>
                     <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={savingSection === 'General'}>
                       Save Changes
                     </Button>
@@ -343,8 +359,13 @@ const Settings = () => {
                     <Form.Item label="PAN Number" name="pan_number">
                       <Input placeholder="AAAAA0000A" />
                     </Form.Item>
-                    <Form.Item label="Tax Rate (%)" name="tax_rate">
-                      <Input type="number" />
+                    <Form.Item
+                      label="Default Medicine GST (%)"
+                      name="tax_rate"
+                      tooltip="Default GST applied to medicines that don't have their own GST set on the Medicine master. Consultation, lab and radiology charges use their own configured rates and are not affected."
+                      extra="Applies to pharmacy/medicine lines without a specific GST. Leave 0 if medicines are exempt."
+                    >
+                      <InputNumber min={0} max={100} style={{ width: '100%' }} />
                     </Form.Item>
                     <Form.Item label="Currency" name="currency">
                       <Select options={[

@@ -248,6 +248,8 @@ const generatePayslipPDF = (res, { payroll, employee, hospital, structure }) => 
       ['Transport Allowance', proRated(struct.transport_allowance)],
       ['Other Allowances', proRated(struct.other_allowances)]
     ];
+    // Bonus is a flat earning (not prorated).
+    if (Number(struct.bonus || 0) > 0) earningRows.push(['Bonus', Number(struct.bonus)]);
     if (Number(payroll.overtime_hours || 0) > 0) {
       // Overtime amount isn't stored separately — surface only the hours; pay
       // is rolled into total_allowances. Caller can read it in the table.
@@ -262,10 +264,14 @@ const generatePayslipPDF = (res, { payroll, employee, hospital, structure }) => 
     const pfAmt = (Number(struct.pf_percentage || 0) / 100) * basicActual;
     const tdsAmt = (Number(struct.tds_percentage || 0) / 100) * basicActual;
     const ptAmt = Number(struct.pt_amount || 0);
+    const esiAmt = (Number(struct.esi_percentage || 0) / 100) * grossActual;
+    const lwfAmt = Number(struct.lwf_amount || 0);
     const otherDed = Number(struct.other_deductions || 0);
     const dedRows = [
       ['Provident Fund (PF)', pfAmt],
       ['Professional Tax (PT)', ptAmt],
+      ['ESI', esiAmt],
+      ['Labour Welfare Fund (LWF)', lwfAmt],
       ['TDS / Income Tax', tdsAmt],
       ['Other Deductions', otherDed]
     ];

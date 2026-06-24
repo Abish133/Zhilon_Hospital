@@ -16,9 +16,12 @@ const GoodsReceipt = () => {
   const [receivedItems, setReceivedItems] = useState([]);
   const [grnNumber, setGrnNumber] = useState('');
 
-  const { data: pos } = useApiQuery(['purchase-orders-approved'], () =>
-    purchaseOrderService.getAll({ status: 'Approved' })
-  );
+  // Receivable POs = Approved (not yet received) OR Partially Received (more to come).
+  const { data: pos } = useApiQuery(['purchase-orders-receivable'], async () => {
+    const res = await purchaseOrderService.getAll();
+    const list = (res?.data || []).filter(p => ['Approved', 'Partially Received'].includes(p.status));
+    return { ...res, data: list };
+  });
 
   const { data: grns, refetch } = useApiQuery(['grns'], () =>
     goodsReceiptNoteService.getAll()

@@ -43,11 +43,14 @@ const MedicineList = () => {
       render: (code) => <Text strong style={{ color: '#0a0a0a' }}>{code}</Text>
     },
     {
-      title: 'Medicine Name',
+      title: 'Medicine (Brand / Generic)',
       key: 'medicine_name',
       render: (_, record) => (
         <div>
-          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{record.medicine_name}</div>
+          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{record.brand_name || record.medicine_name}</div>
+          {record.generic_name && (
+            <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 2, fontWeight: 500 }}>{record.generic_name}</div>
+          )}
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{record.manufacturer}</div>
         </div>
       )

@@ -1,4 +1,4 @@
-const { OtConsumablesUsed, OtBooking, InventoryItem, User, BillingEpisode, BillCharge, sequelize } = require('../models');
+const { OtConsumablesUsed, OtBooking, InventoryItem, User, BillingEpisode, BillCharge, Hospital, sequelize } = require('../models');
 
 class OtConsumablesUsedController {
   static async createOtConsumablesUsed(req, res) {
@@ -43,10 +43,15 @@ class OtConsumablesUsedController {
         { transaction: t }
       );
 
+      // Self-purchase pharmacies: the patient buys consumables directly, so they
+      // are NOT posted to the hospital bill (stock is still deducted at usage).
+      const hospital = await Hospital.findByPk(hospital_id, { transaction: t });
+      const selfPurchase = hospital?.pharmacy_mode === 'self_purchase';
+
       // Auto-bill the consumable to the patient's open billing episode (IPD or OPD).
       // Resolves episode via OtBooking.admission_id (IPD) or via patient_id with no admission (rare day-care OPD).
       const otBooking = await OtBooking.findByPk(req.body.booking_id, { transaction: t });
-      if (otBooking) {
+      if (!selfPurchase && otBooking) {
         const episodeWhere = otBooking.admission_id
           ? { admission_id: otBooking.admission_id, status: 'Open' }
           : { patient_id: otBooking.patient_id, status: 'Open', episode_type: 'OPD' };

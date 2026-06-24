@@ -8,13 +8,19 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import apiClient from '@services/apiClient';
+import { useAuthStore } from '@store';
 
 const AdvancedReports = () => {
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [selectedReport, setSelectedReport] = useState('patient-statistics');
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'days'), dayjs()]);
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Revenue figures are admin-only (the Revenue report, plus revenue/sales-amount
+  // columns inside other reports — see hideRevenueKey below).
+  const hideRevenueKey = (k) => !isAdmin && /revenue|sales_amount|total_sales|income/i.test(k);
   const reports = [
     { value: 'patient-statistics', label: 'Patient Statistics' },
     { value: 'doctor-productivity', label: 'Doctor Productivity' },
@@ -23,7 +29,7 @@ const AdvancedReports = () => {
     { value: 'outstanding-payments', label: 'Outstanding Payments' },
     { value: 'bed-occupancy', label: 'Bed Occupancy' },
     { value: 'department-performance', label: 'Department Performance' },
-    { value: 'revenue', label: 'Revenue Report' }
+    ...(isAdmin ? [{ value: 'revenue', label: 'Revenue Report' }] : [])
   ];
 
   // Map frontend report key → backend API path
@@ -57,11 +63,14 @@ const AdvancedReports = () => {
       const body = response;
 
       if (body?.success) {
+        // Some reports return rows (array); others return a summary object.
+        const raw = body.data;
+        const isArr = Array.isArray(raw);
         setReportData({
           title: reports.find(r => r.value === selectedReport)?.label || 'Report',
-          data: body.data || [],
-          summary: body.summary || null,
-          count: body.count || 0
+          data: isArr ? raw : [],
+          summary: body.summary || (!isArr && raw && typeof raw === 'object' ? raw : null),
+          count: body.count || (isArr ? raw.length : 0)
         });
       } else {
         message.error(body?.message || 'Failed to load report');
@@ -143,18 +152,40 @@ const AdvancedReports = () => {
   };
 
   const renderReportContent = () => {
-    if (!reportData) return <Empty description="Select a report and click Refresh" />;
-    if (!reportData.data || reportData.data.length === 0) {
+    if (!reportData) return <Empty description="Select a report and click Generate Report" />;
+
+    const rows = Array.isArray(reportData.data) ? reportData.data : [];
+    const hasRows = rows.length > 0 && rows[0] && typeof rows[0] === 'object';
+    const hasSummary = reportData.summary && typeof reportData.summary === 'object' && Object.keys(reportData.summary).length > 0;
+
+    if (!hasRows && !hasSummary) {
       return <Empty description="No data available for the selected filters" />;
     }
 
-    // Safety check: ensure first row exists and is an object
-    const firstRow = reportData.data[0];
-    if (!firstRow || typeof firstRow !== 'object') {
-      return <Empty description="Invalid data format" />;
+    // Summary-only report (e.g. Patient Statistics) → just the metric cards.
+    if (!hasRows && hasSummary) {
+      return (
+        <Row gutter={16}>
+          {Object.entries(reportData.summary).filter(([key]) => !hideRevenueKey(key)).map(([key, value]) => {
+            const isCurrency = ['total_revenue', 'total_outstanding', 'total_sales_amount'].includes(key);
+            return (
+              <Col xs={12} sm={6} key={key} style={{ marginBottom: 16 }}>
+                <Card>
+                  <Statistic
+                    title={key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    value={typeof value === 'number' ? value : parseFloat(value) || 0}
+                    prefix={isCurrency ? '₹' : undefined}
+                    precision={isCurrency ? 2 : 0}
+                  />
+                </Card>
+              </Col>
+            );
+          })}
+        </Row>
+      );
     }
 
-    const columns = Object.keys(firstRow).map(key => ({
+    const columns = Object.keys(rows[0]).filter(key => !hideRevenueKey(key)).map(key => ({
       title: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
       dataIndex: key,
       key,
@@ -171,7 +202,7 @@ const AdvancedReports = () => {
       <div>
         {reportData.summary && (
           <Row gutter={16} style={{ marginBottom: 24 }}>
-            {Object.entries(reportData.summary).map(([key, value]) => {
+            {Object.entries(reportData.summary).filter(([key]) => !hideRevenueKey(key)).map(([key, value]) => {
               const currencyKeys = ['total_revenue', 'total_outstanding', 'total_sales_amount'];
               const isCurrency = currencyKeys.includes(key);
               return (

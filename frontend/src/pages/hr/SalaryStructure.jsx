@@ -27,8 +27,11 @@ const SalaryStructure = () => {
   const watchedMedical = Form.useWatch('medical_allowance', form);
   const watchedTransport = Form.useWatch('transport_allowance', form);
   const watchedOtherAllow = Form.useWatch('other_allowances', form);
+  const watchedBonus = Form.useWatch('bonus', form);
   const watchedPfPct = Form.useWatch('pf_percentage', form);
   const watchedPt = Form.useWatch('pt_amount', form);
+  const watchedEsiPct = Form.useWatch('esi_percentage', form);
+  const watchedLwf = Form.useWatch('lwf_amount', form);
   const watchedTdsPct = Form.useWatch('tds_percentage', form);
   const watchedOtherDed = Form.useWatch('other_deductions', form);
 
@@ -67,8 +70,12 @@ const SalaryStructure = () => {
       medical_allowance: 0,
       transport_allowance: 0,
       other_allowances: 0,
+      bonus: 0,
+      gratuity: 0,
       pf_percentage: 12,
       pt_amount: 200,
+      esi_percentage: 0,
+      lwf_amount: 0,
       tds_percentage: 0,
       other_deductions: 0,
       effective_from: dayjs()
@@ -85,8 +92,12 @@ const SalaryStructure = () => {
       medical_allowance: parseFloat(record.medical_allowance) || 0,
       transport_allowance: parseFloat(record.transport_allowance) || 0,
       other_allowances: parseFloat(record.other_allowances) || 0,
+      bonus: parseFloat(record.bonus) || 0,
+      gratuity: parseFloat(record.gratuity) || 0,
       pf_percentage: parseFloat(record.pf_percentage) || 0,
       pt_amount: parseFloat(record.pt_amount) || 0,
+      esi_percentage: parseFloat(record.esi_percentage) || 0,
+      lwf_amount: parseFloat(record.lwf_amount) || 0,
       tds_percentage: parseFloat(record.tds_percentage) || 0,
       other_deductions: parseFloat(record.other_deductions) || 0,
       effective_from: record.effective_from ? dayjs(record.effective_from) : null,
@@ -145,12 +156,15 @@ const SalaryStructure = () => {
     + (Number(watchedHra) || 0)
     + (Number(watchedMedical) || 0)
     + (Number(watchedTransport) || 0)
-    + (Number(watchedOtherAllow) || 0);
+    + (Number(watchedOtherAllow) || 0)
+    + (Number(watchedBonus) || 0);
   const previewPf = (Number(watchedBasic) || 0) * ((Number(watchedPfPct) || 0) / 100);
   const previewPt = Number(watchedPt) || 0;
-  const previewTds = (previewGross - previewPf - previewPt) * ((Number(watchedTdsPct) || 0) / 100);
+  const previewEsi = previewGross * ((Number(watchedEsiPct) || 0) / 100);
+  const previewLwf = Number(watchedLwf) || 0;
+  const previewTds = (previewGross - previewPf - previewPt - previewEsi) * ((Number(watchedTdsPct) || 0) / 100);
   const previewOther = Number(watchedOtherDed) || 0;
-  const previewTotalDed = previewPf + previewPt + previewTds + previewOther;
+  const previewTotalDed = previewPf + previewPt + previewEsi + previewLwf + previewTds + previewOther;
   const previewNet = previewGross - previewTotalDed;
 
   const fmt = (v) => `₹${(Number(v) || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -233,11 +247,14 @@ const SalaryStructure = () => {
         const gross = basic + (Number(r.hra) || 0)
           + (Number(r.medical_allowance) || 0)
           + (Number(r.transport_allowance) || 0)
-          + (Number(r.other_allowances) || 0);
+          + (Number(r.other_allowances) || 0)
+          + (Number(r.bonus) || 0);
         const pf = basic * ((Number(r.pf_percentage) || 0) / 100);
         const pt = Number(r.pt_amount) || 0;
-        const tds = (gross - pf - pt) * ((Number(r.tds_percentage) || 0) / 100);
-        const net = gross - (pf + pt + tds + (Number(r.other_deductions) || 0));
+        const esi = gross * ((Number(r.esi_percentage) || 0) / 100);
+        const lwf = Number(r.lwf_amount) || 0;
+        const tds = (gross - pf - pt - esi) * ((Number(r.tds_percentage) || 0) / 100);
+        const net = gross - (pf + pt + esi + lwf + tds + (Number(r.other_deductions) || 0));
         return <Text strong style={{ color: '#52c41a' }}>{fmt(net)}</Text>;
       }
     },
@@ -377,26 +394,48 @@ const SalaryStructure = () => {
                 <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
+            <Col span={8}>
+              <Form.Item label="Bonus" name="bonus" tooltip="Flat earning added to salary (not prorated by attendance).">
+                <InputNumber min={0} step={500} style={{ width: '100%' }} addonBefore="₹" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="Gratuity (employer)" name="gratuity" tooltip="Monthly employer gratuity provision — shown on the payslip, NOT added to take-home pay.">
+                <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
+              </Form.Item>
+            </Col>
           </Row>
 
           <Divider orientation="left" plain>Deductions</Divider>
           <Row gutter={16}>
-            <Col span={6}>
+            <Col span={8}>
               <Form.Item label="PF %" name="pf_percentage" tooltip="Provident Fund â€” typically 12% of basic">
                 <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
               </Form.Item>
             </Col>
-            <Col span={6}>
+            <Col span={8}>
               <Form.Item label="Professional Tax" name="pt_amount" tooltip="Flat monthly amount as per state">
                 <InputNumber min={0} step={50} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>
             </Col>
-            <Col span={6}>
-              <Form.Item label="TDS %" name="tds_percentage" tooltip="Tax Deducted at Source â€” applied on (gross âˆ’ PF âˆ’ PT)">
+            <Col span={8}>
+              <Form.Item label="ESI %" name="esi_percentage" tooltip="Employee State Insurance — employee share, % of gross (≈0.75% if applicable; 0 if not)">
+                <InputNumber min={0} max={100} step={0.25} style={{ width: '100%' }} addonAfter="%" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Row gutter={16}>
+            <Col span={8}>
+              <Form.Item label="LWF" name="lwf_amount" tooltip="Labour Welfare Fund — flat employee deduction.">
+                <InputNumber min={0} step={5} style={{ width: '100%' }} addonBefore="₹" />
+              </Form.Item>
+            </Col>
+            <Col span={8}>
+              <Form.Item label="TDS %" name="tds_percentage" tooltip="Tax Deducted at Source â€” applied on (gross âˆ’ PF âˆ’ PT âˆ’ ESI)">
                 <InputNumber min={0} max={100} step={0.5} style={{ width: '100%' }} addonAfter="%" />
               </Form.Item>
             </Col>
-            <Col span={6}>
+            <Col span={8}>
               <Form.Item label="Other Deductions" name="other_deductions">
                 <InputNumber min={0} step={100} style={{ width: '100%' }} addonBefore="₹" />
               </Form.Item>

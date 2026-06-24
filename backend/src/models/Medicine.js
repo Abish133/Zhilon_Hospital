@@ -49,6 +49,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING(200),
       allowNull: false
     },
+    // India: brand (trade) name + generic (molecule / composition / salt) name.
+    brand_name: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
+    generic_name: {
+      type: DataTypes.STRING(200),
+      allowNull: true
+    },
     available_quantity: {
       type: DataTypes.INTEGER,
       allowNull: false,

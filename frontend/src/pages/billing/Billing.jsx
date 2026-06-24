@@ -12,12 +12,15 @@ import { useNavigate } from 'react-router-dom';
 import { generateBillPDF } from '@utils/pdfGenerator';
 import { printBill } from '@utils/billPrintHelper';
 import apiClient from '@services/apiClient';
+import { useAuthStore } from '@store';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 const Billing = () => {
   const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [viewModalOpen, setViewModalOpen] = useState(false);
@@ -160,11 +163,16 @@ const Billing = () => {
 
   return (
     <div>
+      {/* Revenue / Collected income figures are admin-only. */}
       <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-        <Col span={6}><Card><Statistic title="Total Revenue" value={summary.total_revenue || 0} formatter={(v) => formatCurrency(v)} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="Collected" value={summary.total_collected || 0} formatter={(v) => formatCurrency(v)} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="Pending" value={summary.total_pending || 0} formatter={(v) => formatCurrency(v)} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#ef4444' }} /></Card></Col>
-        <Col span={6}><Card><Statistic title="Total Bills" value={summary.total_bills || 0} valueStyle={{ color: '#f59e0b' }} /></Card></Col>
+        {isAdmin && (
+          <>
+            <Col xs={12} md={6}><Card><Statistic title="Total Revenue" value={summary.total_revenue || 0} formatter={(v) => formatCurrency(v)} valueStyle={{ color: '#0a0a0a' }} /></Card></Col>
+            <Col xs={12} md={6}><Card><Statistic title="Collected" value={summary.total_collected || 0} formatter={(v) => formatCurrency(v)} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#10b981' }} /></Card></Col>
+          </>
+        )}
+        <Col xs={12} md={isAdmin ? 6 : 12}><Card><Statistic title="Pending" value={summary.total_pending || 0} formatter={(v) => formatCurrency(v)} prefix={<ClockCircleOutlined />} valueStyle={{ color: '#ef4444' }} /></Card></Col>
+        <Col xs={12} md={isAdmin ? 6 : 12}><Card><Statistic title="Total Bills" value={summary.total_bills || 0} valueStyle={{ color: '#f59e0b' }} /></Card></Col>
       </Row>
       <Card>
         <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>

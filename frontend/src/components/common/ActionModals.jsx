@@ -457,6 +457,18 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
         </Row>
         <Row gutter={16}>
           <Col span={12}>
+            <Form.Item name="brand_name" label="Brand Name" tooltip="Trade / brand name, e.g. Dolo 650, Crocin.">
+              <Input placeholder="e.g., Dolo 650" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item name="generic_name" label="Generic / Molecular Name" tooltip="Composition / salt / molecule, e.g. Paracetamol. Used for generic prescribing.">
+              <Input placeholder="e.g., Paracetamol" />
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col span={12}>
             <Form.Item name="category_id" label="Category" rules={[{ required: false }]}>
               <Select
                 placeholder="Select category"
@@ -498,13 +510,13 @@ export const MedicineFormModal = ({ open, onCancel, onSuccess, initialData }) =>
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="gst_percentage" label="GST Percentage">
+            <Form.Item name="gst_percentage" label="GST Percentage" tooltip="GST for this medicine. Leave blank to use the hospital's Default Medicine GST (Settings → Billing). Enter 0 to mark it exempt.">
               <InputNumber
                 min={0}
                 max={100}
                 step={0.01}
                 style={{ width: '100%' }}
-                placeholder="GST rate"
+                placeholder="Blank = use hospital default"
               />
             </Form.Item>
           </Col>

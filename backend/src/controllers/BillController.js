@@ -449,7 +449,11 @@ class BillController {
     try {
       const { start_date, end_date, bill_type } = req.query;
       const where = { is_active: true };
-      
+
+      // Scope to the caller's hospital so the summary matches the (scoped) bills list.
+      const hospitalId = req.user?.hospital_id || req.hospitalId;
+      if (hospitalId) where.hospital_id = hospitalId;
+
       if (start_date && end_date) {
         where.bill_date = {
           [Op.between]: [new Date(start_date), new Date(end_date)]

@@ -76,6 +76,14 @@ module.exports = (sequelize, DataTypes) => {
     // JSON with prefix overrides per entity, e.g. { uhid: 'UHID', bill: 'INV', grn: 'GRN' }
     numbering_prefixes: { type: DataTypes.JSON, allowNull: true },
     settings: { type: DataTypes.JSON, allowNull: true },
+    // Pharmacy operating model — chosen once at registration, read-only thereafter.
+    //  'in_house'      → medicines/OT consumables billed to the hospital bill.
+    //  'self_purchase' → patient buys & pays at the pharmacy counter (not billed).
+    pharmacy_mode: {
+      type: DataTypes.ENUM('in_house', 'self_purchase'),
+      allowNull: false,
+      defaultValue: 'in_house'
+    },
     isActive: {
       type: DataTypes.BOOLEAN,
       allowNull: false,

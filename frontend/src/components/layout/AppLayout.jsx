@@ -141,6 +141,7 @@ const AppLayout = () => {
       roles: [ROLES.ACCOUNTANT, ROLES.RECEPTIONIST, ROLES.ADMIN],
       children: [
         { key: '/billing', label: 'Bills' },
+        { key: '/billing/counter', label: 'Counter Billing' },
         { key: '/billing/advance', label: 'Advance Payment' },
         { key: '/billing/refunds', label: 'Refunds' },
         { key: '/billing/insurance', label: 'Insurance Claims', roles: [ROLES.ACCOUNTANT, ROLES.ADMIN] },
@@ -158,7 +159,9 @@ const AppLayout = () => {
         { key: '/hr/salary-structure', label: 'Salary Structure', roles: [ROLES.ADMIN, ROLES.HR] },
         { key: '/hr/shifts', label: 'Shifts', roles: [ROLES.ADMIN, ROLES.HR] },
         { key: '/hr/roster', label: 'Roster', roles: [ROLES.ADMIN, ROLES.HR] },
-        { key: '/hr/leave-requests', label: 'Leave Requests', roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE] }
+        { key: '/hr/leave-requests', label: 'Leave Requests', roles: [ROLES.ADMIN, ROLES.HR, ROLES.EMPLOYEE, ROLES.DOCTOR, ROLES.NURSE] },
+        { key: '/hr/leave-balances', label: 'Leave Balances', roles: [ROLES.ADMIN, ROLES.HR] },
+        { key: '/hr/expenses', label: 'Expenses', roles: [ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT] }
       ]
     },
     {

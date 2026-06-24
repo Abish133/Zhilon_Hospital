@@ -1,5 +1,6 @@
 const { LeaveRequest, Employee, User, EmployeeAttendance, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const LeaveBalanceController = require('./LeaveBalanceController');
 
 class LeaveRequestController {
   static async createLeaveRequest(req, res) {
@@ -175,6 +176,22 @@ class LeaveRequestController {
           success: false,
           message: `Leave request cannot be approved. Current status: ${leaveRequest.status}`
         });
+      }
+
+      // Deduct from the employee's annual leave balance for paid leave types.
+      // 'unpaid' doesn't touch the balance. Block if the balance is insufficient.
+      const leaveYear = new Date(leaveRequest.from_date).getFullYear();
+      const usage = await LeaveBalanceController.applyUsage({
+        employee_id: leaveRequest.employee_id,
+        hospital_id: leaveRequest.hospital_id,
+        year: leaveYear,
+        leave_type: leaveRequest.leave_type,
+        days: Number(leaveRequest.no_of_days) || 0,
+        transaction: t
+      });
+      if (!usage.ok) {
+        await t.rollback();
+        return res.status(400).json({ success: false, message: usage.message });
       }
 
       await leaveRequest.update({

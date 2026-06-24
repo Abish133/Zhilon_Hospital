@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import dayjs from 'dayjs';
 import apiClient from '@config/api';
 import { formatCurrency } from '@utils/helpers';
+import { useAuthStore } from '@store';
 
 const { RangePicker } = DatePicker;
 
@@ -35,6 +36,8 @@ const TrendBadge = ({ value }) => {
 };
 
 const AnalyticsDashboard = () => {
+  const { user } = useAuthStore();
+  const isAdmin = (user?.role || '').toLowerCase() === 'admin';
   // Default reporting window: last 30 days. Single source of truth — every
   // backend call passes the same from/to so widgets stay in sync.
   const [range, setRange] = useState([dayjs().subtract(29, 'day'), dayjs()]);
@@ -115,7 +118,8 @@ const AnalyticsDashboard = () => {
     { title: 'Department', dataIndex: 'name', key: 'name' },
     { title: 'OPD Patients', dataIndex: 'total_opd_patients', key: 'opd', align: 'right' },
     { title: 'IPD Patients', dataIndex: 'total_ipd_patients', key: 'ipd', align: 'right' },
-    {
+    // Revenue column is admin-only.
+    ...(isAdmin ? [{
       title: 'Revenue',
       dataIndex: 'total_revenue',
       key: 'rev',
@@ -123,7 +127,7 @@ const AnalyticsDashboard = () => {
       render: (v) => formatCurrency(v),
       sorter: (a, b) => Number(a.total_revenue || 0) - Number(b.total_revenue || 0),
       defaultSortOrder: 'descend'
-    }
+    }] : [])
   ];
 
   return (
@@ -151,19 +155,21 @@ const AnalyticsDashboard = () => {
       <Spin spinning={loading}>
         {/* ── Top-line stats — these come from /reports/dashboard-stats (today vs yesterday) ── */}
         <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12} lg={6}>
-            <Card>
-              <Statistic
-                title="Revenue Today"
-                value={Number(stats.revenue_today || stats.revenueToday || 0)}
-                formatter={(v) => formatCurrency(v)}
-                prefix={<DollarOutlined />}
-              />
-              <div style={{ marginTop: 8 }}>
-                <TrendBadge value={stats.revenue_trend ?? stats.revenueTrend} />
-              </div>
-            </Card>
-          </Col>
+          {isAdmin && (
+            <Col xs={24} sm={12} lg={6}>
+              <Card>
+                <Statistic
+                  title="Revenue Today"
+                  value={Number(stats.revenue_today || stats.revenueToday || 0)}
+                  formatter={(v) => formatCurrency(v)}
+                  prefix={<DollarOutlined />}
+                />
+                <div style={{ marginTop: 8 }}>
+                  <TrendBadge value={stats.revenue_trend ?? stats.revenueTrend} />
+                </div>
+              </Card>
+            </Col>
+          )}
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
@@ -222,28 +228,30 @@ const AnalyticsDashboard = () => {
           />
         )}
 
-        {/* ── Revenue breakdown by service type (bill_type) over the selected period ── */}
+        {/* ── Revenue breakdown by service type — admin only ── */}
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col xs={24} lg={12}>
-            <Card
-              title={`Revenue by Service (${range[0].format('DD MMM')} – ${range[1].format('DD MMM')})`}
-              extra={<strong>{formatCurrency(totalRevenue)}</strong>}
-            >
-              {data.revenue.length === 0 ? (
-                <Empty description="No billing activity in this period" />
-              ) : (
-                <Table
-                  dataSource={data.revenue}
-                  rowKey={(r, i) => r.service || i}
-                  columns={revenueColumns}
-                  pagination={false}
-                  size="small"
-                />
-              )}
-            </Card>
-          </Col>
+          {isAdmin && (
+            <Col xs={24} lg={12}>
+              <Card
+                title={`Revenue by Service (${range[0].format('DD MMM')} – ${range[1].format('DD MMM')})`}
+                extra={<strong>{formatCurrency(totalRevenue)}</strong>}
+              >
+                {data.revenue.length === 0 ? (
+                  <Empty description="No billing activity in this period" />
+                ) : (
+                  <Table
+                    dataSource={data.revenue}
+                    rowKey={(r, i) => r.service || i}
+                    columns={revenueColumns}
+                    pagination={false}
+                    size="small"
+                  />
+                )}
+              </Card>
+            </Col>
+          )}
 
-          <Col xs={24} lg={12}>
+          <Col xs={24} lg={isAdmin ? 12 : 24}>
             <Card title="Doctor Productivity">
               {data.doctors.length === 0 ? (
                 <Empty description="No consultation data in this period" />

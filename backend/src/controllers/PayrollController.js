@@ -1,6 +1,7 @@
 'use strict';
-const { Payroll, Employee, SalaryStructure, EmployeeAttendance, Hospital, User, Department } = require('../models');
+const { Payroll, Employee, SalaryStructure, EmployeeAttendance, Hospital, User, Department, sequelize } = require('../models');
 const { Op, fn, col, literal } = require('sequelize');
+const ExpenseController = require('./ExpenseController');
 
 class PayrollController {
   // Get all payroll records
@@ -268,12 +269,24 @@ class PayrollController {
           // Paid leave (Casual/Medical/Earned) is recorded as status 'Leave' and counts as a worked day for pay.
           // Unpaid leave is recorded as 'Absent' so the absence reduces prorated salary.
           const leaveDays = attendance.filter(a => a.status === 'Leave').length;
-          const daysAbsent = attendance.filter(a => a.status === 'Absent').length;
           const overtimeHours = attendance.reduce((sum, a) => sum + (parseFloat(a.overtime_hours) || 0), 0);
 
           // Half Day counts as 0.5 working day for proration (India payroll norm).
           // Paid leave counts as a full day so monthly salary is unaffected.
-          const effectiveDaysWorked = fullDays + halfDays * 0.5 + leaveDays;
+          //
+          // IMPORTANT: salaried staff usually aren't punched in daily. If NO
+          // attendance was recorded for the whole month, pay the full month
+          // instead of zeroing the salary (the previous behaviour). Once any
+          // attendance exists, proration applies as normal.
+          let effectiveDaysWorked;
+          let daysAbsent;
+          if (attendance.length === 0) {
+            effectiveDaysWorked = daysInMonth;
+            daysAbsent = 0;
+          } else {
+            daysAbsent = attendance.filter(a => a.status === 'Absent').length;
+            effectiveDaysWorked = fullDays + halfDays * 0.5 + leaveDays;
+          }
 
           // Calculate salary components
           const basicSalary = parseFloat(salaryStructure.basic_salary) || 0;
@@ -287,7 +300,9 @@ class PayrollController {
           const proratedMedical = (medicalAllowance / daysInMonth) * effectiveDaysWorked;
           const proratedTransport = (transportAllowance / daysInMonth) * effectiveDaysWorked;
           const proratedOther = (otherAllowances / daysInMonth) * effectiveDaysWorked;
-          const totalAllowances = proratedHra + proratedMedical + proratedTransport + proratedOther;
+          // Bonus is a flat earning (not prorated by attendance).
+          const bonus = parseFloat(salaryStructure.bonus) || 0;
+          const totalAllowances = proratedHra + proratedMedical + proratedTransport + proratedOther + bonus;
 
           // Overtime pay: standard hourly = basic / (days * 8), OT multiplier 2x per Factories Act
           const hourlyRate = basicSalary / (daysInMonth * 8);
@@ -298,10 +313,17 @@ class PayrollController {
           // Deductions
           const pfAmount = (proratedBasic * (parseFloat(salaryStructure.pf_percentage) || 0)) / 100;
           const ptAmount = parseFloat(salaryStructure.pt_amount) || 0;
-          const taxableAmount = Math.max(0, grossSalary - pfAmount - ptAmount);
+          // ESI (Employee State Insurance) — employee share is a % of gross wages.
+          const esiAmount = (grossSalary * (parseFloat(salaryStructure.esi_percentage) || 0)) / 100;
+          // LWF (Labour Welfare Fund) — flat employee deduction.
+          const lwfAmount = parseFloat(salaryStructure.lwf_amount) || 0;
+          const taxableAmount = Math.max(0, grossSalary - pfAmount - ptAmount - esiAmount);
           const tdsAmount = (taxableAmount * (parseFloat(salaryStructure.tds_percentage) || 0)) / 100;
           const otherDeductions = parseFloat(salaryStructure.other_deductions) || 0;
-          const totalDeductions = pfAmount + ptAmount + tdsAmount + otherDeductions;
+          const totalDeductions = pfAmount + ptAmount + esiAmount + lwfAmount + tdsAmount + otherDeductions;
+
+          // Gratuity is an employer provision for the month — recorded, not deducted/paid.
+          const gratuity = parseFloat(salaryStructure.gratuity) || 0;
 
           const finalDeductions = totalDeductions; // absence already reduces prorated basic
           const netSalary = grossSalary - finalDeductions;
@@ -318,6 +340,7 @@ class PayrollController {
             total_allowances: totalAllowances,
             total_deductions: finalDeductions,
             gross_salary: grossSalary,
+            gratuity,
             net_salary: netSalary,
             status: 'Generated',
             hospital_id: hospitalId,
@@ -415,27 +438,41 @@ class PayrollController {
         whereClause.hospital_id = hospital_id;
       }
 
-      const payroll = await Payroll.findOne({ where: whereClause });
+      const t = await sequelize.transaction();
+      let payroll;
+      try {
+        payroll = await Payroll.findOne({ where: whereClause, transaction: t, lock: t.LOCK.UPDATE });
+        if (!payroll) {
+          await t.rollback();
+          return res.status(404).json({ success: false, message: 'Payroll not found or not approved' });
+        }
 
-      if (!payroll) {
-        return res.status(404).json({
-          success: false,
-          message: 'Payroll not found or not approved'
+        await payroll.update({
+          status: 'Paid',
+          payment_date: payment_date || new Date().toISOString().split('T')[0],
+          payment_mode: payment_mode || null,
+          transaction_reference: transaction_reference || null,
+          processed_by: req.user?.id || null,
+          remarks: remarks || payroll.remarks
+        }, { transaction: t });
+
+        // Post the net pay to the expense ledger (accounting). Idempotent per payroll.
+        await ExpenseController.postPayrollExpense({
+          hospital_id: payroll.hospital_id,
+          payroll,
+          created_by: req.user?.id || null,
+          transaction: t
         });
-      }
 
-      await payroll.update({
-        status: 'Paid',
-        payment_date: payment_date || new Date().toISOString().split('T')[0],
-        payment_mode: payment_mode || null,
-        transaction_reference: transaction_reference || null,
-        processed_by: req.user?.id || null,
-        remarks: remarks || payroll.remarks
-      });
+        await t.commit();
+      } catch (e) {
+        try { await t.rollback(); } catch (_) { /* ignore */ }
+        throw e;
+      }
 
       res.json({
         success: true,
-        message: 'Payroll processed successfully',
+        message: 'Payroll processed and posted to expenses',
         data: payroll
       });
     } catch (error) {

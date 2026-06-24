@@ -18,6 +18,14 @@ class PharmacySaleController {
         return res.status(404).json({ success: false, message: 'Patient not found' });
       }
 
+      // Self-purchase pharmacies: the patient buys & pays at the counter, so the
+      // dispensed medicines are NOT posted to the hospital bill (OPD/IPD episode).
+      const hospital = await Hospital.findByPk(hospital_id, { transaction });
+      const selfPurchase = hospital?.pharmacy_mode === 'self_purchase';
+      // Hospital-wide default GST (Settings → Tax Rate). Applied to medicines that
+      // don't carry their own gst_percentage; an explicit 0 stays exempt.
+      const defaultGst = parseFloat(hospital?.settings?.tax_rate) || 0;
+
       let prescription = null;
       let visit_type = 'Walk-in';
       let visit_id = null;
@@ -75,7 +83,7 @@ class PharmacySaleController {
           });
         }
         const amount = rate * quantity;
-        const gstPct = parseFloat(medicine.gst_percentage || 0);
+        const gstPct = medicine.gst_percentage != null ? parseFloat(medicine.gst_percentage) : defaultGst;
         const lineTax = +(amount * gstPct / 100).toFixed(2);
         totalAmount += amount;
         totalTax += lineTax;
@@ -109,10 +117,14 @@ class PharmacySaleController {
         discount_amount: 0,
         tax_amount: totalTax,
         net_amount: netAmount,
-        // Walk-in counter sales settle at the counter, so the cashier passes the
-        // payment mode (Cash/Card/UPI…). OPD/IPD sales are collected by the billing
-        // module, so they intentionally stay 'Pending' here.
-        payment_mode: (visit_type === 'Walk-in' && payment_mode) ? payment_mode : 'Pending',
+        // Payment mode at the point of sale:
+        //  - self-purchase pharmacy: the patient always pays at the counter (any
+        //    visit type), so use the passed mode (default Cash).
+        //  - in-house pharmacy: only walk-in counter sales settle here; OPD/IPD
+        //    sales are collected by the billing module, so they stay 'Pending'.
+        payment_mode: selfPurchase
+          ? (payment_mode || 'Cash')
+          : ((visit_type === 'Walk-in' && payment_mode) ? payment_mode : 'Pending'),
         dispensed_by,
         hospital_id
       }, { transaction });
@@ -124,7 +136,7 @@ class PharmacySaleController {
         }, { transaction });
       }
 
-      if ((visit_type === 'OPD' || visit_type === 'IPD') && visit_id) {
+      if (!selfPurchase && (visit_type === 'OPD' || visit_type === 'IPD') && visit_id) {
         const episodeWhere = visit_type === 'IPD'
           ? { admission_id: visit_id, status: 'Open' }
           : { opd_visit_id: visit_id, status: 'Open' };

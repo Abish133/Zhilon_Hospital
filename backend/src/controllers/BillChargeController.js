@@ -35,7 +35,9 @@ class BillChargeController {
       }
 
       const qty = parseInt(quantity);
-      const rate = parseFloat(chargeMaster.amount);
+      // ChargeMaster columns are charge_amount / service_type / service_name.
+      // (Keep legacy fallbacks so older rows still work.)
+      const rate = parseFloat(chargeMaster.charge_amount ?? chargeMaster.amount ?? 0);
       const amount = qty * rate;
       const disc_percent = parseFloat(discount_percent);
       const discount_amount = (amount * disc_percent) / 100;
@@ -47,9 +49,9 @@ class BillChargeController {
       const billCharge = await BillCharge.create({
         episode_id,
         hospital_id,
-        service_type: chargeMaster.category,
+        service_type: chargeMaster.service_type || chargeMaster.category || 'Other',
         service_id: charge_master_id,
-        description: chargeMaster.charge_name,
+        description: chargeMaster.service_name || chargeMaster.charge_name || 'Service',
         quantity: qty,
         rate,
         amount,

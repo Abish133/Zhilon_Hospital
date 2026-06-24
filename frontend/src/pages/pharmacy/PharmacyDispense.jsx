@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Card, Form, Input, Button, Table, Space, message, Select, Descriptions, Divider, Row, Col } from 'antd';
+import { Card, Form, Input, Button, Table, Space, message, Select, Descriptions, Divider, Row, Col, Alert, Tag } from 'antd';
 import { SearchOutlined, CheckOutlined, PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@utils/helpers';
-import { patientService, opdPrescriptionService, medicineService } from '@services';
+import { patientService, opdPrescriptionService, medicineService, hospitalService } from '@services';
 import medicineBatchService from '@services/MedicineBatchService';
 import { pharmacySaleService, pharmacySaleDetailService } from '@services';
 import { useAuthStore } from '@store';
@@ -20,13 +20,24 @@ const PharmacyDispense = () => {
   const [dispensedItems, setDispensedItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [paymentMode, setPaymentMode] = useState('Cash');
+  const [selfPurchase, setSelfPurchase] = useState(false);
+
+  const norm = (s) => (s || '').trim().toLowerCase();
 
   useEffect(() => {
     loadInitialData();
   }, []);
 
   const loadInitialData = async () => {
-    await Promise.all([fetchMedicines(), fetchBatches()]);
+    await Promise.all([fetchMedicines(), fetchBatches(), fetchPharmacyMode()]);
+  };
+
+  const fetchPharmacyMode = async () => {
+    try {
+      if (!user?.hospital_id) return;
+      const res = await hospitalService.getById(user.hospital_id);
+      if (res?.success && res.data) setSelfPurchase(res.data.pharmacy_mode === 'self_purchase');
+    } catch (error) { /* default in-house */ }
   };
 
   const fetchMedicines = async () => {
@@ -113,47 +124,76 @@ const PharmacyDispense = () => {
     }
   };
 
+  // earliest-expiry-first (FEFO) in-stock batches for a given medicine
+  const inStockBatches = (medicineId) =>
+    batches
+      .filter(b => b.medicine_id === medicineId && b.available_quantity > 0)
+      .sort((a, b) => new Date(a.expiry_date || 0) - new Date(b.expiry_date || 0));
+
+  // In-stock brands (medicine records) that share the same molecule (generic_name).
+  const brandsForMolecule = (genericName) => {
+    const g = norm(genericName);
+    if (!g) return [];
+    return medicines.filter(m => norm(m.generic_name) === g && inStockBatches(m.medicine_id).length > 0);
+  };
+
   const handleAddPrescriptionItem = (prescription) => {
     if (!selectedPrescription) {
       setSelectedPrescription(prescription);
     }
 
-    const medicine = medicines.find(m =>
+    const prescribed = medicines.find(m =>
       m.medicine_id === prescription.medicine_id ||
-      m.medicine_name?.toLowerCase() === prescription.medicine_name?.toLowerCase()
+      norm(m.medicine_name) === norm(prescription.medicine_name)
     );
 
-    if (!medicine) {
+    if (!prescribed) {
       message.error(`Medicine "${prescription.medicine_name}" not found in inventory. Please add it to Medicine Master first.`);
       return;
     }
 
-    const availableBatches = batches.filter(b =>
-      b.medicine_id === medicine.medicine_id &&
-      b.available_quantity > 0
-    );
+    // Pick the brand to dispense: the prescribed brand if it has stock, otherwise
+    // a substitute brand of the SAME molecule (standard generic substitution).
+    const molecule = prescribed.generic_name;
+    const sameMolecule = brandsForMolecule(molecule);
+    const chosen = inStockBatches(prescribed.medicine_id).length > 0
+      ? prescribed
+      : sameMolecule[0];
 
-    if (availableBatches.length === 0) {
-      message.error(`No stock available for ${medicine.medicine_name}. Please receive stock via GRN first.`);
+    if (!chosen) {
+      message.error(
+        `No stock for "${prescribed.brand_name || prescribed.medicine_name}"` +
+        (molecule ? ` or any other ${molecule} brand` : '') + '. Receive stock via GRN first.'
+      );
       return;
     }
 
-    const batch = availableBatches[0];
+    const batch = inStockBatches(chosen.medicine_id)[0];
+    const substituted = chosen.medicine_id !== prescribed.medicine_id;
+    const qty = prescription.quantity || 1;
     const item = {
       key: Date.now(),
       prescription_id: prescription.prescription_id || null,
-      medicine_id: medicine.medicine_id,
-      medicine_name: medicine.medicine_name,
+      medicine_id: chosen.medicine_id,
+      medicine_name: chosen.medicine_name,
+      brand_name: chosen.brand_name,
+      generic_name: chosen.generic_name || molecule,
+      prescribed_brand: prescribed.brand_name || prescribed.medicine_name,
+      substituted,
       batch_id: batch.batch_id,
       batch_number: batch.batch_number,
-      quantity: prescription.quantity || 1,
+      quantity: qty,
       rate: batch.mrp,
-      amount: (batch.mrp || 0) * (prescription.quantity || 1),
-      gst_percentage: medicine?.gst_percentage || 0
+      amount: (batch.mrp || 0) * qty,
+      gst_percentage: chosen.gst_percentage || 0
     };
-    
+
     setDispensedItems([...dispensedItems, item]);
-    message.success(`${item.medicine_name} added`);
+    if (substituted) {
+      message.warning(`Substituted ${chosen.brand_name || chosen.medicine_name} for ${item.prescribed_brand} — same molecule (${molecule}).`);
+    } else {
+      message.success(`${chosen.brand_name || chosen.medicine_name} added`);
+    }
   };
 
   const handleAddManualItem = () => {
@@ -195,6 +235,9 @@ const PharmacyDispense = () => {
         
         const batch = availableBatches[0];
         updated.medicine_name = medicine?.medicine_name || '';
+        updated.brand_name = medicine?.brand_name;
+        // keep the molecule if switching among same-molecule brands; else adopt the new one
+        updated.generic_name = medicine?.generic_name || updated.generic_name;
         updated.batch_id = batch.batch_id;
         updated.batch_number = batch.batch_number;
         updated.rate = batch.mrp;
@@ -249,9 +292,12 @@ const PharmacyDispense = () => {
         dispensedItems.map(item => item.prescription_id).filter(Boolean)
       )];
 
-      // Walk-in = a counter sale with no prescription/admission link. Only then do
-      // we collect (and send) a payment mode; OPD/IPD sales are billed via episodes.
+      // Walk-in = a counter sale with no prescription/admission link.
+      // In-house pharmacy: only walk-in sales collect a payment mode (OPD/IPD are
+      // billed via episodes). Self-purchase pharmacy: the patient always pays at
+      // the counter, so we send the payment mode for every sale.
       const isWalkIn = !selectedPrescription && prescriptionIds.length === 0;
+      const collectPayment = isWalkIn || selfPurchase;
 
       const dispenseData = {
         uhid: patient.uhid,
@@ -263,7 +309,7 @@ const PharmacyDispense = () => {
         })),
         dispensed_by: user?.id,
         hospital_id: user.hospital_id,
-        ...(isWalkIn ? { payment_mode: paymentMode } : {})
+        ...(collectPayment ? { payment_mode: paymentMode } : {})
       };
 
       await pharmacySaleService.dispense(dispenseData);
@@ -277,7 +323,21 @@ const PharmacyDispense = () => {
   };
 
   const prescriptionColumns = [
-    { title: 'Medicine', dataIndex: 'medicine_name', key: 'medicine' },
+    {
+      title: 'Medicine (Molecule)',
+      dataIndex: 'medicine_name',
+      key: 'medicine',
+      render: (val, record) => {
+        const m = medicines.find(x => x.medicine_id === record.medicine_id || norm(x.medicine_name) === norm(record.medicine_name));
+        const molecule = m?.generic_name;
+        return (
+          <div>
+            <div style={{ fontWeight: 600 }}>{val}</div>
+            {molecule && <div style={{ fontSize: 12, color: '#7c3aed' }}>{molecule}</div>}
+          </div>
+        );
+      }
+    },
     { title: 'Dosage', dataIndex: 'dosage', key: 'dosage' },
     { title: 'Frequency', dataIndex: 'frequency', key: 'frequency' },
     { title: 'Duration', dataIndex: 'duration', key: 'duration' },
@@ -293,25 +353,63 @@ const PharmacyDispense = () => {
     }
   ];
 
+  // Brand options for the dispensed row: in-stock brands sharing the row's molecule
+  // (always include the currently chosen brand so the value stays valid).
+  const brandOptions = (record) => {
+    let list = brandsForMolecule(record.generic_name);
+    if (!list.find(m => m.medicine_id === record.medicine_id)) {
+      const cur = medicines.find(m => m.medicine_id === record.medicine_id);
+      if (cur) list = [cur, ...list];
+    }
+    return list.map(m => ({
+      label: `${m.brand_name || m.medicine_name}${m.strength ? ` (${m.strength})` : ''}`,
+      value: m.medicine_id
+    }));
+  };
+
   const dispensedColumns = [
-    { 
-      title: 'Medicine', 
-      dataIndex: 'medicine_name', 
+    {
+      title: 'Medicine (Brand / Molecule)',
       key: 'medicine',
-      render: (val, record) => (
-        record.medicine_id ? val : (
-          <Select
-            style={{ width: 200 }}
-            placeholder="Select medicine"
-            showSearch
-            filterOption={(input, option) => 
-              option.label.toLowerCase().includes(input.toLowerCase())
-            }
-            options={medicines.map(m => ({ label: m.medicine_name, value: m.medicine_id }))}
-            onChange={(value) => handleItemChange(record.key, 'medicine_id', value)}
-          />
-        )
-      )
+      render: (_, record) => {
+        // Manual (counter) item — free pick from the whole catalogue.
+        if (!record.medicine_id) {
+          return (
+            <Select
+              style={{ width: 240 }}
+              placeholder="Select medicine"
+              showSearch
+              filterOption={(input, option) => option.label.toLowerCase().includes(input.toLowerCase())}
+              options={medicines.map(m => ({
+                label: `${m.brand_name || m.medicine_name}${m.generic_name ? ` — ${m.generic_name}` : ''}`,
+                value: m.medicine_id
+              }))}
+              onChange={(value) => handleItemChange(record.key, 'medicine_id', value)}
+            />
+          );
+        }
+        // Prescription item — show brand + molecule, allow brand substitution.
+        const opts = brandOptions(record);
+        return (
+          <div>
+            {opts.length > 1 ? (
+              <Select
+                size="small"
+                style={{ width: 200 }}
+                value={record.medicine_id}
+                options={opts}
+                onChange={(value) => handleItemChange(record.key, 'medicine_id', value)}
+              />
+            ) : (
+              <div style={{ fontWeight: 600 }}>{record.brand_name || record.medicine_name}</div>
+            )}
+            {record.generic_name && <div style={{ fontSize: 12, color: '#7c3aed' }}>{record.generic_name}</div>}
+            {record.substituted && (
+              <Tag color="orange" style={{ marginTop: 4 }}>Substituted for {record.prescribed_brand}</Tag>
+            )}
+          </div>
+        );
+      }
     },
     { 
       title: 'Batch', 
@@ -368,6 +466,15 @@ const PharmacyDispense = () => {
   return (
     <div>
       <Card title="Pharmacy Dispense">
+        {selfPurchase && (
+          <Alert
+            type="info"
+            showIcon
+            style={{ marginBottom: 16 }}
+            message="Self-Purchase Pharmacy"
+            description="The patient pays for medicines here at the counter. These charges are NOT added to the hospital (OPD/IPD) bill."
+          />
+        )}
         <Form form={searchForm} onFinish={handleSearch} layout="inline">
           <Form.Item name="search_value" rules={[{ required: true }]}>
             <Input placeholder="Enter UHID or Patient ID" prefix={<SearchOutlined />} style={{ width: 300 }} />
@@ -434,10 +541,12 @@ const PharmacyDispense = () => {
               )}
             />
 
-            {!selectedPrescription && (
+            {(!selectedPrescription || selfPurchase) && (
               <div style={{ marginTop: 16 }}>
                 <Space>
-                  <span style={{ fontWeight: 500 }}>Payment Mode (walk-in counter sale):</span>
+                  <span style={{ fontWeight: 500 }}>
+                    {selfPurchase ? 'Payment Mode (patient pays at pharmacy):' : 'Payment Mode (walk-in counter sale):'}
+                  </span>
                   <Select
                     value={paymentMode}
                     onChange={setPaymentMode}

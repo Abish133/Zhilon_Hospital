@@ -731,9 +731,9 @@ const BillGeneration = () => {
           layout="vertical" 
           onFinish={handleAddCharge}
         >
-          <Form.Item 
-            name="charge_master_id" 
-            label="Service" 
+          <Form.Item
+            name="charge_master_id"
+            label="Service"
             rules={[{ required: true, message: 'Please select a service' }]}
           >
             <Select
@@ -751,9 +751,9 @@ const BillGeneration = () => {
 
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item 
-                name="quantity" 
-                label="Quantity" 
+              <Form.Item
+                name="quantity"
+                label="Quantity"
                 rules={[{ required: true, message: 'Please enter quantity' }]}
                 initialValue={1}
               >
@@ -761,9 +761,9 @@ const BillGeneration = () => {
               </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item 
-                name="discount_percent" 
-                label="Discount %" 
+              <Form.Item
+                name="discount_percent"
+                label="Discount %"
                 initialValue={0}
               >
                 <InputNumber min={0} max={100} style={{ width: '100%' }} />

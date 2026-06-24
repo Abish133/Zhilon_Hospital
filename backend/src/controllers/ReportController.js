@@ -61,16 +61,10 @@ class ReportController {
                 safe(IpdAdmission.count({ where: { hospital_id: hospitalId, status: 'Admitted' } })),
                 safe(IpdAdmission.count({ where: { hospital_id: hospitalId, admission_date: { [Op.gte]: startToday, [Op.lt]: endToday } } })),
                 safe(IpdAdmission.count({ where: { hospital_id: hospitalId, admission_date: { [Op.gte]: startYesterday, [Op.lt]: startToday } } })),
-                safe(Bill.findOne({
-                    where: { hospital_id: hospitalId, bill_date: { [Op.gte]: startToday, [Op.lt]: endToday } },
-                    attributes: [[fn('COALESCE', fn('SUM', col('paid_amount')), 0), 'total']],
-                    raw: true
-                }), { total: 0 }),
-                safe(Bill.findOne({
-                    where: { hospital_id: hospitalId, bill_date: { [Op.gte]: startYesterday, [Op.lt]: startToday } },
-                    attributes: [[fn('COALESCE', fn('SUM', col('paid_amount')), 0), 'total']],
-                    raw: true
-                }), { total: 0 }),
+                // True daily collection = actual money received, summed by the
+                // payment's own date (not the bill's generation date).
+                safe(Payment.sum('amount_paid', { where: { hospital_id: hospitalId, is_active: true, payment_date: { [Op.gte]: startToday, [Op.lt]: endToday } } }), 0),
+                safe(Payment.sum('amount_paid', { where: { hospital_id: hospitalId, is_active: true, payment_date: { [Op.gte]: startYesterday, [Op.lt]: startToday } } }), 0),
                 safe(Bill.count({ where: { hospital_id: hospitalId, payment_status: { [Op.in]: ['Unpaid', 'Partial'] } } })),
                 safe(LabOrder ? LabOrder.count({ where: { hospital_id: hospitalId, status: { [Op.in]: ['Ordered', 'Sample Collected', 'In Progress'] } } }) : 0),
                 safe(Bed.count({ where: { hospital_id: hospitalId } })),
@@ -86,11 +80,13 @@ class ReportController {
                 }), [])
             ]);
 
-            const revenueToday = Number(revenueTodayRow?.total || 0);
-            const revenueYesterday = Number(revenueYesterdayRow?.total || 0);
+            const revenueToday = Number(revenueTodayRow || 0);
+            const revenueYesterday = Number(revenueYesterdayRow || 0);
 
+            // No prior-day baseline → return null so the UI shows a neutral "—"
+            // instead of a misleading +100%.
             const trend = (today, prev) => {
-                if (!prev) return today > 0 ? 100 : 0;
+                if (!prev) return null;
                 return Math.round(((today - prev) / prev) * 100);
             };
 
@@ -108,6 +104,9 @@ class ReportController {
                 };
             });
 
+            // Revenue is admin-only — don't even send it to other roles.
+            const isAdmin = (req.user?.role || '').toLowerCase() === 'admin';
+
             res.json({
                 success: true,
                 data: {
@@ -118,8 +117,8 @@ class ReportController {
                     opdTrend: trend(opdToday, opdYesterday),
                     ipdAdmissions: ipdActive,
                     ipdTrend: trend(ipdAdmittedToday, ipdAdmittedYesterday),
-                    revenueToday,
-                    revenueTrend: trend(revenueToday, revenueYesterday),
+                    revenueToday: isAdmin ? revenueToday : null,
+                    revenueTrend: isAdmin ? trend(revenueToday, revenueYesterday) : null,
                     bedOccupancy,
                     pendingBills,
                     pendingLabTests: pendingLabs,
@@ -566,6 +565,8 @@ class ReportController {
                 where.issue_date = { [Op.between]: [new Date(from), new Date(to)] };
             }
 
+            // StockIssue has no Sequelize association to InventoryItem/Department,
+            // so we group on the FK columns and batch-load the names separately.
             const consumption = await StockIssue.findAll({
                 where,
                 attributes: [
@@ -574,24 +575,30 @@ class ReportController {
                     [fn('SUM', col('quantity')), 'total_quantity'],
                     [fn('COUNT', col('issue_id')), 'issue_count']
                 ],
-                include: [
-                    { model: InventoryItem, as: 'item', attributes: ['item_name', 'uom'] },
-                    { model: Department, as: 'department', attributes: ['department_name'] }
-                ],
-                group: ['item_id', 'department_id', 'item.item_id', 'department.id'],
+                group: ['item_id', 'department_id'],
                 order: [[literal('total_quantity'), 'DESC']],
-                raw: true,
-                nest: true
+                raw: true
             });
+
+            const itemIds = [...new Set(consumption.map(c => c.item_id).filter(Boolean))];
+            const deptIds = [...new Set(consumption.map(c => c.department_id).filter(Boolean))];
+            const items = itemIds.length
+                ? await InventoryItem.findAll({ where: { item_id: itemIds }, attributes: ['item_id', 'item_name', 'unit_of_measure'], raw: true })
+                : [];
+            const depts = deptIds.length
+                ? await Department.findAll({ where: { id: deptIds }, attributes: ['id', 'department_name'], raw: true })
+                : [];
+            const itemMap = Object.fromEntries(items.map(i => [i.item_id, i]));
+            const deptMap = Object.fromEntries(depts.map(d => [d.id, d]));
 
             res.json({
                 success: true,
                 data: consumption.map(c => ({
                     item_id: c.item_id,
-                    item_name: c.item?.item_name || 'Unknown',
-                    department_name: c.department?.department_name || 'Unknown',
+                    item_name: itemMap[c.item_id]?.item_name || 'Unknown',
+                    department_name: deptMap[c.department_id]?.department_name || 'Unknown',
                     total_quantity: Number(c.total_quantity || 0),
-                    uom: c.item?.uom || '-',
+                    uom: itemMap[c.item_id]?.unit_of_measure || '-',
                     issue_count: Number(c.issue_count || 0)
                 }))
             });
