@@ -122,6 +122,7 @@ const AppLayout = () => {
         { key: '/inventory/purchase-orders', label: 'Purchase Orders' },
         { key: '/inventory/goods-receipt', label: 'Goods Receipt (GRN)' },
         { key: '/inventory/issue-return', label: 'Issue & Return' },
+        { key: '/inventory/vendor-return', label: 'Vendor Return', roles: [ROLES.ADMIN, ROLES.HR, ROLES.ACCOUNTANT, ROLES.PHARMACIST] },
       ]
     },
     {

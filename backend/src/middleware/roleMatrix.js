@@ -70,6 +70,7 @@ const gates = {
   purchaseOrder:   { read: authorize([...PHARMACY, 'HR', 'Accountant']), write: authorize(['Pharmacist', 'HR', 'Accountant']) },
   grn:             { read: authorize([...PHARMACY, 'HR', 'Accountant']), write: authorize([...PHARMACY, 'HR']) },
   stock:           { read: authorize([...PHARMACY, 'HR', 'Nurse']), write: authorize([...PHARMACY, 'Nurse', 'HR']) },
+  vendorReturn:    { read: authorize([...PHARMACY, 'HR', 'Accountant']), write: authorize([...PHARMACY, 'HR', 'Accountant']) },
 
   // Lab
   lab:             { read: authorize([...READ_CLINICAL, ...LAB]), write: authorize([...LAB, 'Doctor']) },

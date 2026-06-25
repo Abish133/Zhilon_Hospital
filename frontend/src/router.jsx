@@ -78,6 +78,7 @@ import RadiologyImaging from '@pages/radiology/RadiologyImaging';
 import EquipmentMaintenance from '@pages/equipment/EquipmentMaintenance';
 import DetailedReports from '@pages/reports/DetailedReports';
 import InventoryIssueReturn from '@pages/inventory/InventoryIssueReturn';
+import VendorReturn from '@pages/inventory/VendorReturn';
 import EquipmentMaintenanceCalendar from '@pages/equipment/EquipmentMaintenanceCalendar';
 import { ROLES } from '@utils/constants';
 import MedicineList from './pages/pharmacy/MedicineList';
@@ -725,6 +726,14 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST, ROLES.HR, ROLES.NURSE]}>
             <InventoryIssueReturn />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: '/inventory/vendor-return',
+        element: (
+          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.PHARMACIST, ROLES.HR, ROLES.ACCOUNTANT]}>
+            <VendorReturn />
           </ProtectedRoute>
         )
       },

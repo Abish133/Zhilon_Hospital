@@ -20,6 +20,10 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: 'vendor_id',
         as: 'medicineBatches'
       });
+      Vendor.hasMany(models.VendorReturn, {
+        foreignKey: 'vendor_id',
+        as: 'vendorReturns'
+      });
     }
   }
   

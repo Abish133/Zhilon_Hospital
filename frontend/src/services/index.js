@@ -136,6 +136,10 @@ export const stockIssueService = StockIssueService;
 import StockReturnService from './StockReturnService';
 export const stockReturnService = StockReturnService;
 
+// Vendor Return
+import VendorReturnService from './VendorReturnService';
+export const vendorReturnService = VendorReturnService;
+
 // Radiology Services
 import RadiologyImagingService from './RadiologyImagingService';
 export const radiologyImagingService = RadiologyImagingService;
