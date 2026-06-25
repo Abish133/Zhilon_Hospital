@@ -222,7 +222,7 @@ const PatientMedicationHistoryList = () => {
   };
 
   return (
-    <div style={{ maxWidth: 1600, margin: '0 auto' }}>
+    <div style={{ width: '100%' }}>
       <div style={{ marginBottom: 24 }}>
         <Title level={2} style={{ margin: 0, fontSize: 28, fontWeight: 800, color: '#0f172a', letterSpacing: '-1px' }}>
           Patient Medication History

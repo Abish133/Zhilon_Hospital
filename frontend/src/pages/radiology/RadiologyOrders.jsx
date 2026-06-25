@@ -5,6 +5,15 @@ import { EyeOutlined, CheckOutlined, FileImageOutlined, FileTextOutlined } from 
 import { radiologyOrderService, radiologyImagingService, radiologyReportService } from '@services';
 import { useNavigate } from 'react-router-dom';
 
+const ROOM_OPTIONS = [
+  { label: 'X-Ray Room 1', value: 'X-Ray Room 1' },
+  { label: 'CT Room', value: 'CT Room' },
+  { label: 'MRI Room', value: 'MRI Room' },
+  { label: 'USG Room', value: 'USG Room' }
+];
+// Sensible default room based on the order's modality.
+const roomForModality = (m) => ({ 'X-Ray': 'X-Ray Room 1', CT: 'CT Room', MRI: 'MRI Room', USG: 'USG Room' }[m] || undefined);
+
 const RadiologyOrders = () => {
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
@@ -58,7 +67,8 @@ const RadiologyOrders = () => {
     setSelectedOrder(order);
     form.setFieldsValue({
       scheduled_date: null,
-      scheduled_time: null
+      scheduled_time: null,
+      room: roomForModality(order?.modality)
     });
     setModalOpen(true);
   };
@@ -69,6 +79,7 @@ const RadiologyOrders = () => {
       const scheduleData = {
         scheduled_date: values.scheduled_date.format('YYYY-MM-DD'),
         scheduled_time: values.scheduled_time,
+        room: values.room || null,
         status: 'Scheduled'
       };
       await radiologyOrderService.update(selectedOrder.rad_order_id, scheduleData);
@@ -144,8 +155,12 @@ const RadiologyOrders = () => {
     {
       title: 'Scheduled',
       key: 'scheduled',
-      render: (_, record) => record.scheduled_date ? 
-        `${new Date(record.scheduled_date).toLocaleDateString('en-IN')} ${record.scheduled_time || ''}` : '-'
+      render: (_, record) => record.scheduled_date ? (
+        <div>
+          <div>{new Date(record.scheduled_date).toLocaleDateString('en-IN')} {record.scheduled_time ? record.scheduled_time.slice(0, 5) : ''}</div>
+          {record.room && <Tag style={{ marginTop: 2 }}>{record.room}</Tag>}
+        </div>
+      ) : '-'
     },
     {
       title: 'Status',
@@ -175,10 +190,10 @@ const RadiologyOrders = () => {
               Complete
             </Button>
           )}
-          {record.status === 'Completed' && (
+          {(record.status === 'Completed' || record.status === 'Reported') && (
             <Button size="small" icon={<FileTextOutlined />}
               onClick={() => navigate(`/radiology/report/${record.rad_order_id}`)}>
-              Report
+              {record.status === 'Reported' ? 'View Report' : 'Report'}
             </Button>
           )}
           <Button size="small" icon={<EyeOutlined />} onClick={() => handleView(record)}>
@@ -214,6 +229,9 @@ const RadiologyOrders = () => {
           <Form.Item name="scheduled_time" label="Scheduled Time">
             <Input type="time" />
           </Form.Item>
+          <Form.Item name="room" label="Room">
+            <Select allowClear placeholder="Select imaging room" options={ROOM_OPTIONS} />
+          </Form.Item>
         </Form>
       </SliderModal>
 
@@ -247,6 +265,7 @@ const RadiologyOrders = () => {
             <p><strong>Order Date:</strong> {new Date(viewOrder.order_date).toLocaleString('en-IN')}</p>
             <p><strong>Scheduled Date:</strong> {viewOrder.scheduled_date ? new Date(viewOrder.scheduled_date).toLocaleDateString('en-IN') : 'Not scheduled'}</p>
             <p><strong>Scheduled Time:</strong> {viewOrder.scheduled_time || 'N/A'}</p>
+            <p><strong>Room:</strong> {viewOrder.room || 'N/A'}</p>
             <p><strong>Status:</strong> <Tag color={getStatusColor(viewOrder.status)}>{viewOrder.status}</Tag></p>
             
             {viewImages.length > 0 && (

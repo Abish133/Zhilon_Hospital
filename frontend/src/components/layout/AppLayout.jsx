@@ -4,28 +4,32 @@ import {
   DollarOutlined, LogoutOutlined, MenuOutlined,
   TeamOutlined, BankOutlined, SettingOutlined, FileTextOutlined,
   CameraOutlined, ScissorOutlined, InboxOutlined, ToolOutlined, ClockCircleOutlined,
-  MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined
+  SearchOutlined, DownOutlined, RightOutlined
 } from '@ant-design/icons';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { useAuthStore, useAppStore } from '@store';
+import { useAuthStore } from '@store';
 import { ROLES } from '@utils/constants';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import NotificationBell from '@components/common/NotificationBell';
 
-const { Header, Sider, Content } = Layout;
+const { Content } = Layout;
 const { Text } = Typography;
 
-const SIDEBAR_WIDTH = 244;
-const SIDEBAR_COLLAPSED = 72;
+const HEADER_HEIGHT = 60;
 
 const AppLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuthStore();
-  const { sidebarCollapsed, toggleSidebar } = useAppStore();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isTablet, setIsTablet] = useState(window.innerWidth >= 768 && window.innerWidth < 1024);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [openMenu, setOpenMenu] = useState(null); // module key whose mega panel is open
+  const navRef = useRef(null);
+  const [navHeight, setNavHeight] = useState(48); // measured (the nav bar can wrap to 2 rows)
+  const showDrawer = isMobile || isTablet;
+
+  // patient quick-search drawer (unchanged)
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
@@ -100,7 +104,6 @@ const AppLayout = () => {
       roles: [ROLES.RADIOLOGIST, ROLES.ADMIN],
       children: [
         { key: '/radiology', label: 'Orders' },
-        { key: '/radiology/scheduling', label: 'Scheduling' },
         { key: '/radiology/test-master', label: 'Test Master', roles: [ROLES.ADMIN] }
       ]
     },
@@ -201,14 +204,47 @@ const AppLayout = () => {
       .filter(item => !item.children || item.children.length > 0);
   }, [rawMenu, user]);
 
-  // Expand the parent menu when landing on a child path
-  const openKeys = useMemo(() => {
-    const parent = menuItems.find(m => m.children?.some(c => c.key === location.pathname));
-    return parent ? [parent.key] : [];
+  // Which top-level module owns the current route (for active pill highlight)
+  const routeModuleKey = useMemo(() => {
+    const leaf = menuItems.find(m => m.key === location.pathname);
+    if (leaf) return leaf.key;
+    const group = menuItems.find(m => m.children?.some(c => c.key === location.pathname));
+    return group?.key || null;
   }, [location.pathname, menuItems]);
 
-  const [userOpenKeys, setUserOpenKeys] = useState(openKeys);
-  useEffect(() => { setUserOpenKeys(openKeys); }, [openKeys]);
+  const openModule = useMemo(() => menuItems.find(m => m.key === openMenu) || null, [openMenu, menuItems]);
+
+  // close the mega panel on Esc / route change
+  useEffect(() => { setOpenMenu(null); }, [location.pathname]);
+  useEffect(() => {
+    const onKey = (e) => { if (e.key === 'Escape') setOpenMenu(null); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  // Track the nav bar height so the mega panel/backdrop sit right below it,
+  // even when the pills wrap onto a second row.
+  useEffect(() => {
+    if (showDrawer || !navRef.current) return;
+    const el = navRef.current;
+    const update = () => setNavHeight(el.offsetHeight);
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [showDrawer, menuItems]);
+
+  const goTo = useCallback((key) => {
+    if (!key?.startsWith('/')) return;
+    setOpenMenu(null);
+    navigate(key);
+    if (isMobile || isTablet) setDrawerVisible(false);
+  }, [navigate, isMobile, isTablet]);
+
+  const onPillClick = (item) => {
+    if (item.children?.length) setOpenMenu(k => (k === item.key ? null : item.key));
+    else goTo(item.key);
+  };
 
   const userMenuItems = [
     { key: 'profile', label: 'My Profile', icon: <UserOutlined /> },
@@ -222,7 +258,6 @@ const AppLayout = () => {
     else if (key === 'profile') navigate('/profile');
     else if (key === 'settings') navigate('/settings');
   };
-
 
   const handleGlobalSearch = async (q) => {
     setSearchQuery(q);
@@ -247,262 +282,220 @@ const AppLayout = () => {
     navigate(`/patients/${uhid}`);
   };
 
-  const handleNav = ({ key }) => {
-    if (!key.startsWith('/')) return;
-    navigate(key);
-    if (isMobile || isTablet) setDrawerVisible(false);
-  };
-
-  const showDrawer = isMobile || isTablet;
-  const railMode = !showDrawer && sidebarCollapsed;
-
-  const pageTitle = useMemo(() => {
-    const all = menuItems.flatMap(m => [m, ...(m.children || [])]);
-    return all.find(x => x.key === location.pathname)?.label || 'Dashboard';
-  }, [location.pathname, menuItems]);
-
+  // ── Brand block ──
   const brand = (
-    <div style={{
-      height: 56,
-      display: 'flex',
-      alignItems: 'center',
-      gap: 10,
-      padding: railMode ? 0 : '0 16px',
-      justifyContent: railMode ? 'center' : 'flex-start',
-      borderBottom: '1px solid rgba(255,255,255,0.08)'
-    }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0, cursor: 'pointer' }} onClick={() => goTo('/dashboard')}>
       <div style={{
-        width: 36, height: 36, borderRadius: 10,
-        background: railMode
-          ? 'linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.04))'
-          : '#ffffff',
-        border: railMode ? '1px solid rgba(255,255,255,0.14)' : 'none',
-        boxShadow: railMode ? 'none' : '0 2px 8px rgba(255,255,255,0.15)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 18, flexShrink: 0,
-        color: railMode ? '#ffffff' : '#0a0a0a'
+        width: 36, height: 36, borderRadius: 10, background: '#0a0a0a', color: '#fff',
+        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+        boxShadow: '0 2px 8px rgba(10,10,10,0.25)'
       }}>
         <MedicineBoxOutlined />
       </div>
-      {!railMode && (
-        <div style={{ lineHeight: 1.1 }}>
-          <div style={{ color: '#ffffff', fontSize: 14, fontWeight: 700, letterSpacing: '-0.01em', textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>HMS</div>
-          <div style={{ color: 'rgba(255,255,255,0.85)', fontSize: 11, fontWeight: 500 }}>{user?.hospital_name || 'Healthcare workspace'}</div>
+      {!isMobile && (
+        <div style={{ lineHeight: 1.05 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, letterSpacing: '-0.02em', color: '#0a0a0a' }}>HMS</div>
+          {/* <div style={{ fontSize: 10.5, fontWeight: 500, color: '#a3a3a3', whiteSpace: 'nowrap', maxWidth: 150, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {user?.hospital_name || ''}
+          </div> */}
         </div>
       )}
     </div>
   );
 
-  const sidebar = (
-    <div style={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      background: '#0a0a0a'
-    }}>
-      {brand}
+  // ── Full-width black nav bar below the header (compact, single line) ──
+  const navBar = (
+    <div
+      ref={navRef}
+      className="hms-navbar"
+      style={{
+        position: 'sticky', top: HEADER_HEIGHT, zIndex: 99,
+        display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 3,
+        padding: '6px 14px', rowGap: 4
+      }}
+    >
+      {menuItems.map(item => {
+        const active = item.key === routeModuleKey;
+        const isOpen = item.key === openMenu;
+        const highlight = active || isOpen;
+        return (
+          <button
+            key={item.key}
+            onClick={() => onPillClick(item)}
+            className="hms-navpill"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, height: 34, padding: '0 11px',
+              border: 'none', borderRadius: 9, cursor: 'pointer', whiteSpace: 'nowrap', fontSize: 13,
+              fontWeight: active ? 700 : 500,
+              letterSpacing: '-0.005em',
+              background: active ? '#ffffff' : (isOpen ? 'rgba(255,255,255,0.16)' : 'transparent'),
+              color: active ? '#0a0a0a' : (highlight ? '#ffffff' : 'rgba(255,255,255,0.74)'),
+              boxShadow: active ? '0 2px 10px rgba(0,0,0,0.45)' : 'none'
+            }}
+            onMouseEnter={e => { if (!active) { e.currentTarget.style.background = 'rgba(255,255,255,0.12)'; e.currentTarget.style.color = '#fff'; } }}
+            onMouseLeave={e => { if (!active) { e.currentTarget.style.background = isOpen ? 'rgba(255,255,255,0.16)' : 'transparent'; e.currentTarget.style.color = isOpen ? '#fff' : 'rgba(255,255,255,0.74)'; } }}
+          >
+            <span style={{ fontSize: 14, display: 'flex', opacity: active ? 1 : 0.85 }}>{item.icon}</span>
+            {item.label}
+            {item.children?.length > 0 && (
+              <DownOutlined style={{ fontSize: 8.5, marginLeft: 1, transition: 'transform .2s ease', transform: isOpen ? 'rotate(180deg)' : 'none', opacity: active ? 0.55 : 0.6 }} />
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ── Mega panel for the open module ──
+  const mega = openModule && !showDrawer && (
+    <>
+      <div
+        className="hms-mega-backdrop"
+        onClick={() => setOpenMenu(null)}
+        style={{ position: 'fixed', inset: `${HEADER_HEIGHT + navHeight}px 0 0 0`, background: 'rgba(10,10,10,0.18)', zIndex: 97 }}
+      />
+      <div
+        className="hms-mega"
+        style={{
+          position: 'fixed', top: HEADER_HEIGHT + navHeight, left: 0, right: 0, zIndex: 98,
+          background: '#ffffff', borderBottom: '1px solid #ededed',
+          boxShadow: '0 18px 40px rgba(10,10,10,0.12)'
+        }}
+      >
+        <div style={{ maxWidth: 1600, margin: '0 auto', padding: '24px 28px 28px', display: 'flex', gap: 32 }}>
+          {/* Left intro column */}
+          <div className="hms-mega-intro" style={{ width: 220, flexShrink: 0, borderRight: '1px solid #f0f0f0', paddingRight: 28 }}>
+            <div style={{
+              width: 46, height: 46, borderRadius: 13, background: '#0a0a0a', color: '#fff',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
+              boxShadow: '0 6px 16px -4px rgba(10,10,10,0.4)', marginBottom: 14
+            }}>
+              {openModule.icon}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: '-0.03em', lineHeight: 1.1 }}>{openModule.label}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#0a0a0a', background: '#f0f0f0', borderRadius: 5, padding: '2px 7px' }}>
+                {openModule.children.length} pages
+              </span>
+            </div>
+            <div style={{ fontSize: 12, color: '#a3a3a3', marginTop: 14, lineHeight: 1.5 }}>
+              Select a page to jump straight there.
+            </div>
+          </div>
+
+          {/* Right card grid */}
+          <div style={{ flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(212px, 1fr))', gap: 10, alignContent: 'start' }}>
+            {openModule.children.map((c, i) => {
+              const active = c.key === location.pathname;
+              return (
+                <button
+                  key={c.key}
+                  className={`hms-mega-cell hms-cell${active ? ' hms-cell-active' : ''}`}
+                  style={{ animationDelay: `${i * 30}ms` }}
+                  onClick={() => goTo(c.key)}
+                >
+                  <span className="hms-cell-bg" />
+                  <span className="hms-cell-num">{String(i + 1).padStart(2, '0')}</span>
+                  <span className="hms-cell-label">{c.label}</span>
+                  <RightOutlined className="hms-cell-arrow" />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+
+  // ── Mobile / tablet drawer (classic vertical menu) ──
+  const drawerMenu = (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: '#0a0a0a' }}>
+      <div style={{ height: 56, display: 'flex', alignItems: 'center', gap: 10, padding: '0 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+        <div style={{ width: 34, height: 34, borderRadius: 10, background: '#fff', color: '#0a0a0a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17 }}>
+          <MedicineBoxOutlined />
+        </div>
+        <div style={{ lineHeight: 1.1 }}>
+          <div style={{ color: '#fff', fontSize: 14, fontWeight: 700 }}>HMS</div>
+          {/* <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 11 }}>{user?.hospital_name || 'Healthcare workspace'}</div> */}
+        </div>
+      </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
         <Menu
-          theme="dark"
-          mode="inline"
+          theme="dark" mode="inline"
           selectedKeys={[location.pathname]}
-          openKeys={railMode ? [] : userOpenKeys}
-          onOpenChange={(keys) => setUserOpenKeys(keys)}
+          defaultOpenKeys={routeModuleKey ? [routeModuleKey] : []}
           items={menuItems}
-          onClick={handleNav}
-          inlineCollapsed={railMode}
-          style={{
-            background: 'transparent',
-            borderInlineEnd: 'none',
-            fontSize: 13
-          }}
+          onClick={({ key }) => goTo(key)}
+          style={{ background: 'transparent', borderInlineEnd: 'none', fontSize: 13 }}
         />
-      </div>
-      <div style={{
-        padding: railMode ? '12px 8px' : 12,
-        borderTop: '1px solid rgba(255,255,255,0.08)'
-      }}>
-        <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenu }} placement="topRight" trigger={['click']}>
-          <Tooltip title={railMode ? (user?.name || user?.username || 'User') : ''} placement="right">
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 10,
-            cursor: 'pointer',
-            padding: railMode ? '6px' : '8px 10px',
-            borderRadius: 10,
-            justifyContent: railMode ? 'center' : 'flex-start',
-            transition: 'all 0.2s ease',
-            border: railMode ? '1px solid transparent' : '1px solid rgba(255,255,255,0.1)'
-          }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-              e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.borderColor = railMode ? 'transparent' : 'rgba(255,255,255,0.1)';
-            }}
-          >
-            <Avatar size={railMode ? 36 : 32} style={{
-              background: railMode
-                ? 'linear-gradient(135deg, #ffffff, #d4d4d4)'
-                : '#ffffff',
-              color: '#0a0a0a',
-              fontWeight: 700,
-              boxShadow: '0 2px 6px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(255,255,255,0.6)'
-            }}>
-              {(user?.name || user?.username || 'U').toString().charAt(0).toUpperCase()}
-            </Avatar>
-            {!railMode && (
-              <div style={{ lineHeight: 1.2, overflow: 'hidden' }}>
-                <div style={{
-                  color: '#ffffff',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  textShadow: '0 1px 3px rgba(0,0,0,0.4)'
-                }}>
-                  {user?.name || user?.username || 'User'}
-                </div>
-                <div style={{
-                  color: 'rgba(255,255,255,0.75)',
-                  fontSize: 11,
-                  textTransform: 'capitalize'
-                }}>
-                  {user?.role || 'Role'}
-                </div>
-              </div>
-            )}
-          </div>
-          </Tooltip>
-        </Dropdown>
       </div>
     </div>
   );
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f5f5' }}>
-      {!showDrawer && (
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={sidebarCollapsed}
-          collapsedWidth={SIDEBAR_COLLAPSED}
-          width={SIDEBAR_WIDTH}
-          style={{
-            background: '#0a0a0a',
-            position: 'fixed',
-            left: 0, top: 0, bottom: 0,
-            zIndex: 100,
-            overflow: 'hidden',
-            borderRight: '1px solid rgba(255,255,255,0.08)',
-            boxShadow: '4px 0 24px rgba(0, 0, 0, 0.4)',
-            transition: 'all .2s ease'
-          }}
-        >
-          {sidebar}
-        </Sider>
-      )}
+      {/* ── Top header bar ── */}
+      <div className="hms-appheader" style={{
+        height: HEADER_HEIGHT, background: '#ffffff', borderBottom: '1px solid #ededed',
+        display: 'flex', alignItems: 'center', gap: 14, padding: '0 20px',
+        position: 'sticky', top: 0, zIndex: 100
+      }}>
+        {showDrawer && (
+          <Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerVisible(true)} style={{ height: 38, width: 38 }} />
+        )}
+        {brand}
+        <div style={{ flex: 1 }} />
+
+        <Space size={6} style={{ flexShrink: 0 }}>
+          <Tooltip title="Find patient">
+            <Button type="text" icon={<SearchOutlined />} style={{ height: 38, width: 38 }} onClick={() => setSearchOpen(true)} />
+          </Tooltip>
+          <NotificationBell />
+          <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenu }} placement="bottomRight" trigger={['click']}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', padding: '4px 8px 4px 4px', borderRadius: 8, transition: 'background .15s' }}
+              onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
+              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+            >
+              <Badge dot color="#16a34a" offset={[-3, 28]}>
+                <Avatar size={32}>{(user?.name || user?.username || 'U').toString().charAt(0).toUpperCase()}</Avatar>
+              </Badge>
+              {!isMobile && (
+                <div style={{ lineHeight: 1.15 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a' }}>{user?.name || user?.username || 'User'}</div>
+                  <div style={{ fontSize: 11, color: '#737373', textTransform: 'capitalize' }}>{user?.role || 'Role'}</div>
+                </div>
+              )}
+            </div>
+          </Dropdown>
+        </Space>
+      </div>
+
+      {!showDrawer && navBar}
+      {mega}
 
       {showDrawer && (
         <Drawer
-          placement="left"
-          onClose={() => setDrawerVisible(false)}
-          open={drawerVisible}
-          closable={false}
-          width={SIDEBAR_WIDTH}
-          styles={{
-            body: {
-              padding: 0,
-              background: '#0a0a0a'
-            },
-            header: { display: 'none' }
-          }}
+          placement="left" onClose={() => setDrawerVisible(false)} open={drawerVisible}
+          closable={false} width={260}
+          styles={{ body: { padding: 0, background: '#0a0a0a' }, header: { display: 'none' } }}
         >
-          {sidebar}
+          {drawerMenu}
         </Drawer>
       )}
 
-      <Layout style={{
-        marginLeft: showDrawer ? 0 : (sidebarCollapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH),
-        transition: 'margin-left .2s ease',
-        background: '#f5f5f5'
-      }}>
-        <Header style={{
-          height: 56,
-          padding: '0 20px',
-          background: '#ffffff',
-          borderBottom: '1px solid #ededed',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          position: 'sticky',
-          top: 0,
-          zIndex: 99
-        }}>
-          <Space size={10}>
-            <Tooltip title={showDrawer ? 'Menu' : (sidebarCollapsed ? 'Expand' : 'Collapse')}>
-              <Button
-                type="text"
-                icon={showDrawer ? <MenuOutlined /> : (sidebarCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />)}
-                onClick={() => showDrawer ? setDrawerVisible(true) : toggleSidebar()}
-                style={{ height: 36, width: 36 }}
-              />
-            </Tooltip>
-            <Text strong style={{ fontSize: 15, color: '#0a0a0a' }}>{pageTitle}</Text>
-          </Space>
+      <Content style={{ margin: isMobile ? 16 : isTablet ? 20 : 24, minHeight: 'calc(100vh - 60px - 48px)' }}>
+        <div className="fade-in page-wrap">
+          <Outlet />
+        </div>
+      </Content>
 
-          <Space size={8}>
-            <Tooltip title="Search">
-              <Button type="text" icon={<SearchOutlined />} style={{ height: 36, width: 36 }} onClick={() => setSearchOpen(true)} />
-            </Tooltip>
-            <NotificationBell />
-            <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenu }} placement="bottomRight" trigger={['click']}>
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-                padding: '4px 8px 4px 4px', borderRadius: 8, transition: 'background .15s'
-              }}
-                onMouseEnter={e => e.currentTarget.style.background = '#f5f5f5'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-              >
-                <Badge dot color="#16a34a" offset={[-3, 28]}>
-                  <Avatar size={30}>{(user?.name || user?.username || 'U').toString().charAt(0).toUpperCase()}</Avatar>
-                </Badge>
-                {!isMobile && (
-                  <div style={{ lineHeight: 1.15 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#0a0a0a' }}>{user?.name || user?.username || 'User'}</div>
-                    <div style={{ fontSize: 11, color: '#737373', textTransform: 'capitalize' }}>{user?.role || 'Role'}</div>
-                  </div>
-                )}
-              </div>
-            </Dropdown>
-          </Space>
-        </Header>
-
-        <Content style={{
-          margin: isMobile ? 16 : isTablet ? 20 : 24,
-          minHeight: 'calc(100vh - 56px - 48px)'
-        }}>
-          <div className="fade-in page-wrap">
-            <Outlet />
-          </div>
-        </Content>
-      </Layout>
-
+      {/* Patient quick-search drawer (unchanged) */}
       <Drawer
         title={<Space><SearchOutlined />Search Patients</Space>}
-        placement="right"
-        open={searchOpen}
+        placement="right" open={searchOpen}
         onClose={() => { setSearchOpen(false); setSearchQuery(''); setSearchResults([]); }}
-        width={isMobile ? '100%' : '50%'}
-        destroyOnClose
-        styles={{
-          header: { borderBottom: '1px solid #ededed' },
-          body: { padding: 20 }
-        }}
+        width={isMobile ? '100%' : '50%'} destroyOnClose
+        styles={{ header: { borderBottom: '1px solid #ededed' }, body: { padding: 20 } }}
       >
         <Input.Search
           placeholder="Search by name, UHID or mobile..."
@@ -510,16 +503,12 @@ const AppLayout = () => {
           onChange={e => handleGlobalSearch(e.target.value)}
           onSearch={handleGlobalSearch}
           loading={searchLoading}
-          autoFocus
-          size="large"
-          allowClear
+          autoFocus size="large" allowClear
         />
         <div style={{ marginTop: 12, color: '#737373', fontSize: 12 }}>
           {searchQuery.length < 2
             ? 'Type at least 2 characters to search.'
-            : searchLoading
-              ? 'Searching…'
-              : `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'}`}
+            : searchLoading ? 'Searching…' : `${searchResults.length} match${searchResults.length === 1 ? '' : 'es'}`}
         </div>
         {searchResults.length > 0 ? (
           <List

@@ -26,8 +26,8 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.01em; }
 ::-webkit-scrollbar-thumb { background: #d4d4d4; border-radius: 8px; border: 2px solid #f5f5f5; }
 ::-webkit-scrollbar-thumb:hover { background: #a3a3a3; }
 
-/* Page container — all pages get this breathing room automatically */
-.page-wrap { max-width: 1600px; margin: 0 auto; }
+/* Page container — full width now that the sidebar is gone (no centered gap) */
+.page-wrap { max-width: 100%; margin: 0; }
 
 /* Cards — flat, hairline border, subtle hover */
 .ant-card {
@@ -207,6 +207,78 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.01em; }
 @keyframes fadeInUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 .fade-in { animation: fadeInUp .25s ease both; }
 
+/* ── Top-bar mega-menu navigation ── */
+.hms-noscroll::-webkit-scrollbar { height: 0; width: 0; }
+.hms-noscroll { scrollbar-width: none; }
+
+@keyframes megaIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.hms-mega {
+  animation: megaIn .22s cubic-bezier(.16,.84,.44,1) both;
+}
+@keyframes megaBackdrop { from { opacity: 0; } to { opacity: 1; } }
+.hms-mega-backdrop { animation: megaBackdrop .2s ease both; }
+
+/* mega panel cells — staggered entrance via inline delay */
+@keyframes cellIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+.hms-mega-cell { animation: cellIn .28s cubic-bezier(.16,.84,.44,1) both; }
+
+/* subtle dot-grid texture behind the intro column */
+.hms-mega-intro {
+  background-image: radial-gradient(rgba(10,10,10,0.045) 1px, transparent 1px);
+  background-size: 15px 15px;
+  background-position: -2px -2px;
+}
+
+/* numbered page cards with a black sweep-fill on hover */
+.hms-cell {
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  padding: 14px 15px; border-radius: 12px; cursor: pointer;
+  border: 1px solid #ededed; background: #fff;
+  transition: transform .18s cubic-bezier(.16,.84,.44,1), box-shadow .18s ease, border-color .18s ease;
+}
+.hms-cell:hover { transform: translateY(-2px); border-color: #0a0a0a; box-shadow: 0 8px 22px -8px rgba(10,10,10,0.35); }
+.hms-cell:active { transform: translateY(0) scale(.99); }
+.hms-cell .hms-cell-bg {
+  position: absolute; inset: 0; background: #0a0a0a; z-index: -1;
+  transform: translateX(-101%); transition: transform .32s cubic-bezier(.16,.84,.44,1);
+}
+.hms-cell:hover .hms-cell-bg, .hms-cell-active .hms-cell-bg { transform: translateX(0); }
+.hms-cell-num {
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; letter-spacing: .02em;
+  color: #a3a3a3; border: 1px solid #ededed; background: #fafafa;
+  transition: color .2s ease, border-color .2s ease, background .2s ease;
+}
+.hms-cell-label { flex: 1; font-size: 13.5px; font-weight: 600; color: #0a0a0a; letter-spacing: -0.01em; transition: color .2s ease; }
+.hms-cell-arrow { font-size: 12px; color: #cfcfcf; transition: color .2s ease, transform .25s cubic-bezier(.16,.84,.44,1); }
+.hms-cell:hover .hms-cell-num, .hms-cell-active .hms-cell-num { color: #fff; border-color: rgba(255,255,255,0.28); background: rgba(255,255,255,0.08); }
+.hms-cell:hover .hms-cell-label, .hms-cell-active .hms-cell-label { color: #fff; }
+.hms-cell:hover .hms-cell-arrow, .hms-cell-active .hms-cell-arrow { color: #fff; transform: translateX(4px); }
+.hms-cell-active { border-color: #0a0a0a; }
+
+/* ── Black navigation bar ── */
+.hms-navbar {
+  background: linear-gradient(180deg, #0a0a0a 0%, #141414 100%);
+  border-bottom: 1px solid #000;
+  box-shadow: 0 6px 20px -8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation: megaIn .28s cubic-bezier(.16,.84,.44,1) both;
+}
+.hms-navpill {
+  position: relative;
+  transition: background .16s ease, color .16s ease, transform .1s ease, box-shadow .16s ease;
+}
+.hms-navpill:active { transform: translateY(1px) scale(.98); }
+/* faint divider tick between pills for a crafted feel (skip the first) */
+.hms-navpill + .hms-navpill::before {
+  content: ''; position: absolute; left: -2px; top: 50%; transform: translateY(-50%);
+  width: 1px; height: 14px; background: rgba(255,255,255,0.07);
+}
+
 /* Premium Sidebar Menu Styles - Black & White */
 .ant-menu-dark.ant-menu-inline .ant-menu-item,
 .ant-menu-dark.ant-menu-inline .ant-menu-submenu-title {
@@ -310,8 +382,17 @@ h1, h2, h3, h4, h5, h6 { letter-spacing: -0.01em; }
   scrollbar-width: thin;
 }
 
-/* Print */
+/* Print — hide all app chrome so reports/PDFs print clean (no nav, header, drawers) */
 @media print {
-  .ant-layout-sider, .ant-layout-header { display: none !important; }
+  .ant-layout-sider,
+  .ant-layout-header,
+  .hms-appheader,
+  .hms-navbar,
+  .hms-mega,
+  .hms-mega-backdrop,
+  .ant-drawer,
+  .ant-drawer-mask,
+  .no-print { display: none !important; }
   .ant-layout-content { margin: 0 !important; }
+  .ant-layout, body, #root { background: #fff !important; }
 }

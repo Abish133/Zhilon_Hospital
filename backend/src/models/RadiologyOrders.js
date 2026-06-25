@@ -90,6 +90,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TIME,
       allowNull: true
     },
+    room: {
+      type: DataTypes.STRING(40),
+      allowNull: true
+    },
     status: {
       type: DataTypes.ENUM('Ordered', 'Scheduled', 'In Progress', 'Completed', 'Reported'),
       allowNull: false,

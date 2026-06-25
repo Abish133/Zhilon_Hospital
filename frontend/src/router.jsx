@@ -72,7 +72,6 @@ import BedManagement from '@pages/beds/BedManagement';
 import PurchaseOrders from '@pages/inventory/PurchaseOrders';
 import GoodsReceipt from '@pages/inventory/GoodsReceipt';
 import VendorManagement from '@pages/inventory/VendorManagement';
-import RadiologyScheduling from '@pages/radiology/RadiologyScheduling';
 import RadiologyTestMaster from '@pages/radiology/RadiologyTestMaster';
 import RadiologyImaging from '@pages/radiology/RadiologyImaging';
 import EquipmentMaintenance from '@pages/equipment/EquipmentMaintenance';
@@ -686,14 +685,6 @@ const router = createBrowserRouter([
         element: (
           <ProtectedRoute roles={[ROLES.ADMIN, ROLES.RADIOLOGIST]}>
             <RadiologyImaging />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: '/radiology/scheduling',
-        element: (
-          <ProtectedRoute roles={[ROLES.ADMIN, ROLES.RADIOLOGIST]}>
-            <RadiologyScheduling />
           </ProtectedRoute>
         )
       },
