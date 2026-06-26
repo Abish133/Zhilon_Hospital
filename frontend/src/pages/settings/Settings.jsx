@@ -23,6 +23,7 @@ const Settings = () => {
   const [brandingForm] = Form.useForm();
   const [billingForm] = Form.useForm();
   const [notificationsForm] = Form.useForm();
+  const [smtpForm] = Form.useForm();
 
   const [deptModalOpen, setDeptModalOpen] = useState(false);
   const [editDeptModalOpen, setEditDeptModalOpen] = useState(false);
@@ -87,6 +88,15 @@ const Settings = () => {
           email_notifications: hospitalSettings.email_notifications ?? true,
           sms_notifications: hospitalSettings.sms_notifications ?? false,
           low_stock_alerts: hospitalSettings.low_stock_alerts ?? true
+        });
+        const smtp = hospitalSettings.smtp || {};
+        smtpForm.setFieldsValue({
+          host: smtp.host || '',
+          port: smtp.port || 587,
+          secure: smtp.secure ?? false,
+          user: smtp.user || '',
+          pass: '', // never echoed back from the server; blank = keep current
+          from: smtp.from || ''
         });
       }
     } catch (error) {
@@ -202,6 +212,31 @@ const Settings = () => {
       }
     } catch (error) {
       message.error(error?.response?.data?.message || 'Failed to save settings');
+    } finally {
+      setSavingSection(null);
+    }
+  };
+
+  const handleSaveSmtp = async (values) => {
+    if (!hospitalId) return message.error('Hospital context missing');
+    setSavingSection('Email');
+    try {
+      // Omit a blank password so the backend keeps the previously saved one.
+      const smtp = { ...values };
+      if (!smtp.pass) delete smtp.pass;
+      const payload = {
+        settings: { ...(hospital?.settings || {}), smtp: { ...(hospital?.settings?.smtp || {}), ...smtp } }
+      };
+      const response = await hospitalService.update(hospitalId, payload);
+      if (response.success) {
+        setHospital(response.data);
+        smtpForm.setFieldsValue({ pass: '' });
+        message.success('Email (SMTP) settings saved successfully');
+      } else {
+        message.error(response.message || 'Save failed');
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to save email settings');
     } finally {
       setSavingSection(null);
     }
@@ -419,6 +454,64 @@ const Settings = () => {
                       </Form.Item>
                     </div>
                     <Button type="primary" htmlType="submit" icon={<SaveOutlined />} style={{ marginTop: 16 }} loading={savingSection === 'Notifications'}>
+                      Save Changes
+                    </Button>
+                  </Form>
+                </Spin>
+              )
+            },
+            {
+              key: '3.6',
+              label: 'Email (SMTP)',
+              children: (
+                <Spin spinning={fetchingHospital}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 16, marginBottom: 16 }}>
+                    <div style={{ fontWeight: 600, color: '#1e293b', marginBottom: 4 }}>Your hospital's outgoing email</div>
+                    <div style={{ fontSize: 12, color: '#64748b' }}>
+                      Used to send password-reset emails to your staff. Configure your own SMTP server to send
+                      from your hospital's domain. <b>Leave this blank</b> to use the platform's default email service.
+                    </div>
+                  </div>
+                  <Form form={smtpForm} layout="vertical" onFinish={handleSaveSmtp}>
+                    <Form.Item label="SMTP Host" name="host" extra="e.g. smtp.gmail.com, smtp.office365.com, email-smtp.ap-south-1.amazonaws.com">
+                      <Input placeholder="smtp.yourprovider.com" />
+                    </Form.Item>
+                    <Form.Item label="Port" name="port" tooltip="587 for STARTTLS (most common, e.g. Gmail), 465 for SSL/TLS">
+                      <InputNumber
+                        min={1}
+                        max={65535}
+                        style={{ width: '100%' }}
+                        placeholder="587"
+                        onChange={(p) => {
+                          // Keep the SSL toggle correct for the well-known ports so
+                          // 587+SSL (a common mistake that breaks sending) can't happen.
+                          if (p === 465) smtpForm.setFieldsValue({ secure: true });
+                          else if (p === 587 || p === 25) smtpForm.setFieldsValue({ secure: false });
+                        }}
+                      />
+                    </Form.Item>
+                    <Form.Item label="Use SSL/TLS" name="secure" valuePropName="checked" extra="Auto-set from the port: ON for 465 (implicit TLS), OFF for 587 (STARTTLS). The server enforces the right mode regardless.">
+                      <Switch />
+                    </Form.Item>
+                    <Form.Item label="Username" name="user" extra="The SMTP account username (often the full email address).">
+                      <Input placeholder="no-reply@yourhospital.com" autoComplete="off" />
+                    </Form.Item>
+                    <Form.Item
+                      label="Password"
+                      name="pass"
+                      extra={hospital?.settings?.smtp?.pass_set
+                        ? 'A password is already saved. Leave blank to keep it, or enter a new one to replace it.'
+                        : 'App password / SMTP key from your email provider.'}
+                    >
+                      <Input.Password
+                        placeholder={hospital?.settings?.smtp?.pass_set ? '•••••••• (saved)' : 'Enter SMTP password'}
+                        autoComplete="new-password"
+                      />
+                    </Form.Item>
+                    <Form.Item label="From Address" name="from" extra='Optional. The "From" email shown to recipients — defaults to the username.'>
+                      <Input placeholder="Bay Hospital <no-reply@yourhospital.com>" />
+                    </Form.Item>
+                    <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={savingSection === 'Email'}>
                       Save Changes
                     </Button>
                   </Form>

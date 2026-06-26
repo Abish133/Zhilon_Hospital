@@ -1,8 +1,9 @@
 import { Form, Input, Button, Typography, Space, Checkbox, Divider, message } from 'antd';
-import { UserOutlined, LockOutlined, ArrowRightOutlined, MedicineBoxOutlined, SafetyOutlined, HeartOutlined, TeamOutlined } from '@ant-design/icons';
+import { UserOutlined, LockOutlined, ArrowRightOutlined, MedicineBoxOutlined, SafetyOutlined, HeartOutlined, TeamOutlined, MailOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@store';
 import AuthService from '@services/AuthService';
+import SliderModal from '@components/common/SliderModal';
 import { useState, useEffect } from 'react';
 
 const { Title, Text } = Typography;
@@ -13,6 +14,9 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [form] = Form.useForm();
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotForm] = Form.useForm();
 
   useEffect(() => {
     const savedUsername = localStorage.getItem('rememberedUsername');
@@ -42,6 +46,29 @@ const Login = () => {
       message.error(error?.message || 'Invalid credentials');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const openForgot = () => {
+    forgotForm.resetFields();
+    // Pre-fill with whatever username/email is already typed in the login form.
+    const typed = form.getFieldValue('username');
+    if (typed && typed.includes('@')) {
+      forgotForm.setFieldsValue({ email: typed });
+    }
+    setForgotOpen(true);
+  };
+
+  const handleForgotSubmit = async (values) => {
+    setForgotLoading(true);
+    try {
+      const response = await AuthService.forgotPassword(values.email);
+      message.success(response?.message || 'If an account exists for that email, a reset link has been sent.');
+      setForgotOpen(false);
+    } catch (error) {
+      message.error(error?.message || 'Failed to send reset link. Please try again.');
+    } finally {
+      setForgotLoading(false);
     }
   };
 
@@ -163,7 +190,12 @@ const Login = () => {
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
               <Checkbox checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}>Remember me</Checkbox>
-              <a style={{ color: '#0a0a0a', fontSize: 13, fontWeight: 500 }}>Forgot password?</a>
+              <a
+                onClick={openForgot}
+                style={{ color: '#0a0a0a', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}
+              >
+                Forgot password?
+              </a>
             </div>
 
             <Button
@@ -196,6 +228,37 @@ const Login = () => {
           </Text>
         </div>
       </div>
+
+      <SliderModal
+        title="Reset your password"
+        open={forgotOpen}
+        onCancel={() => setForgotOpen(false)}
+        onOk={() => forgotForm.submit()}
+        okText="Send reset link"
+        confirmLoading={forgotLoading}
+        width={420}
+      >
+        <Text className="hms-muted" style={{ display: 'block', marginBottom: 18, fontSize: 14 }}>
+          Enter the email address linked to your account and we'll send you a link to set a new password.
+        </Text>
+        <Form form={forgotForm} layout="vertical" requiredMark={false} onFinish={handleForgotSubmit}>
+          <Form.Item
+            name="email"
+            label="Email address"
+            rules={[
+              { required: true, message: 'Email is required' },
+              { type: 'email', message: 'Enter a valid email address' }
+            ]}
+          >
+            <Input
+              size="large"
+              prefix={<MailOutlined style={{ color: '#a3a3a3' }} />}
+              placeholder="you@hospital.com"
+              autoComplete="email"
+            />
+          </Form.Item>
+        </Form>
+      </SliderModal>
 
       <style>{`
         @media (max-width: 900px) {

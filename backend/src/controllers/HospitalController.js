@@ -1,5 +1,17 @@
 const { Hospital } = require('../models');
 
+// Never expose a stored SMTP password to the client. We return an empty string
+// plus a `pass_set` flag so the UI can show "password saved" without leaking it.
+const maskHospital = (hospital) => {
+  if (!hospital) return hospital;
+  const json = hospital.toJSON ? hospital.toJSON() : { ...hospital };
+  if (json.settings && json.settings.smtp) {
+    const { pass, ...rest } = json.settings.smtp;
+    json.settings = { ...json.settings, smtp: { ...rest, pass: '', pass_set: !!pass } };
+  }
+  return json;
+};
+
 class HospitalController {
   static async registerHospital(req, res) {
     try {
@@ -49,7 +61,7 @@ class HospitalController {
         where.id = req.hospitalId;
       }
       const hospitals = await Hospital.findAll({ where });
-      res.json({ success: true, data: hospitals });
+      res.json({ success: true, data: hospitals.map(maskHospital) });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -66,7 +78,7 @@ class HospitalController {
       if (!hospital) {
         return res.status(404).json({ success: false, message: 'Hospital not found' });
       }
-      res.json({ success: true, data: hospital });
+      res.json({ success: true, data: maskHospital(hospital) });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -82,7 +94,21 @@ class HospitalController {
       // pharmacy_mode is locked after registration — never accept it on update.
       const { isActive, pharmacy_mode, ...updateData } = req.body;
       const where = { id: req.params.id };
-      
+
+      // SMTP password handling: the client never receives the stored password
+      // (it's masked on read), so a blank value on save means "keep current".
+      // Only overwrite the stored password when a new non-empty one is sent.
+      if (updateData.settings && updateData.settings.smtp) {
+        const incoming = updateData.settings.smtp;
+        delete incoming.pass_set; // read-only marker, never persist it
+        if (!incoming.pass) {
+          const existing = await Hospital.findOne({ where });
+          const existingPass = existing?.settings?.smtp?.pass;
+          if (existingPass) incoming.pass = existingPass;
+          else delete incoming.pass;
+        }
+      }
+
       if (isActive === 0 || isActive === false) {
         const [updated] = await Hospital.update(
           { isActive: false },
@@ -103,7 +129,7 @@ class HospitalController {
         return res.status(404).json({ success: false, message: 'Hospital not found' });
       }
       const updatedHospital = await Hospital.findOne({ where });
-      res.json({ success: true, data: updatedHospital });
+      res.json({ success: true, data: maskHospital(updatedHospital) });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }
@@ -126,7 +152,7 @@ class HospitalController {
       }
 
       const hospital = await Hospital.findOne({ where: { id: req.params.id } });
-      res.json({ success: true, message: 'Logo uploaded successfully', data: { logo_url: logoUrl, hospital } });
+      res.json({ success: true, message: 'Logo uploaded successfully', data: { logo_url: logoUrl, hospital: maskHospital(hospital) } });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

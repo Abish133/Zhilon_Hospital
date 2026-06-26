@@ -16,7 +16,7 @@ It is organised the way you will actually use it:
 
 > **Conventions**
 > - **URL** = the in-app address (e.g. `/opd/queue`). In a local dev setup that is
->   `http://localhost:5173/opd/queue`.
+>   `http://localhost:3000/opd/queue`.
 > - **Auto** = the system fills it for you (hospital, logged-in user, dates, tokens,
 >   UHID, billing links). You never type these.
 > - **Golden rule:** the flow is *chained by IDs*. You move a patient forward by

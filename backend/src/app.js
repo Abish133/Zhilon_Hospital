@@ -108,7 +108,7 @@ app.use(securityHeaders);
 app.use(xssProtection);
 
 // CORS middleware — allowed origins come from CORS_ORIGIN (comma-separated)
-const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:5173,http://localhost:3000')
+const corsOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
   .split(',')
   .map(o => o.trim())
   .filter(Boolean);

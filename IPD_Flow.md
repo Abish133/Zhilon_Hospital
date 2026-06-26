@@ -4,8 +4,8 @@ This guide is written **as per the actual frontend screens**. For every step you
 the **URL**, how to reach it, the **fields the form actually shows** (with the data to type),
 what the app fills in for you automatically, and how to verify it worked.
 
-> **URLs:** during development the frontend runs at **`http://localhost:5173`**, so a path
-> like `/ipd/admit` means `http://localhost:5173/ipd/admit`. (In the deployed build it's the
+> **URLs:** during development the frontend runs at **`http://localhost:3000`**, so a path
+> like `/ipd/admit` means `http://localhost:3000/ipd/admit`. (In the deployed build it's the
 > same paths on your hospital's domain.)
 >
 > **Golden rule:** you only ever type the **visible fields**. The app automatically attaches

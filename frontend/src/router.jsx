@@ -2,6 +2,7 @@ import { createBrowserRouter } from 'react-router-dom';
 import AppLayout from '@components/layout/AppLayout';
 import ProtectedRoute from '@components/layout/ProtectedRoute';
 import Login from '@pages/auth/Login';
+import ResetPassword from '@pages/auth/ResetPassword';
 import InitialSetup from '@pages/auth/InitialSetup';
 import Dashboard from '@pages/dashboard/Dashboard';
 import PatientList from '@pages/patients/PatientList';
@@ -111,6 +112,10 @@ const router = createBrowserRouter([
   {
     path: '/login',
     element: <Login />
+  },
+  {
+    path: '/reset-password',
+    element: <ResetPassword />
   },
   {
     path: '/',

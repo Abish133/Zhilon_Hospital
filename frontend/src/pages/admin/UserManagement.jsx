@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Table, Button, Space, Modal, Form, Input, Select, message, Tag, Switch, Spin } from 'antd';
+import { Card, Table, Button, Space, Form, Input, Select, message, Tag, Switch, Spin } from 'antd';
 import SliderModal from '@components/common/SliderModal';
 import { PlusOutlined, EditOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { userService, employeeService, doctorService } from '@/services';
@@ -14,6 +14,10 @@ const UserManagement = () => {
   const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedRole, setSelectedRole] = useState(null);
+  const [resetOpen, setResetOpen] = useState(false);
+  const [resetUser, setResetUser] = useState(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetForm] = Form.useForm();
 
   // Get hospital_id from logged in user
   const currentUser = AuthService.getCurrentUser();
@@ -91,18 +95,24 @@ const UserManagement = () => {
   };
 
   const handleResetPassword = (user) => {
-    Modal.confirm({
-      title: 'Reset Password',
-      content: `Reset password for ${user.name}? New password will be sent to ${user.email}`,
-      onOk: async () => {
-        try {
-          // For now just show success - backend would need password reset endpoint
-          message.success('Password reset email sent');
-        } catch (error) {
-          message.error('Failed to reset password');
-        }
-      }
-    });
+    setResetUser(user);
+    resetForm.resetFields();
+    setResetOpen(true);
+  };
+
+  const handleResetSubmit = async (values) => {
+    if (!resetUser) return;
+    setResetLoading(true);
+    try {
+      await userService.update(resetUser.id, { password: values.password });
+      message.success(`Password reset for ${resetUser.name}`);
+      setResetOpen(false);
+      setResetUser(null);
+    } catch (error) {
+      message.error('Failed to reset password: ' + (error.message || 'Unknown error'));
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleSubmit = async (values) => {
@@ -236,6 +246,54 @@ const UserManagement = () => {
               </Form.Item>
             </>
           )}
+        </Form>
+        <style>{`
+          .ant-input-password input {
+            border: none !important;
+            outline: none !important;
+            box-shadow: none !important;
+          }
+        `}</style>
+      </SliderModal>
+
+      <SliderModal
+        title={resetUser ? `Reset Password — ${resetUser.name}` : 'Reset Password'}
+        open={resetOpen}
+        onCancel={() => { setResetOpen(false); setResetUser(null); }}
+        onOk={() => resetForm.submit()}
+        okText="Reset Password"
+        confirmLoading={resetLoading}
+        width={600}
+      >
+        <Form form={resetForm} layout="vertical" onFinish={handleResetSubmit}>
+          <Form.Item
+            name="password"
+            label="New Password"
+            rules={[
+              { required: true, message: 'Please enter a new password' },
+              { min: 6, message: 'Password must be at least 6 characters' }
+            ]}
+          >
+            <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
+          </Form.Item>
+          <Form.Item
+            name="confirm_password"
+            label="Confirm New Password"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Please confirm the new password' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('The two passwords that you entered do not match!'));
+                },
+              }),
+            ]}
+          >
+            <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
+          </Form.Item>
         </Form>
         <style>{`
           .ant-input-password input {

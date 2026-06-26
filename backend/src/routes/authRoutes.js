@@ -8,6 +8,8 @@ const router = express.Router();
 
 router.post('/register', authLimiter, auditLogger('CREATE', 'User'), AuthController.register);
 router.post('/login', authLimiter, auditLogger('LOGIN', 'User'), AuthController.login);
+router.post('/forgot-password', authLimiter, auditLogger('UPDATE', 'User'), AuthController.forgotPassword);
+router.post('/reset-password', authLimiter, auditLogger('UPDATE', 'User'), AuthController.resetPassword);
 router.get('/profile', authMiddleware, AuthController.getProfile);
 router.put('/profile', authMiddleware, auditLogger('UPDATE', 'User'), AuthController.updateProfile);
 router.post('/change-password', authMiddleware, auditLogger('UPDATE', 'User'), AuthController.changePassword);

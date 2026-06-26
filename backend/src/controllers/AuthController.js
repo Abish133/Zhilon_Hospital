@@ -1,7 +1,13 @@
 const { User, Employee, Department, Hospital, Doctor } = require('../models');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const { Op } = require('sequelize');
+const { sendPasswordResetEmail } = require('../utils/mailer');
 
 const VALID_ROLES = ['Admin', 'Doctor', 'Nurse', 'Pharmacist', 'LabTech', 'Radiologist', 'Receptionist', 'Accountant', 'HR', 'Employee'];
+
+const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const hashResetToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
 class AuthController {
   static async register(req, res) {
@@ -278,6 +284,94 @@ class AuthController {
       await user.save();
 
       res.json({ success: true, message: 'Password updated successfully' });
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Public: request a password reset link by email. Always responds success so
+  // the endpoint can't be used to enumerate which emails have accounts.
+  static async forgotPassword(req, res) {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ success: false, message: 'Email is required' });
+      }
+
+      const genericResponse = {
+        success: true,
+        message: 'If an account exists for that email, a password reset link has been sent.'
+      };
+
+      const user = await User.findOne({ where: { email, isActive: true } });
+      if (!user) {
+        return res.json(genericResponse);
+      }
+
+      // Generate a random token; store only its hash so a DB leak can't be used
+      // to reset passwords. The raw token travels only in the emailed link.
+      const rawToken = crypto.randomBytes(32).toString('hex');
+      user.reset_token_hash = hashResetToken(rawToken);
+      user.reset_token_expires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
+      await user.save();
+
+      const appUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const resetUrl = `${appUrl}/reset-password?token=${rawToken}`;
+
+      // Per-tenant email: use this hospital's own SMTP if it has configured one,
+      // otherwise the mailer falls back to the platform-level SMTP_* env vars.
+      const hospital = await Hospital.findByPk(user.hospital_id);
+      const tenantSmtp = hospital?.settings?.smtp;
+
+      try {
+        await sendPasswordResetEmail(user.email, user.name, resetUrl, {
+          smtp: tenantSmtp,
+          hospitalName: hospital?.hospitalName
+        });
+      } catch (mailErr) {
+        console.error('Failed to send password reset email:', mailErr.message);
+        // Roll back the token so a failed send doesn't leave a dangling reset.
+        user.reset_token_hash = null;
+        user.reset_token_expires = null;
+        await user.save();
+        return res.status(500).json({ success: false, message: 'Failed to send reset email. Please try again later.' });
+      }
+
+      res.json(genericResponse);
+    } catch (error) {
+      res.status(500).json({ success: false, message: error.message });
+    }
+  }
+
+  // Public: complete a reset using the emailed token.
+  static async resetPassword(req, res) {
+    try {
+      const { token, password } = req.body;
+      if (!token || !password) {
+        return res.status(400).json({ success: false, message: 'Token and new password are required' });
+      }
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+
+      const user = await User.findOne({
+        where: {
+          reset_token_hash: hashResetToken(token),
+          reset_token_expires: { [Op.gt]: new Date() },
+          isActive: true
+        }
+      });
+
+      if (!user) {
+        return res.status(400).json({ success: false, message: 'This reset link is invalid or has expired. Please request a new one.' });
+      }
+
+      user.password = password; // hashed by the beforeUpdate hook
+      user.reset_token_hash = null;
+      user.reset_token_expires = null;
+      await user.save();
+
+      res.json({ success: true, message: 'Password reset successfully. You can now sign in with your new password.' });
     } catch (error) {
       res.status(500).json({ success: false, message: error.message });
     }

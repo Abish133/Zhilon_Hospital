@@ -23,6 +23,14 @@ class AuthService {
     return apiClient.post('/auth/change-password', data);
   }
 
+  forgotPassword(email) {
+    return apiClient.post('/auth/forgot-password', { email });
+  }
+
+  resetPassword(token, password) {
+    return apiClient.post('/auth/reset-password', { token, password });
+  }
+
   getProfile() {
     return apiClient.get('/auth/profile');
   }

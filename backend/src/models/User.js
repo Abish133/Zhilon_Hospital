@@ -80,6 +80,14 @@ module.exports = (sequelize, DataTypes) => {
         model: 'hospitals',
         key: 'id'
       }
+    },
+    reset_token_hash: {
+      type: DataTypes.STRING(255),
+      allowNull: true
+    },
+    reset_token_expires: {
+      type: DataTypes.DATE,
+      allowNull: true
     }
   }, {
     sequelize,
